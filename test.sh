@@ -25,8 +25,9 @@ if [ $# -gt 0 ]; then
 			echo "$1..."
 			BEGINTIME=$(date +%s%3N)
 			ERRMSG=$($1)
+			EXIT_STATUS=$?
 			ELAPSEDTIME=`expr $(date +%s%3N) - $BEGINTIME`
-			if [ $? -eq 0 ]; then
+			if [ $EXIT_STATUS -eq 0 ]; then
 				echo "${up_line}${clear_line}${green_color}$1 passed${reset_color} (${ELAPSEDTIME}ms)"
 				SUCCESSFUL_TESTS=`expr $SUCCESSFUL_TESTS + 1`
 			else
