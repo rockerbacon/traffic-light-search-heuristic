@@ -3,6 +3,7 @@
 #include <exception>
 #include <sstream>
 #include <iostream>
+#include <chrono>
 
 #define EXCEPTION_FOR_NEXT_TEST_CASE
 
@@ -17,6 +18,7 @@
 
 #define test_case(str) assert::test_case_title = str;\
 	assert::test_case_succeeded = true;\
+	assert::observer.notify_test_case_begun();\
 	try
 
 #define end_test_case catch (const assert::assertion_failed &e) {\
@@ -96,14 +98,18 @@ namespace assert {
 		public:
 			virtual void notify_test_case_failed(const std::exception& e, const std::string& test_case_title) const = 0;
 			virtual void notify_test_case_succeeded (const std::string& test_case_title) const = 0;
+			virtual void notify_test_case_begun (void) = 0;
 	};
 
 	class TerminalObserver : public Observer {
+		private:
+			std::chrono::time_point<std::chrono::high_resolution_clock> test_case_start;
 		public:
 			virtual void notify_test_case_failed(const std::exception& e, const std::string& test_case_title) const;
 			virtual void notify_test_case_succeeded (const std::string& test_case_title) const;
+			virtual void notify_test_case_begun (void);
 	};
 
-	extern const Observer& observer;
+	extern Observer& observer;
 
 };
