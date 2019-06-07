@@ -15,7 +15,6 @@ AdjacencyMatrixTrafficGraph::AdjacencyMatrixTrafficGraph(int* adjacencyMatrix, s
 }
 
 int AdjacencyMatrixTrafficGraph::weight (const TrafficGraph::Edge& edge) {
-	cout << this->adjacencyMatrix[edge.vertice1*this->numberOfVertices + edge.vertice2] << endl;
 	return this->adjacencyMatrix[edge.vertice1*this->numberOfVertices + edge.vertice2];
 }
 
@@ -84,9 +83,7 @@ TrafficGraph* TrafficGraphBuilder::buildAsAdjacencyMatrix(void) {
 		i = it.first;
 		for (auto& jt: *itVerticeMap) {
 			j = jt.first;
-			cout << i << " " << j << " " << jt.second << endl;
 			adjacencyMatrix[i*matrixDimension+j] = jt.second;
-			cout << adjacencyMatrix[i*matrixDimension+j] << endl;
 		}
 	}
 	return new AdjacencyMatrixTrafficGraph(adjacencyMatrix, matrixDimension);

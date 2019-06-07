@@ -1,6 +1,5 @@
 #include "traffic_graph.h"
 #include "assert.h"
-#include <iostream>
 
 #define NUMBER_OF_VERTICES 4
 #define EDGE1 {0, 1}
@@ -8,46 +7,59 @@
 #define EDGE2 {2, 3}
 #define EDGE2_WEIGHT 6
 
-using namespace assertion;
 using namespace ufrrj;
 int main (void) {
 
-	TrafficGraphBuilder graphBuilder;
+	TrafficGraphBuilder* graphBuilder;
 	TrafficGraph* graph;
 	TrafficGraph::Edge	edge1 = EDGE1,
 						edge2 = EDGE2,
 						reverseEdge1 = {edge1.vertice2, edge1.vertice1},
 						reverseEdge2 = {edge2.vertice2, edge2.vertice1};
-	try {
 
-		graphBuilder.addEdgeBetween(edge1, EDGE1_WEIGHT);
-		graphBuilder.addEdgeBetween(edge2, EDGE1_WEIGHT);
+	test_case("TrafficGraphBuilder instantiation raises no errors") {
+		graphBuilder = new TrafficGraphBuilder();
+	} end_test_case;
 
-		graph = graphBuilder.buildAsAdjacencyMatrix();
+	test_case("adding edge to TrafficGraphBuilder raises no errors") {
+		graphBuilder->addEdgeBetween(edge1, EDGE1_WEIGHT);
+		graphBuilder->addEdgeBetween(edge2, EDGE1_WEIGHT);
+	} end_test_case;
 
-		assert(graph->getNumberOfVertices(), equals<size_t>(), (size_t)NUMBER_OF_VERTICES);
+	test_case("build as adjacency matrix raises no errors") {
+		graph = graphBuilder->buildAsAdjacencyMatrix();
+	} end_test_case;
 
-		assert(graph->weight(edge1), equals<int>(), EDGE1_WEIGHT);
-		assert(graph->weight(reverseEdge1), equals<int>(), EDGE1_WEIGHT);
+	test_case("adjacency matrix has correct dimensions") {
+		assert_equal(graph->getNumberOfVertices(), NUMBER_OF_VERTICES);
+	} end_test_case;
 
-		assert(graph->weight(edge2), equals<int>(), EDGE2_WEIGHT);
-		assert(graph->weight(reverseEdge2), equals<int>(), EDGE2_WEIGHT);
+	test_case("first added edge has correct weight") {
+		assert_equal(graph->weight(edge1), EDGE1_WEIGHT);
+	} end_test_case;
 
+	test_case("second added edge has correct weight") {
+		assert_equal(graph->weight(edge2), EDGE2_WEIGHT);
+	} end_test_case;
+
+	test_case("weight for edge (u,v) equals weight for edge (v,u) for both added edges") {
+		assert_equal(graph->weight(reverseEdge1), EDGE1_WEIGHT);
+		assert_equal(graph->weight(reverseEdge2), EDGE2_WEIGHT);
+	} end_test_case;
+
+	test_case("non existing edges have weight 0") {
 		for (size_t vertice1 = 0; vertice1 < NUMBER_OF_VERTICES; vertice1++) {
 			for (size_t vertice2 = 0; vertice2 < NUMBER_OF_VERTICES; vertice2++) {
 				TrafficGraph::Edge currentEdge = {vertice1, vertice2};
-				if	(currentEdge == edge1 || currentEdge == reverseEdge1) {
+				if	(currentEdge == edge1 || currentEdge == reverseEdge1 || currentEdge == edge2 || currentEdge == reverseEdge2) {
 					continue;
 				} else {
-					assert(graph->weight(currentEdge), equals<int>(), 0);
+					assert_equal(graph->weight(currentEdge), 0);
 				}
 			}
 		}
-	} catch (std::exception& e) {
-		std::cout << e.what() << std::endl;
-		delete graph;
-		return 1;
-	}
+	} end_test_case;
 
-	return 0;
+	delete graphBuilder;
+	delete graph;
 }
