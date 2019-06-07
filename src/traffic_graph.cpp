@@ -15,7 +15,15 @@ AdjacencyMatrixTrafficGraph::AdjacencyMatrixTrafficGraph(int* adjacencyMatrix, s
 }
 
 int AdjacencyMatrixTrafficGraph::weight (const TrafficGraph::Edge& edge) {
-	return this->adjacencyMatrix[edge.vertice1*this->numberOfVertices + edge.vertice2];
+	size_t i, j;
+	if (edge.vertice1 > edge.vertice2) {
+		i = edge.vertice2;
+		j = edge.vertice1;
+	} else {
+		i = edge.vertice1;
+		j = edge.vertice2;
+	}
+	return this->adjacencyMatrix[i*this->numberOfVertices + j];
 }
 
 size_t AdjacencyMatrixTrafficGraph::getNumberOfVertices (void) {
