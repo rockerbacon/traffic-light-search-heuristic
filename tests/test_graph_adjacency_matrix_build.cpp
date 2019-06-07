@@ -22,8 +22,8 @@ int main (void) {
 	} end_test_case;
 
 	test_case("adding edge to TrafficGraphBuilder raises no errors") {
-		graphBuilder->addEdgeBetween(edge1, EDGE1_WEIGHT);
-		graphBuilder->addEdgeBetween(edge2, EDGE2_WEIGHT);
+		graphBuilder->addEdge(edge1, EDGE1_WEIGHT);
+		graphBuilder->addEdge(edge2, EDGE2_WEIGHT);
 	} end_test_case;
 
 	test_case("build as adjacency matrix raises no errors") {

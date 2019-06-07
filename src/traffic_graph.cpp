@@ -49,7 +49,7 @@ TrafficGraphBuilder::~TrafficGraphBuilder (void) {
 	}
 }
 
-void TrafficGraphBuilder::addEdgeBetween(const TrafficGraph::Edge& edge, int weight) {
+void TrafficGraphBuilder::addEdge(const TrafficGraph::Edge& edge, int weight) {
 	decltype(TrafficGraphBuilder::adjacencyListMap)::iterator vertice1Index;
 	unordered_map<size_t, int>* vertice1Map;
 	unordered_map<size_t, int>::iterator vertice2Index;

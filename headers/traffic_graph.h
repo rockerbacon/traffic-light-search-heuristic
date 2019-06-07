@@ -46,7 +46,7 @@ namespace ufrrj {
 			TrafficGraphBuilder();
 			~TrafficGraphBuilder(void);
 
-			void addEdgeBetween(const TrafficGraph::Edge& edge, int weight);
+			void addEdge(const TrafficGraph::Edge& edge, int weight);
 
 			TrafficGraph* buildAsAdjacencyMatrix(void);
 			TrafficGraph* buildAsAdjacencyList(void);
