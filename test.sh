@@ -10,37 +10,79 @@ reset_color=`tput setaf $default_text_color`
 up_line=`tput cuu 1`
 clear_line=`tput el 1`
 
+TESTS_DIR=$(cat makefile | grep -e 'TESTS_DIR\s*=' | sed 's/TESTS_DIR[][:space:]]*=[][:space:]]*//')
+TEST_BUILD_DIR=$(cat makefile | grep -e 'TEST_BUILD_DIR\s*=' | sed 's/TEST_BUILD_DIR[[:space:]]*=[[:space:]]*//')
+
+determine_current_test_full_name () {
+	ESCAPED_TESTS_DIR=$(echo $TESTS_DIR | sed 's/\//\\\//g; s/\./\\\./g')
+	ESCAPED_TEST_BUILD_DIR=$(echo $TEST_BUILD_DIR | sed 's/\//\\\//g; s/\./\\\./g')
+	TEST_NAME=$(echo $CURRENT_TEST | sed "s/^${ESCAPED_TESTS_DIR}\///; s/^${ESCAPED_TEST_BUILD_DIR}\///;" | sed "s/^test_//; s/.cpp$//")
+	TEST_FULL_NAME="test_${TEST_NAME}"
+}
+
+determine_current_test_source_file () {
+	TEST_SOURCE_FILE="${TESTS_DIR}/${TEST_FULL_NAME}.cpp"
+}
+
+determine_current_test_binary_file () {
+	TEST_BINARY_FILE="${TEST_BUILD_DIR}/${TEST_FULL_NAME}"
+}
+
 if [ $# -gt 0 ]; then
+	if [ "$1" != "all" ]; then
+		TESTS=$1
+		shift
+		until [ -z "$1" ]
+		do
+			TESTS="${TESTS}\n${1}"
+			shift
+		done
+	else
+		TESTS="${TESTS_DIR}/*.cpp"
+	fi
 
-	echo "-------------------BUILD-------------------"
-	make tests
-	echo "-------------------BUILD-------------------"
+	FAILED_TESTS=0
+	SUCCESSFUL_TESTS=0
+	IGNORED_TESTS=0
 
-	echo 
+	echo	# line feed
 	echo "-------------------INDIVIDUAL TESTS-------------------"
-	until [ -z "$1" ]
+	for CURRENT_TEST in $TESTS
 	do
 
-		if [ $1 != "" ]; then
-			echo "$1..."
-			BEGINTIME=$(date +%s%3N)
-			ERRMSG=$($1)
-			ELAPSEDTIME=`expr $(date +%s%3N) - $BEGINTIME`
-			if [ $? -eq 0 ]; then
-				echo "${up_line}${clear_line}${green_color}$1 passed${reset_color} (${ELAPSEDTIME}ms)"
-				SUCCESSFUL_TESTS=`expr $SUCCESSFUL_TESTS + 1`
+		determine_current_test_full_name
+		echo "Testing ${TEST_NAME}..."
+		if [ -d "${TESTS_DIR}/${CURRENT_TEST}" ]; then
+			echo "Executing tests from specific folder not yet supported"
+		else
+			determine_current_test_source_file
+			determine_current_test_binary_file
+			if [ -f "$TEST_SOURCE_FILE" ]; then
+				make -s $TEST_BINARY_FILE
+				BUILD_STATUS=$?
+				if [ $BUILD_STATUS -eq 0 ]; then
+					TEST_OUTPUT=$($TEST_BINARY_FILE)
+					TEST_SUCCESSES=$(echo $TEST_OUTPUT | grep -o "' OK" | wc -l)
+					TEST_FAILURES=$(echo $TEST_OUTPUT | grep -o "' failed:" | wc -l)
+					SUCCESSFUL_TESTS=`expr $SUCCESSFUL_TESTS + $TEST_SUCCESSES`
+					FAILED_TESTS=`expr $FAILED_TESTS + $TEST_FAILURES`
+					echo "	${TEST_OUTPUT}" | tr '\n' '\0' | sed 's/\0/\n\t/g' | sed 's/\n\t__successful_test_cases.*$//I'
+				else
+					echo "	${red_color}build failed for ${TEST_SOURCE_FILE}${reset_color}"
+					FAILED_TESTS=`expr $FAILED_TESTS + 1`
+				fi
 			else
-				echo "${up_line}${clear_line}${red_color}$1 failed:${reset_color} '$ERRMSG' (${ELAPSEDTIME}ms)"
-				FAILED_TESTS=`expr $FAILED_TESTS + 1`
+				echo "${red_color}no source file ${TEST_SOURCE_FILE}${reset_color}"
 			fi
+
 		fi
 
-		shift
+		echo	# line feed
 
 	done
 	echo "-------------------INDIVIDUAL TESTS-------------------"
 
-	echo	#line feed
+	echo	# line feed
 	echo "-------------------TESTS SUMMARY-------------------"
 	if [ $SUCCESSFUL_TESTS -gt 0 ]; then
 		echo "${green_color}$SUCCESSFUL_TESTS passed${reset_color}"
@@ -55,5 +97,5 @@ if [ $# -gt 0 ]; then
 	echo "-------------------TESTS SUMMARY-------------------"
 
 else
-	echo "Specify tests to be run. You can use regular expressions"
+	echo "Specify tests to be run"
 fi

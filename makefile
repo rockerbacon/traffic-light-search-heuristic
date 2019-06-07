@@ -4,9 +4,6 @@ SRC_DIR=./src
 HEADERS_DIR=./headers
 TESTS_DIR=./tests
 
-HEADER_DEPS=$(HEADERS_DIR)/assert.h
-
-BUILD_DIR=./build
 TEST_BUILD_DIR=./test_build
 OBJS_BUILD_DIR=./objs
 
@@ -15,26 +12,28 @@ TESTS=$(patsubst $(TESTS_DIR)/%.cpp, $(TEST_BUILD_DIR)/%, $(wildcard $(TESTS_DIR
 
 CXXFLAGS=-I$(HEADERS_DIR)
 
+.SECONDARY: $(OBJS)
+
+.PHONY: clean tests build_obj_build_path
+
 nothing:
 
 clean:
-	rm -f $(BUILD_DIR)/*
 	rm -f $(OBJS_BUILD_DIR)/*
 	rm -f $(TEST_BUILD_DIR)/*
 
-.SECONDARY: $(OBJS)
 
-$(HEADER_DEPS):
+$(OBJS_BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADER_DEPS) | $(OBJS_BUILD_DIR)
+	$(CXX) -c $< -o $(OBJS_BUILD_DIR)/$*.o $(CXXFLAGS)
 
-$(OBJS_BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) -c $^ -o $(OBJS_BUILD_DIR)/$*.o $(CXXFLAGS)
-
-$(TEST_BUILD_DIR)/%: $(TESTS_DIR)/%.cpp $(OBJS)
+$(TEST_BUILD_DIR)/%: $(TESTS_DIR)/%.cpp $(OBJS) | $(TEST_BUILD_DIR)
 	$(CXX) $^ -o $(TEST_BUILD_DIR)/$* $(CXXFLAGS)
 
 tests: build_paths $(TESTS)
 
-build_paths:
-	mkdir -p $(BUILD_DIR)
-	mkdir -p $(TEST_BUILD_DIR)
-	mkdir -p $(OBJS_BUILD_DIR)
+$(TEST_BUILD_DIR):
+	mkdir -p $@
+
+$(OBJS_BUILD_DIR):
+	mkdir -p $@
+
