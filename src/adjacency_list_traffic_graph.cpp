@@ -15,10 +15,26 @@ AdjacencyListTrafficGraph::~AdjacencyListTrafficGraph(void) {
 
 int AdjacencyListTrafficGraph::weight(const Edge& edge) const {
 	int weight;
-	unordered_map<Vertice, int>& vertice1AdjacencyMap = this->adjacencyList[edge.vertice1];
-	unordered_map<Vertice, int>::iterator it = vertice1AdjacencyMap.find(edge.vertice2);
-	if (it != vertice1AdjacencyMap.end()) {
-		weight = it->second;
+	unordered_map<Vertice, int>* vertice1AdjacencyMap;
+	unordered_map<Vertice, int>::iterator it;
+	Vertice i, j;
+
+	if (edge.vertice1 > edge.vertice2) {
+		i = edge.vertice2;
+		j = edge.vertice1;
+	} else {
+		i = edge.vertice1;
+		j = edge.vertice2;
+	}
+
+	if (i < this->numberOfVertices-1) {
+		vertice1AdjacencyMap = this->adjacencyList + i;
+		it = vertice1AdjacencyMap->find(j);
+		if (it != vertice1AdjacencyMap->end()) {
+			weight = it->second;
+		} else {
+			weight = -1;
+		}
 	} else {
 		weight = -1;
 	}

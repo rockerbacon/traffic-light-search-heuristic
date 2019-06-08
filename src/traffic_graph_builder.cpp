@@ -71,21 +71,25 @@ TrafficGraph* TrafficGraphBuilder::buildAsAdjacencyMatrix(void) {
 }
 
 TrafficGraph* TrafficGraphBuilder::buildAsAdjacencyList(void) {
-	size_t numberOfVertices = this->highestVerticeIndex+1;
-	auto adjacencyList = new unordered_map<Vertice, int>[numberOfVertices];
-	Vertice i, j;
+	size_t adjacencyListDimension = this->highestVerticeIndex;
+	auto adjacencyList = new unordered_map<Vertice, int>[adjacencyListDimension];
+	Vertice i, j, aux;
 
 	for (auto& it: this->adjacencyListMap) {
 		auto itVerticeMap = it.second;
 		i = it.first;
 		for (auto& jt: *itVerticeMap) {
 			j = jt.first;
+			if (i > j) {
+				aux = i;
+				i = j;
+				j = aux;
+			}
 			adjacencyList[i][j] = jt.second;
-			adjacencyList[j][i] = jt.second;
 		}
 	}
 
-	return new AdjacencyListTrafficGraph(adjacencyList, numberOfVertices, this->cycle);
+	return new AdjacencyListTrafficGraph(adjacencyList, adjacencyListDimension+1, this->cycle);
 }
 
 void TrafficGraphBuilder::withCycle (int cycle) {
