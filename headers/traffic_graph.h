@@ -3,7 +3,10 @@
 #include <cstdlib>
 #include <unordered_map>
 
+
 namespace ufrrj {
+
+	typedef size_t Vertice;
 
 	class TrafficGraph {
 		public:
@@ -15,21 +18,41 @@ namespace ufrrj {
 					bool operator== (const Edge& other);
 			};
 
-			virtual int weight(const Edge& edge) = 0;
-			virtual size_t getNumberOfVertices(void) = 0;
+			virtual int weight(const Edge& edge) const = 0;
+			virtual size_t getNumberOfVertices(void) const = 0;
+			virtual void setTiming(Vertice vertice, int timing) = 0;
+			virtual int getTiming(Vertice vertice) const = 0;
+			virtual int penalty(Vertice vertice1, Vertice vertice2) const = 0;
+			virtual int getCycle (void) const = 0;
 
+	};
+
+	class Solution {
+		private:
+			int* verticeTimings;
+		public:
+			Solution (size_t numberOfVertices);
+			~Solution (void);
+			void setTiming(Vertice vertice, int timing);
+			int getTiming(Vertice vertice);
 	};
 
 	class AdjacencyMatrixTrafficGraph : public TrafficGraph {
 		private:
+			int cycle;
 			int* adjacencyMatrix;
-			size_t numberOfVertices;
+			Vertice numberOfVertices;
+			Solution* solution;
 		public:
-			AdjacencyMatrixTrafficGraph(int* adjacencyMatrix, size_t numberOfVertices);
+			AdjacencyMatrixTrafficGraph(int* adjacencyMatrix, size_t numberOfVertices, int cycle);
 			~AdjacencyMatrixTrafficGraph(void);
 
-			virtual int weight(const Edge& edge);
-			virtual size_t getNumberOfVertices(void);
+			virtual int weight(const Edge& edge) const;
+			virtual size_t getNumberOfVertices(void) const;
+			virtual void setTiming(Vertice vertice, int timing);
+			virtual int getTiming(Vertice vertice) const;
+			virtual int penalty(Vertice vertice1, Vertice vertice2) const;
+			virtual int getCycle (void) const;
 
 	};
 
@@ -39,6 +62,7 @@ namespace ufrrj {
 
 	class TrafficGraphBuilder {
 		private:
+			int cycle;
 			std::unordered_map<size_t, std::unordered_map<size_t, int>*> adjacencyListMap;
 			size_t highestVerticeIndex;
 
@@ -50,6 +74,8 @@ namespace ufrrj {
 
 			TrafficGraph* buildAsAdjacencyMatrix(void);
 			TrafficGraph* buildAsAdjacencyList(void);
+
+			void withCycle(int cycle);
 	};
 
 
