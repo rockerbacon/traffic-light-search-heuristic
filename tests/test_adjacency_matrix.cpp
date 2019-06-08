@@ -1,12 +1,14 @@
 #include "traffic_graph.h"
 #include "assert.h"
 
-#define NUMBER_OF_VERTICES 4
-#define EDGE1 {0, 1}
-#define EDGE1_WEIGHT 3
+#define NUMBER_OF_VERTICES 8
+#define EDGE1 {7, 5}
+#define EDGE1_WEIGHT 6
 #define EDGE2 {2, 3}
-#define EDGE2_WEIGHT 6
-#define CYCLE 10
+#define EDGE2_WEIGHT 3
+#define CYCLE 20
+#define TIMING_U 16
+#define TIMING_V 8
 
 using namespace ufrrj;
 int main (void) {
@@ -18,28 +20,20 @@ int main (void) {
 						reverseEdge1 = {edge1.vertice2, edge1.vertice1},
 						reverseEdge2 = {edge2.vertice2, edge2.vertice1};
 
-	test_case("TrafficGraphBuilder instantiation raises no errors") {
+	test_case("build adjacency matrix") {
 		graphBuilder = new TrafficGraphBuilder();
-	} end_test_case;
-
-	test_case("adding edge to TrafficGraphBuilder raises no errors") {
 		graphBuilder->addEdge(edge1, EDGE1_WEIGHT);
 		graphBuilder->addEdge(edge2, EDGE2_WEIGHT);
-	} end_test_case;
-
-	test_case("setting cycle to TrafficGraphBuilder raises no errors") {
 		graphBuilder->withCycle(CYCLE);
+		graph = graphBuilder->buildAsAdjacencyMatrix();
+		assert_true(graph != NULL);
 	} end_test_case;
 
-	test_case("build as adjacency list raises no errors") {
-		graph = graphBuilder->buildAsAdjacencyList();
-	} end_test_case;
-
-	test_case("adjacency matrix has correct dimensions") {
+	test_case("has correct dimensions") {
 		assert_equal(graph->getNumberOfVertices(), NUMBER_OF_VERTICES);
 	} end_test_case;
 
-	test_case("adjacency matrix has correct cycle") {
+	test_case("has correct cycle") {
 		assert_equal(graph->getCycle(), CYCLE);
 	} end_test_case;
 
@@ -69,11 +63,31 @@ int main (void) {
 		}
 	} end_test_case;
 
-	test_case ("TrafficGraphBuilder destruction throws no errors") {
+	test_case("set vertice timing") {
+		graph->setTiming(edge1.vertice1, TIMING_U);
+		graph->setTiming(edge1.vertice2, TIMING_V);
+
+		assert_equal(graph->getTiming(edge1.vertice1), TIMING_U);
+		assert_equal(graph->getTiming(edge1.vertice2), TIMING_V);
+	} end_test_case;
+
+	test_case("penalty between two vertices with edge between them") {
+		int penalty_uv = graph->penalty(edge1.vertice1, edge1.vertice2);
+		int penalty_vu = graph->penalty(edge1.vertice2, edge1.vertice1);
+		assert_equal(penalty_uv, 6);
+		assert_equal(penalty_vu, 2);
+	} end_test_case;
+
+	test_case ("penalty between two vertices with no edge between them") {
+		int penalty = graph->penalty(4, 3);
+		assert_equal(penalty, 0);
+	} end_test_case;
+
+	test_case ("destroy TrafficGraphBuilder") {
 		delete graphBuilder;
 	} end_test_case;
 
-	test_case("AdjacencyMatrixGraph destruction throws no errors") {
+	test_case("destroy AdjacencyMatrixGraph") {
 		delete graph;
 	} end_test_case;
 }

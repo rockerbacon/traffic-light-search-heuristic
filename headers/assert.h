@@ -38,7 +38,7 @@
 		assert::observer.notify_test_case_succeeded(assert::test_case_title);\
 	}
 
-#define assert_true(condition) if (!condition) {\
+#define assert_true(condition) if (!(condition)) {\
 		throw assert::assertion_failed("condition was false");\
 	}
 

@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <unordered_map>
 
-
 namespace ufrrj {
 
 	typedef size_t Vertice;
@@ -57,14 +56,28 @@ namespace ufrrj {
 	};
 
 	class AdjacencyListTrafficGraph : public TrafficGraph {
+		private:
+			size_t numberOfVertices;
+			int cycle;
+			std::unordered_map<Vertice, int>* adjacencyList;
 
+		public:
+			AdjacencyListTrafficGraph(std::unordered_map<Vertice, int>* adjacencyList, size_t numberOfVertices, int cycle);
+			~AdjacencyListTrafficGraph(void);
+
+			virtual int weight(const Edge& edge) const;
+			virtual size_t getNumberOfVertices(void) const;
+			virtual void setTiming(Vertice vertice, int timing);
+			virtual int getTiming(Vertice vertice) const;
+			virtual int penalty(Vertice vertice1, Vertice vertice2) const;
+			virtual int getCycle (void) const;
 	};
 
 	class TrafficGraphBuilder {
 		private:
 			int cycle;
-			std::unordered_map<size_t, std::unordered_map<size_t, int>*> adjacencyListMap;
-			size_t highestVerticeIndex;
+			std::unordered_map<Vertice, std::unordered_map<Vertice, int>*> adjacencyListMap;
+			Vertice highestVerticeIndex;
 
 		public:
 			TrafficGraphBuilder();
