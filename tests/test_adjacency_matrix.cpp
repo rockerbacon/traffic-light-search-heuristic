@@ -29,14 +29,6 @@ int main (void) {
 		assert_true(graph != NULL);
 	} end_test_case;
 
-	test_case("has correct dimensions") {
-		assert_equal(graph->getNumberOfVertices(), NUMBER_OF_VERTICES);
-	} end_test_case;
-
-	test_case("has correct cycle") {
-		assert_equal(graph->getCycle(), CYCLE);
-	} end_test_case;
-
 	test_case("first added edge has correct weight") {
 		assert_equal(graph->weight(edge1), EDGE1_WEIGHT);
 	} end_test_case;
@@ -45,7 +37,7 @@ int main (void) {
 		assert_equal(graph->weight(edge2), EDGE2_WEIGHT);
 	} end_test_case;
 
-	test_case("weight for edge (u,v) equals weight for edge (v,u) for both added edges") {
+	test_case("weight for edge (u,v) equals weight for edge (v,u)") {
 		assert_equal(graph->weight(reverseEdge1), EDGE1_WEIGHT);
 		assert_equal(graph->weight(reverseEdge2), EDGE2_WEIGHT);
 	} end_test_case;
@@ -61,26 +53,6 @@ int main (void) {
 				}
 			}
 		}
-	} end_test_case;
-
-	test_case("set vertice timing") {
-		graph->setTiming(edge1.vertice1, TIMING_U);
-		graph->setTiming(edge1.vertice2, TIMING_V);
-
-		assert_equal(graph->getTiming(edge1.vertice1), TIMING_U);
-		assert_equal(graph->getTiming(edge1.vertice2), TIMING_V);
-	} end_test_case;
-
-	test_case("penalty between two vertices with edge between them") {
-		int penalty_uv = graph->penalty(edge1.vertice1, edge1.vertice2);
-		int penalty_vu = graph->penalty(edge1.vertice2, edge1.vertice1);
-		assert_equal(penalty_uv, 6);
-		assert_equal(penalty_vu, 2);
-	} end_test_case;
-
-	test_case ("penalty between two vertices with no edge between them") {
-		int penalty = graph->penalty(4, 3);
-		assert_equal(penalty, 0);
 	} end_test_case;
 
 	test_case ("destroy GraphBuilder") {

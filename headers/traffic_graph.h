@@ -30,7 +30,7 @@ namespace traffic {
 					Vertice vertice1;
 					Vertice vertice2;
 
-					bool operator== (const Edge& other);
+					bool operator== (const Edge& other) const;
 			};
 
 			Graph(size_t numberOfVertices, TimeUnit cycle);
