@@ -17,11 +17,18 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	unordered_map<Vertice, Weight>* vertice1Map;
 	unordered_map<Vertice, Weight>::iterator vertice2Index;
 	size_t highestVerticeIndexInEdge;
+	Vertice i, j;
 
 	if (edge.vertice1 > edge.vertice2) {
 		highestVerticeIndexInEdge = edge.vertice1;
-	} else {
+		i = edge.vertice2;
+		j = edge.vertice1;
+	} else if (edge.vertice1 < edge.vertice2){
 		highestVerticeIndexInEdge = edge.vertice2;
+		i = edge.vertice1;
+		j = edge.vertice2;
+	} else {
+		return;
 	}
 
 	if (highestVerticeIndexInEdge > this->highestVerticeIndex) {
@@ -29,25 +36,27 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	}
 
 
-	vertice1Index = this->adjacencyListMap.find(edge.vertice1);
+	vertice1Index = this->adjacencyListMap.find(i);
 	if (vertice1Index == this->adjacencyListMap.end()) {
 		vertice1Map = new unordered_map<size_t, Weight>();
-		this->adjacencyListMap[edge.vertice1] = vertice1Map;
+		this->adjacencyListMap[i] = vertice1Map;
 	} else {
 		vertice1Map = vertice1Index->second;
 	}
 
-	vertice2Index = vertice1Map->find(edge.vertice2);
+	vertice2Index = vertice1Map->find(j);
 
 	if (vertice2Index == vertice1Map->end()) {
-		(*vertice1Map)[edge.vertice2] = weight;
+		(*vertice1Map)[j] = weight;
 	}
 }
 
 Graph* GraphBuilder::buildAsAdjacencyMatrix(void) {
 	size_t matrixDimension = this->highestVerticeIndex+1;
-	size_t matrixTotalSize = matrixDimension*matrixDimension;
-	Vertice i, j, aux;
+	size_t matrixDimensionX2minus1 = matrixDimension*2-1;
+	size_t matrixTotalSize = matrixDimension/2*matrixDimension + matrixDimension/2;
+	Vertice i, j;
+	size_t index;
 	Weight* adjacencyMatrix = new Weight[matrixTotalSize];
 
 	for (i = 0; i < matrixTotalSize; i++) {
@@ -59,12 +68,8 @@ Graph* GraphBuilder::buildAsAdjacencyMatrix(void) {
 		i = it.first;
 		for (auto& jt: *itVerticeMap) {
 			j = jt.first;
-			if (i > j) {
-				aux = i;
-				i = j;
-				j = aux;
-			}
-			adjacencyMatrix[i*matrixDimension+j] = jt.second;
+			index = j + i*(matrixDimensionX2minus1-i)/2;
+			adjacencyMatrix[index] = jt.second;
 		}
 	}
 	return new AdjacencyMatrixGraph(adjacencyMatrix, matrixDimension, this->cycle);
@@ -80,11 +85,6 @@ Graph* GraphBuilder::buildAsAdjacencyList(void) {
 		i = it.first;
 		for (auto& jt: *itVerticeMap) {
 			j = jt.first;
-			if (i > j) {
-				aux = i;
-				i = j;
-				j = aux;
-			}
 			adjacencyList[i][j] = jt.second;
 		}
 	}

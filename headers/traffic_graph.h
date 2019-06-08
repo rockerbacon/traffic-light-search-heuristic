@@ -45,10 +45,10 @@ namespace traffic {
 
 	};
 
-
 	class AdjacencyMatrixGraph : public Graph {
 		private:
 			Weight* adjacencyMatrix;
+			size_t matrixDimensionX2minus1;
 		public:
 			AdjacencyMatrixGraph(Weight* adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyMatrixGraph(void);

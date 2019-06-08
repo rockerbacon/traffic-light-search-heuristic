@@ -16,9 +16,9 @@ int main (void) {
 	GraphBuilder* graphBuilder;
 	Graph* graph;
 	Graph::Edge	edge1 = EDGE1,
-						edge2 = EDGE2,
-						reverseEdge1 = {edge1.vertice2, edge1.vertice1},
-						reverseEdge2 = {edge2.vertice2, edge2.vertice1};
+				edge2 = EDGE2,
+				reverseEdge1 = {edge1.vertice2, edge1.vertice1},
+				reverseEdge2 = {edge2.vertice2, edge2.vertice1};
 
 	test_case("build adjacency matrix") {
 		graphBuilder = new GraphBuilder();
@@ -43,8 +43,8 @@ int main (void) {
 	} end_test_case;
 
 	test_case("non existing edges have weight -1") {
-		for (size_t vertice1 = 0; vertice1 < NUMBER_OF_VERTICES; vertice1++) {
-			for (size_t vertice2 = 0; vertice2 < NUMBER_OF_VERTICES; vertice2++) {
+		for (Vertice vertice1 = 0; vertice1 < NUMBER_OF_VERTICES; vertice1++) {
+			for (Vertice vertice2 = 0; vertice2 < NUMBER_OF_VERTICES; vertice2++) {
 				Graph::Edge currentEdge = {vertice1, vertice2};
 				if	(currentEdge == edge1 || currentEdge == reverseEdge1 || currentEdge == edge2 || currentEdge == reverseEdge2) {
 					continue;
