@@ -10,18 +10,18 @@
 #define TIMING_U 16
 #define TIMING_V 8
 
-using namespace ufrrj;
+using namespace traffic;
 int main (void) {
 
-	TrafficGraphBuilder* graphBuilder;
-	TrafficGraph* graph;
-	TrafficGraph::Edge	edge1 = EDGE1,
+	GraphBuilder* graphBuilder;
+	Graph* graph;
+	Graph::Edge	edge1 = EDGE1,
 						edge2 = EDGE2,
 						reverseEdge1 = {edge1.vertice2, edge1.vertice1},
 						reverseEdge2 = {edge2.vertice2, edge2.vertice1};
 
 	test_case("build adjacency matrix") {
-		graphBuilder = new TrafficGraphBuilder();
+		graphBuilder = new GraphBuilder();
 		graphBuilder->addEdge(edge1, EDGE1_WEIGHT);
 		graphBuilder->addEdge(edge2, EDGE2_WEIGHT);
 		graphBuilder->withCycle(CYCLE);
@@ -53,7 +53,7 @@ int main (void) {
 	test_case("non existing edges have weight -1") {
 		for (size_t vertice1 = 0; vertice1 < NUMBER_OF_VERTICES; vertice1++) {
 			for (size_t vertice2 = 0; vertice2 < NUMBER_OF_VERTICES; vertice2++) {
-				TrafficGraph::Edge currentEdge = {vertice1, vertice2};
+				Graph::Edge currentEdge = {vertice1, vertice2};
 				if	(currentEdge == edge1 || currentEdge == reverseEdge1 || currentEdge == edge2 || currentEdge == reverseEdge2) {
 					continue;
 				} else {
@@ -83,7 +83,7 @@ int main (void) {
 		assert_equal(penalty, 0);
 	} end_test_case;
 
-	test_case ("destroy TrafficGraphBuilder") {
+	test_case ("destroy GraphBuilder") {
 		delete graphBuilder;
 	} end_test_case;
 

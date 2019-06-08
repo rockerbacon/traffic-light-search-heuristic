@@ -3,94 +3,87 @@
 #include <cstdlib>
 #include <unordered_map>
 
-namespace ufrrj {
+namespace traffic {
 
 	typedef size_t Vertice;
+	typedef unsigned int TimeUnit;
+	typedef int Weight;
 
-	class TrafficGraph {
+	class Solution {
+		private:
+			TimeUnit* verticeTimings;
+		public:
+			Solution (size_t numberOfVertices);
+			~Solution (void);
+			void setTiming(Vertice vertice, TimeUnit timing);
+			TimeUnit getTiming(Vertice vertice);
+	};
+
+	class Graph {
+		private:
+			Solution* solution;
+			TimeUnit cycle;
+			size_t numberOfVertices;
 		public:
 			class Edge {
 				public:
-					size_t vertice1;
-					size_t vertice2;
+					Vertice vertice1;
+					Vertice vertice2;
 
 					bool operator== (const Edge& other);
 			};
 
+			Graph(size_t numberOfVertices, TimeUnit cycle);
+			~Graph(void);
+
 			virtual int weight(const Edge& edge) const = 0;
-			virtual size_t getNumberOfVertices(void) const = 0;
-			virtual void setTiming(Vertice vertice, int timing) = 0;
-			virtual int getTiming(Vertice vertice) const = 0;
-			virtual int penalty(Vertice vertice1, Vertice vertice2) const = 0;
-			virtual int getCycle (void) const = 0;
+			void setTiming(Vertice vertice, TimeUnit timing);
+			TimeUnit getTiming(Vertice vertice) const;
+			size_t getNumberOfVertices(void) const;
+			TimeUnit penalty(Vertice vertice1, Vertice vertice2) const;
+			TimeUnit getCycle (void) const;
 
 	};
 
-	class Solution {
+
+	class AdjacencyMatrixGraph : public Graph {
 		private:
-			int* verticeTimings;
+			Weight* adjacencyMatrix;
 		public:
-			Solution (size_t numberOfVertices);
-			~Solution (void);
-			void setTiming(Vertice vertice, int timing);
-			int getTiming(Vertice vertice);
-	};
+			AdjacencyMatrixGraph(Weight* adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle);
+			~AdjacencyMatrixGraph(void);
 
-	class AdjacencyMatrixTrafficGraph : public TrafficGraph {
-		private:
-			int cycle;
-			int* adjacencyMatrix;
-			Vertice numberOfVertices;
-			Solution* solution;
-		public:
-			AdjacencyMatrixTrafficGraph(int* adjacencyMatrix, size_t numberOfVertices, int cycle);
-			~AdjacencyMatrixTrafficGraph(void);
-
-			virtual int weight(const Edge& edge) const;
-			virtual size_t getNumberOfVertices(void) const;
-			virtual void setTiming(Vertice vertice, int timing);
-			virtual int getTiming(Vertice vertice) const;
-			virtual int penalty(Vertice vertice1, Vertice vertice2) const;
-			virtual int getCycle (void) const;
+			virtual Weight weight(const Edge& edge) const;
 
 	};
 
-	class AdjacencyListTrafficGraph : public TrafficGraph {
+	class AdjacencyListGraph : public Graph {
 		private:
-			size_t numberOfVertices;
-			int cycle;
 			std::unordered_map<Vertice, int>* adjacencyList;
 
 		public:
-			AdjacencyListTrafficGraph(std::unordered_map<Vertice, int>* adjacencyList, size_t numberOfVertices, int cycle);
-			~AdjacencyListTrafficGraph(void);
+			AdjacencyListGraph(std::unordered_map<Vertice, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle);
+			~AdjacencyListGraph(void);
 
-			virtual int weight(const Edge& edge) const;
-			virtual size_t getNumberOfVertices(void) const;
-			virtual void setTiming(Vertice vertice, int timing);
-			virtual int getTiming(Vertice vertice) const;
-			virtual int penalty(Vertice vertice1, Vertice vertice2) const;
-			virtual int getCycle (void) const;
+			virtual Weight weight(const Edge& edge) const;
 	};
 
-	class TrafficGraphBuilder {
+	class GraphBuilder {
 		private:
-			int cycle;
-			std::unordered_map<Vertice, std::unordered_map<Vertice, int>*> adjacencyListMap;
+			TimeUnit cycle;
+			std::unordered_map<Vertice, std::unordered_map<Vertice, Weight>*> adjacencyListMap;
 			Vertice highestVerticeIndex;
 
 		public:
-			TrafficGraphBuilder();
-			~TrafficGraphBuilder(void);
+			GraphBuilder();
+			~GraphBuilder(void);
 
-			void addEdge(const TrafficGraph::Edge& edge, int weight);
+			void addEdge(const Graph::Edge& edge, Weight weight);
 
-			TrafficGraph* buildAsAdjacencyMatrix(void);
-			TrafficGraph* buildAsAdjacencyList(void);
+			Graph* buildAsAdjacencyMatrix(void);
+			Graph* buildAsAdjacencyList(void);
 
-			void withCycle(int cycle);
+			void withCycle(TimeUnit cycle);
 	};
-
-
 
 };

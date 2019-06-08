@@ -1,7 +1,7 @@
 #include "assert.h"
 #include "traffic_graph.h"
 
-using namespace ufrrj;
+using namespace traffic;
 int main (void) {
 	Solution* solution = NULL;
 
