@@ -18,5 +18,7 @@ int main (void) {
 		assert_equal(solution->getTiming(0), 0);
 	} end_test_case;
 
-	delete solution;
+	test_case("destruction throws no errors") {
+		delete solution;
+	} end_test_case;
 }

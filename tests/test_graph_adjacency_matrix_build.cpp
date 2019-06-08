@@ -69,6 +69,11 @@ int main (void) {
 		}
 	} end_test_case;
 
-	delete graphBuilder;
-	delete graph;
+	test_case ("TrafficGraphBuilder destruction throws no errors") {
+		delete graphBuilder;
+	} end_test_case;
+
+	test_case("AdjacencyMatrixGraph destruction throws no errors") {
+		delete graph;
+	} end_test_case;
 }

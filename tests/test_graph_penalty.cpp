@@ -9,11 +9,6 @@
 
 using namespace ufrrj;
 
-// class GraphStub : public AdjacencyMatrixGraph {
-// 	public:
-
-// }
-
 int main (void) {
 
 	TrafficGraphBuilder* graph_builder;
@@ -49,6 +44,11 @@ int main (void) {
 		assert_equal(penalty, 0);
 	} end_test_case;
 
-	delete graph_builder;
-	delete graph;
+	test_case("TrafficGraphBuilder destruction throws no errors") {
+		delete graph_builder;
+	} end_test_case;
+
+	test_case("AdjacencyMatrixGraph destruction throws no errors") {
+		delete graph;
+	} end_test_case;
 }
