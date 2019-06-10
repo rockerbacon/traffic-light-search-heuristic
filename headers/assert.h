@@ -18,6 +18,7 @@
 
 #define test_case(str) assert::test_case_title = str;\
 	assert::test_case_succeeded = true;\
+	assert::run_first_setup_if_needed();\
 	assert::observer.notify_test_case_begun();\
 	try
 
@@ -37,7 +38,7 @@
 		assert::observer.notify_test_case_succeeded(assert::test_case_title);\
 	}
 
-#define assert_true(condition) if (!condition) {\
+#define assert_true(condition) if (!(condition)) {\
 		throw assert::assertion_failed("condition was false");\
 	}
 
@@ -80,7 +81,9 @@ namespace assert {
 	extern std::stringstream actual_value_str;
 	extern std::stringstream expected_value_str;
 	extern bool test_case_succeeded;
+	extern bool first_setup_done;
 
+	void run_first_setup_if_needed(void);
 
 	class assertion_failed : public std::exception {
 		private:
@@ -89,6 +92,11 @@ namespace assert {
 			assertion_failed (std::stringstream& actual_value, const std::string& comparator_description, std::stringstream& expected_value);
 			assertion_failed (const std::string& reason);
 
+			virtual const char* what (void) const noexcept;
+	};
+
+	class segmentation_fault_signalled : public std::exception {
+		public:
 			virtual const char* what (void) const noexcept;
 	};
 

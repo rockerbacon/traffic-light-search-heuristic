@@ -1,6 +1,8 @@
 #include "assert.h"
 #include <iostream>
 #include <stdio.h>
+#include <signal.h>
+#include <string.h>
 
 #define ERROR_TEXT_COLOR "\033[91m"
 #define SUCCESS_TEXT_COLOR "\033[92m"
@@ -14,9 +16,29 @@ assert::TerminalObserver concreteObserver;
 assert::Observer& assert::observer = concreteObserver;
 
 bool assert::test_case_succeeded;
+bool assert::first_setup_done = false;
+
+struct sigaction signal_action;
 
 using namespace std;
 using namespace assert;
+
+void when_segfault_is_signalled (int signal, siginfo_t *si, void *arg) {
+	assert::observer.notify_test_case_failed(segmentation_fault_signalled(), assert::test_case_title);
+	exit(0);
+}
+
+void assert::run_first_setup_if_needed (void) {
+	if (!assert::first_setup_done) {
+		memset(&signal_action, 0, sizeof(decltype(signal_action)));
+		sigemptyset(&signal_action.sa_mask);
+		signal_action.sa_sigaction = when_segfault_is_signalled;
+		signal_action.sa_flags = SA_SIGINFO;
+
+		sigaction(SIGSEGV, &signal_action, NULL);
+		assert::first_setup_done = true;
+	}
+}
 
 assertion_failed::assertion_failed (stringstream& actual_value, const string& comparator_description, stringstream& expected_value) {
 	ostringstream messageStream;
@@ -32,6 +54,10 @@ assertion_failed::assertion_failed (const string& reason) {
 
 const char* assertion_failed::what (void) const noexcept {
 	return this->message.c_str();
+}
+
+const char* segmentation_fault_signalled::what (void) const noexcept {
+	return "segmentation fault, testing cannot continue";
 }
 
 template<typename Rep, typename Period=std::ratio<1>>

@@ -10,7 +10,7 @@ OBJS_BUILD_DIR=./objs
 OBJS=$(patsubst $(SRC_DIR)/%.cpp, $(OBJS_BUILD_DIR)/%.o, $(wildcard $(SRC_DIR)/*.cpp))
 TESTS=$(patsubst $(TESTS_DIR)/%.cpp, $(TEST_BUILD_DIR)/%, $(wildcard $(TESTS_DIR)/*.cpp))
 
-CXXFLAGS=-I$(HEADERS_DIR)
+CXXFLAGS=-I$(HEADERS_DIR) -lm
 
 .SECONDARY: $(OBJS)
 
