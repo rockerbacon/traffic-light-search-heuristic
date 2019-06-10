@@ -33,6 +33,21 @@ namespace traffic {
 					bool operator== (const Edge& other) const;
 			};
 
+			class Neighborhood {
+				private:
+					std::unordered_map<Vertice, Weight> neighbors;
+				public:
+					inline Neighborhood(std::unordered_map<Vertice, Weight> neighbors) {
+						this->neighbors = neighbors;
+					}
+					std::unordered_map<Vertice, Weight>::iterator begin (void) noexcept {
+						return this->neighbors.begin();
+					}
+					std::unordered_map<Vertice, Weight>::iterator end (void) noexcept {
+						return this->neighbors.end();
+					}
+			};
+
 			Graph(size_t numberOfVertices, TimeUnit cycle);
 			~Graph(void);
 
@@ -42,6 +57,8 @@ namespace traffic {
 			size_t getNumberOfVertices(void) const;
 			TimeUnit penalty(Vertice vertice1, Vertice vertice2) const;
 			TimeUnit getCycle (void) const;
+			TimeUnit verticePenalty(Vertice vertice) const;
+			virtual Neighborhood neighborsOf(Vertice vertice) const = 0;
 
 	};
 
@@ -54,18 +71,24 @@ namespace traffic {
 			~AdjacencyMatrixGraph(void);
 
 			virtual Weight weight(const Edge& edge) const;
+			inline virtual Neighborhood neighborsOf (Vertice vertice) const {
+				return Neighborhood(std::unordered_map<Vertice, Weight>());
+			}
 
 	};
 
 	class AdjacencyListGraph : public Graph {
 		private:
-			std::unordered_map<Vertice, int>* adjacencyList;
+			std::unordered_map<Vertice, Weight>* adjacencyList;
 
 		public:
 			AdjacencyListGraph(std::unordered_map<Vertice, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyListGraph(void);
 
 			virtual Weight weight(const Edge& edge) const;
+			inline virtual Neighborhood neighborsOf (Vertice vertice) const {
+				return Neighborhood(std::unordered_map<Vertice, Weight>());
+			}
 	};
 
 	class GraphBuilder {

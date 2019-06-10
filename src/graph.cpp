@@ -47,3 +47,11 @@ TimeUnit Graph::penalty (Vertice vertice1, Vertice vertice2) const {
 TimeUnit Graph::getCycle (void) const {
 	return this->cycle;
 }
+
+TimeUnit Graph::verticePenalty (Vertice vertice) const {
+	TimeUnit totalPenalty = 0;
+	for (auto neighbor : this->neighborsOf(vertice)) {
+		totalPenalty += this->penalty(vertice, neighbor.first);
+	}
+	return totalPenalty;
+}
