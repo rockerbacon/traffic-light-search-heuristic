@@ -3,32 +3,32 @@
 using namespace traffic;
 using namespace std;
 
-AdjacencyListGraph::AdjacencyListGraph(unordered_map<Vertice, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle) : Graph(numberOfVertices, cycle) {
+AdjacencyListGraph::AdjacencyListGraph(unordered_map<Vertex, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle) : Graph(numberOfVertices, cycle) {
 	this->adjacencyList = adjacencyList;
 }
 
 AdjacencyListGraph::~AdjacencyListGraph(void) {
-	delete this->adjacencyList;
+	delete [] this->adjacencyList;
 }
 
 Weight AdjacencyListGraph::weight(const Edge& edge) const {
 	Weight weight;
-	unordered_map<Vertice, Weight>* vertice1AdjacencyMap;
-	unordered_map<Vertice, Weight>::iterator it;
-	Vertice i, j;
+	unordered_map<Vertex, Weight>* vertex1AdjacencyMap;
+	unordered_map<Vertex, Weight>::iterator it;
+	Vertex i, j;
 
-	if (edge.vertice1 > edge.vertice2) {
-		i = edge.vertice2;
-		j = edge.vertice1;
+	if (edge.vertex1 > edge.vertex2) {
+		i = edge.vertex2;
+		j = edge.vertex1;
 	} else {
-		i = edge.vertice1;
-		j = edge.vertice2;
+		i = edge.vertex1;
+		j = edge.vertex2;
 	}
 
 	if (i < this->getNumberOfVertices()-1) {
-		vertice1AdjacencyMap = this->adjacencyList + i;
-		it = vertice1AdjacencyMap->find(j);
-		if (it != vertice1AdjacencyMap->end()) {
+		vertex1AdjacencyMap = this->adjacencyList + i;
+		it = vertex1AdjacencyMap->find(j);
+		if (it != vertex1AdjacencyMap->end()) {
 			weight = it->second;
 		} else {
 			weight = -1;
@@ -37,4 +37,8 @@ Weight AdjacencyListGraph::weight(const Edge& edge) const {
 		weight = -1;
 	}
 	return weight;
+}
+
+const unordered_map<Vertex, Weight>& AdjacencyListGraph::neighborsOf(Vertex vertex) const {
+	return *(this->adjacencyList + vertex);
 }
