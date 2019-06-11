@@ -40,7 +40,7 @@ namespace traffic {
 			void setTiming(Vertice vertice, TimeUnit timing);
 			TimeUnit getTiming(Vertice vertice) const;
 			size_t getNumberOfVertices(void) const;
-			TimeUnit penalty(Vertice vertice1, Vertice vertice2) const;
+			TimeUnit penalty(Vertice vertice1, Vertice vertice2, Weight weight=-1) const;
 			TimeUnit getCycle (void) const;
 			TimeUnit verticePenalty(Vertice vertice) const;
 			virtual const std::unordered_map<Vertice, Weight>& neighborsOf(Vertice vertice) const = 0;
@@ -51,6 +51,7 @@ namespace traffic {
 		private:
 			Weight* adjacencyMatrix;
 			size_t matrixDimensionX2minus1;
+			mutable std::unordered_map<Vertice, std::unordered_map<Vertice, Weight>*> neighborhoodRequests;
 		public:
 			AdjacencyMatrixGraph(Weight* adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyMatrixGraph(void);

@@ -10,6 +10,9 @@ AdjacencyMatrixGraph::AdjacencyMatrixGraph (Weight *adjacencyMatrix, size_t numb
 
 AdjacencyMatrixGraph::~AdjacencyMatrixGraph (void) {
 	delete this->adjacencyMatrix;
+	for (auto it : this->neighborhoodRequests) {
+		delete it.second;
+	}
 }
 
 Weight AdjacencyMatrixGraph::weight (const Graph::Edge& edge) const {
@@ -30,5 +33,28 @@ Weight AdjacencyMatrixGraph::weight (const Graph::Edge& edge) const {
 }
 
 const unordered_map<Vertice, Weight>& AdjacencyMatrixGraph::neighborsOf (Vertice vertice) const {
-	return unordered_map<Vertice, Weight>();
+	Weight weight;
+	Vertice vertice2;
+	Edge edge;
+	unordered_map<Vertice, Weight>* neighborhood;
+	unordered_map<Vertice, unordered_map<Vertice, Weight>*>::iterator it;
+
+	it = this->neighborhoodRequests.find(vertice);
+	if (it != this->neighborhoodRequests.end()) {
+		neighborhood = it->second;
+	} else {
+		neighborhood = new unordered_map<Vertice, Weight>();
+
+		for (vertice2 = 0; vertice2 < this->getNumberOfVertices(); vertice2++) {
+			edge = {vertice, vertice2};
+			weight = this->weight(edge);
+			if (weight != -1) {
+				(*neighborhood)[vertice2] = this->weight(edge);
+			}
+		}
+
+		this->neighborhoodRequests[vertice] = neighborhood;
+	}
+
+	return *neighborhood;
 }

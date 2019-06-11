@@ -23,10 +23,10 @@ TimeUnit Graph::getTiming (Vertice vertice) const {
 	this->solution->getTiming(vertice);
 }
 
-TimeUnit Graph::penalty (Vertice vertice1, Vertice vertice2) const {
+TimeUnit Graph::penalty (Vertice vertice1, Vertice vertice2, Weight edgeWeight) const {
 	TimeUnit timingVertice1 = this->solution->getTiming(vertice1);
 	TimeUnit timingVertice2 = this->solution->getTiming(vertice2);
-	Weight weight = this->weight({vertice1, vertice2});
+	Weight weight = (edgeWeight == -1) ? this->weight({vertice1, vertice2}) : edgeWeight;
 	TimeUnit cuv, penalty;
 
 	if (weight == -1) {
@@ -51,8 +51,8 @@ TimeUnit Graph::getCycle (void) const {
 TimeUnit Graph::verticePenalty (Vertice vertice) const {
 	TimeUnit totalPenalty = 0;
 	for (auto neighbor : this->neighborsOf(vertice)) {
-		totalPenalty += this->penalty(vertice, neighbor.first);
-		totalPenalty += this->penalty(neighbor.first, vertice);
+		totalPenalty += this->penalty(vertice, neighbor.first, neighbor.second);
+		totalPenalty += this->penalty(neighbor.first, vertice, neighbor.second);
 	}
 	return totalPenalty;
 }
