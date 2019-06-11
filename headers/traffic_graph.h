@@ -44,6 +44,7 @@ namespace traffic {
 			TimeUnit getCycle (void) const;
 			TimeUnit verticePenalty(Vertice vertice) const;
 			virtual const std::unordered_map<Vertice, Weight>& neighborsOf(Vertice vertice) const = 0;
+			TimeUnit verticePenaltyOnewayOnly(Vertice vertice) const;
 
 	};
 

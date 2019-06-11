@@ -111,5 +111,12 @@ int main (void) {
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;
 
+	test_case ("total penalty for a vertice ignoring neighbors penalties") {
+		TimeUnit penalty;
+		TimeUnit expectedPenalty = 2+6+5;
+		penalty = graph->verticePenaltyOnewayOnly(5);
+		assert_equal(penalty, expectedPenalty);
+	} end_test_case;
+
 	delete graph;
 }

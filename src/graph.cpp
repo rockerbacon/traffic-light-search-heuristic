@@ -56,3 +56,11 @@ TimeUnit Graph::verticePenalty (Vertice vertice) const {
 	}
 	return totalPenalty;
 }
+
+TimeUnit Graph::verticePenaltyOnewayOnly (Vertice vertice) const {
+	TimeUnit totalPenalty = 0;
+	for (auto neighbor : this->neighborsOf(vertice)) {
+		totalPenalty += this->penalty(vertice, neighbor.first, neighbor.second);
+	}
+	return totalPenalty;
+}
