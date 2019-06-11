@@ -8,18 +8,18 @@
 
 namespace traffic {
 
-	typedef size_t Vertice;
+	typedef size_t Vertex;
 	typedef unsigned int TimeUnit;
 	typedef int Weight;
 
 	class Solution {
 		private:
-			TimeUnit* verticeTimings;
+			TimeUnit* vertexTimings;
 		public:
 			Solution (size_t numberOfVertices);
 			~Solution (void);
-			void setTiming(Vertice vertice, TimeUnit timing);
-			TimeUnit getTiming(Vertice vertice);
+			void setTiming(Vertex vertex, TimeUnit timing);
+			TimeUnit getTiming(Vertex vertex);
 	};
 
 	class Graph {
@@ -30,8 +30,8 @@ namespace traffic {
 		public:
 			class Edge {
 				public:
-					Vertice vertice1;
-					Vertice vertice2;
+					Vertex vertex1;
+					Vertex vertex2;
 
 					bool operator== (const Edge& other) const;
 			};
@@ -40,11 +40,14 @@ namespace traffic {
 			~Graph(void);
 
 			virtual int weight(const Edge& edge) const = 0;
-			void setTiming(Vertice vertice, TimeUnit timing);
-			TimeUnit getTiming(Vertice vertice) const;
+			void setTiming(Vertex vertex, TimeUnit timing);
+			TimeUnit getTiming(Vertex vertex) const;
 			size_t getNumberOfVertices(void) const;
-			TimeUnit penalty(Vertice vertice1, Vertice vertice2) const;
+			TimeUnit penalty(Vertex vertex1, Vertex vertex2, Weight weight=-1) const;
 			TimeUnit getCycle (void) const;
+			TimeUnit vertexPenalty(Vertex vertex) const;
+			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const = 0;
+			TimeUnit vertexPenaltyOnewayOnly(Vertex vertex) const;
 
 	};
 
@@ -52,30 +55,33 @@ namespace traffic {
 		private:
 			Weight* adjacencyMatrix;
 			size_t matrixDimensionX2minus1;
+			mutable std::unordered_map<Vertex, std::unordered_map<Vertex, Weight>*> neighborhoodRequests;
 		public:
 			AdjacencyMatrixGraph(Weight* adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyMatrixGraph(void);
 
 			virtual Weight weight(const Edge& edge) const;
+			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const;
 
 	};
 
 	class AdjacencyListGraph : public Graph {
 		private:
-			std::unordered_map<Vertice, int>* adjacencyList;
+			std::unordered_map<Vertex, Weight>* adjacencyList;
 
 		public:
-			AdjacencyListGraph(std::unordered_map<Vertice, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle);
+			AdjacencyListGraph(std::unordered_map<Vertex, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyListGraph(void);
 
 			virtual Weight weight(const Edge& edge) const;
+			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const;
 	};
 
 	class GraphBuilder {
 		private:
 			TimeUnit cycle;
-			std::unordered_map<Vertice, std::unordered_map<Vertice, Weight>*> adjacencyListMap;
-			Vertice highestVerticeIndex;
+			std::unordered_map<Vertex, std::unordered_map<Vertex, Weight>*> adjacencyListMap;
+			Vertex highestVertexIndex;
 
 		public:
 			GraphBuilder();
@@ -84,10 +90,13 @@ namespace traffic {
 			void addEdge(const Graph::Edge& edge, Weight weight);
 			bool generateRandomGraph(size_t nVertices, unsigned maxDegree, int minWeight, int maxWeight);
 
-			Graph* buildAsAdjacencyMatrix(void);
-			Graph* buildAsAdjacencyList(void);
+			AdjacencyMatrixGraph* buildAsAdjacencyMatrix(void) const;
+			AdjacencyListGraph* buildAsAdjacencyList(void) const;
 
 			void withCycle(TimeUnit cycle);
 	};
+
+	void constructRandomSolution (Graph& graph);
+	void constructHeuristicSolution (Graph& graph, unsigned char numberOfTuplesToTestPerIteration=3);
 
 };
