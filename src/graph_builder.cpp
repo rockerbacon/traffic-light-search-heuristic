@@ -51,7 +51,6 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	}
 }
 
-<<<<<<< HEAD
 bool GraphBuilder::generateRandomGraph(size_t nVertices, unsigned maxDegree, int minWeight, int maxWeight)
 {
 	if(nVertices < 2)
