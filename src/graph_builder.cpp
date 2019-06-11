@@ -3,7 +3,7 @@
 using namespace traffic;
 using namespace std;
 GraphBuilder::GraphBuilder () {
-	this->highestVerticeIndex = 0;
+	this->highestVertexIndex = 0;
 }
 
 GraphBuilder::~GraphBuilder (void) {
@@ -13,49 +13,49 @@ GraphBuilder::~GraphBuilder (void) {
 }
 
 void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
-	decltype(GraphBuilder::adjacencyListMap)::iterator vertice1Index;
-	unordered_map<Vertice, Weight>* vertice1Map;
-	unordered_map<Vertice, Weight>::iterator vertice2Index;
-	size_t highestVerticeIndexInEdge;
-	Vertice i, j;
+	decltype(GraphBuilder::adjacencyListMap)::iterator vertex1Index;
+	unordered_map<Vertex, Weight>* vertex1Map;
+	unordered_map<Vertex, Weight>::iterator vertex2Index;
+	size_t highestVertexIndexInEdge;
+	Vertex i, j;
 
-	if (edge.vertice1 > edge.vertice2) {
-		highestVerticeIndexInEdge = edge.vertice1;
-		i = edge.vertice2;
-		j = edge.vertice1;
-	} else if (edge.vertice1 < edge.vertice2){
-		highestVerticeIndexInEdge = edge.vertice2;
-		i = edge.vertice1;
-		j = edge.vertice2;
+	if (edge.vertex1 > edge.vertex2) {
+		highestVertexIndexInEdge = edge.vertex1;
+		i = edge.vertex2;
+		j = edge.vertex1;
+	} else if (edge.vertex1 < edge.vertex2){
+		highestVertexIndexInEdge = edge.vertex2;
+		i = edge.vertex1;
+		j = edge.vertex2;
 	} else {
 		return;
 	}
 
-	if (highestVerticeIndexInEdge > this->highestVerticeIndex) {
-		this->highestVerticeIndex = highestVerticeIndexInEdge;
+	if (highestVertexIndexInEdge > this->highestVertexIndex) {
+		this->highestVertexIndex = highestVertexIndexInEdge;
 	}
 
 
-	vertice1Index = this->adjacencyListMap.find(i);
-	if (vertice1Index == this->adjacencyListMap.end()) {
-		vertice1Map = new unordered_map<size_t, Weight>();
-		this->adjacencyListMap[i] = vertice1Map;
+	vertex1Index = this->adjacencyListMap.find(i);
+	if (vertex1Index == this->adjacencyListMap.end()) {
+		vertex1Map = new unordered_map<size_t, Weight>();
+		this->adjacencyListMap[i] = vertex1Map;
 	} else {
-		vertice1Map = vertice1Index->second;
+		vertex1Map = vertex1Index->second;
 	}
 
-	vertice2Index = vertice1Map->find(j);
+	vertex2Index = vertex1Map->find(j);
 
-	if (vertice2Index == vertice1Map->end()) {
-		(*vertice1Map)[j] = weight;
+	if (vertex2Index == vertex1Map->end()) {
+		(*vertex1Map)[j] = weight;
 	}
 }
 
 AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
-	size_t matrixDimension = this->highestVerticeIndex+1;
+	size_t matrixDimension = this->highestVertexIndex+1;
 	size_t matrixDimensionX2minus1 = matrixDimension*2-1;
 	size_t matrixTotalSize = matrixDimension/2*matrixDimension + matrixDimension/2;
-	Vertice i, j;
+	Vertex i, j;
 	size_t index;
 	Weight* adjacencyMatrix = new Weight[matrixTotalSize];
 
@@ -64,9 +64,9 @@ AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
 	}
 
 	for (auto& it: this->adjacencyListMap) {
-		auto itVerticeMap = it.second;
+		auto itVertexMap = it.second;
 		i = it.first;
-		for (auto& jt: *itVerticeMap) {
+		for (auto& jt: *itVertexMap) {
 			j = jt.first;
 			index = j + i*(matrixDimensionX2minus1-i)/2;
 			adjacencyMatrix[index] = jt.second;
@@ -76,14 +76,14 @@ AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
 }
 
 AdjacencyListGraph* GraphBuilder::buildAsAdjacencyList(void) const {
-	size_t adjacencyListDimension = this->highestVerticeIndex+1;
-	auto adjacencyList = new unordered_map<Vertice, Weight>[adjacencyListDimension];
-	Vertice i, j, aux;
+	size_t adjacencyListDimension = this->highestVertexIndex+1;
+	auto adjacencyList = new unordered_map<Vertex, Weight>[adjacencyListDimension];
+	Vertex i, j, aux;
 
 	for (auto& it: this->adjacencyListMap) {
-		auto itVerticeMap = it.second;
+		auto itVertexMap = it.second;
 		i = it.first;
-		for (auto& jt: *itVerticeMap) {
+		for (auto& jt: *itVertexMap) {
 			j = jt.first;
 			adjacencyList[i][j] = jt.second;
 			adjacencyList[j][i] = jt.second;

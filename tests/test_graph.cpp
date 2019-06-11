@@ -23,13 +23,13 @@ Graph::Edge	edge1 = EDGE1,
 
 class MockGraphImplementation : public Graph {
 	private:
-		unordered_map<Vertice, Weight> neighborsOf5;
-		unordered_map<Vertice, Weight> emptyMap;
+		unordered_map<Vertex, Weight> neighborsOf5;
+		unordered_map<Vertex, Weight> emptyMap;
 	public:
 		MockGraphImplementation() : Graph(NUMBER_OF_VERTICES, CYCLE) {
-			this->neighborsOf5[edge1.vertice1] = EDGE1_WEIGHT;
-			this->neighborsOf5[edge2.vertice2] = EDGE2_WEIGHT;
-			this->neighborsOf5[edge3.vertice2] = EDGE3_WEIGHT;
+			this->neighborsOf5[edge1.vertex1] = EDGE1_WEIGHT;
+			this->neighborsOf5[edge2.vertex2] = EDGE2_WEIGHT;
+			this->neighborsOf5[edge3.vertex2] = EDGE3_WEIGHT;
 		}
 
 		virtual Weight weight(const Graph::Edge& edge) const {
@@ -45,8 +45,8 @@ class MockGraphImplementation : public Graph {
 			}
 		}
 
-		virtual const unordered_map<Vertice, Weight>& neighborsOf (Vertice vertice) const {
-			if (vertice == 5) {
+		virtual const unordered_map<Vertex, Weight>& neighborsOf (Vertex vertex) const {
+			if (vertex == 5) {
 				return this->neighborsOf5;
 			} else {
 				return this->emptyMap;
@@ -73,18 +73,18 @@ int main (void) {
 		assert_equal(graph->getCycle(), CYCLE);
 	} end_test_case;
 
-	test_case("set vertice timings") {
+	test_case("set vertices timings") {
 		graph->setTiming(7, TIMING_7);
 		graph->setTiming(5, TIMING_5);
 		graph->setTiming(2, TIMING_2);
 		graph->setTiming(4, TIMING_4);
-		assert_equal(graph->getTiming(edge1.vertice1), TIMING_7);
-		assert_equal(graph->getTiming(edge1.vertice2), TIMING_5);
+		assert_equal(graph->getTiming(edge1.vertex1), TIMING_7);
+		assert_equal(graph->getTiming(edge1.vertex2), TIMING_5);
 	} end_test_case;
 
 	test_case("penalty between two vertices with edge between them") {
-		TimeUnit penalty_uv = graph->penalty(edge1.vertice1, edge1.vertice2);
-		TimeUnit penalty_vu = graph->penalty(edge1.vertice2, edge1.vertice1);
+		TimeUnit penalty_uv = graph->penalty(edge1.vertex1, edge1.vertex2);
+		TimeUnit penalty_vu = graph->penalty(edge1.vertex2, edge1.vertex1);
 		assert_equal(penalty_uv, 6);
 		assert_equal(penalty_vu, 2);
 	} end_test_case;
@@ -104,17 +104,17 @@ int main (void) {
 		}
 	} end_test_case;
 
-	test_case ("total penalty for a vertice") {
+	test_case ("total penalty for a vertex") {
 		TimeUnit penalty;
 		TimeUnit expectedPenalty = 2+6+5 + 6+6+3;
-		penalty = graph->verticePenalty(5);
+		penalty = graph->vertexPenalty(5);
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;
 
-	test_case ("total penalty for a vertice ignoring neighbors penalties") {
+	test_case ("total penalty for a vertex ignoring neighbors penalties") {
 		TimeUnit penalty;
 		TimeUnit expectedPenalty = 2+6+5;
-		penalty = graph->verticePenaltyOnewayOnly(5);
+		penalty = graph->vertexPenaltyOnewayOnly(5);
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;
 

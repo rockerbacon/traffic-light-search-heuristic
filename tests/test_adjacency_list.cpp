@@ -20,13 +20,13 @@ int main (void) {
 	GraphBuilder* graphBuilder;
 	Graph* graph;
 	Graph::Edge	edge1 = EDGE1,
-				reverseEdge1 = {edge1.vertice2, edge1.vertice1},
+				reverseEdge1 = {edge1.vertex2, edge1.vertex1},
 				edge2 = EDGE2,
-				reverseEdge2 = {edge2.vertice2, edge2.vertice1},
+				reverseEdge2 = {edge2.vertex2, edge2.vertex1},
 				edge3 = EDGE3,
-				reverseEdge3 = {edge3.vertice2, edge3.vertice1},
+				reverseEdge3 = {edge3.vertex2, edge3.vertex1},
 				edge4 = EDGE4,
-				reverseEdge4 = {edge4.vertice2, edge4.vertice1};
+				reverseEdge4 = {edge4.vertex2, edge4.vertex1};
 
 	test_case("build adjacency list") {
 		graphBuilder = new GraphBuilder();
@@ -53,9 +53,9 @@ int main (void) {
 	} end_test_case;
 
 	test_case("non existing edges have weight -1") {
-		for (size_t vertice1 = 0; vertice1 < NUMBER_OF_VERTICES; vertice1++) {
-			for (size_t vertice2 = 0; vertice2 < NUMBER_OF_VERTICES; vertice2++) {
-				Graph::Edge currentEdge = {vertice1, vertice2};
+		for (Vertex vertex1 = 0; vertex1 < NUMBER_OF_VERTICES; vertex1++) {
+			for (Vertex vertex2 = 0; vertex2 < NUMBER_OF_VERTICES; vertex2++) {
+				Graph::Edge currentEdge = {vertex1, vertex2};
 				if	(
 						currentEdge == edge1 || currentEdge == reverseEdge1 || currentEdge == edge2 || currentEdge == reverseEdge2 ||
 						currentEdge == edge3 || currentEdge == reverseEdge3 || currentEdge == edge4 || currentEdge == reverseEdge4
@@ -68,7 +68,7 @@ int main (void) {
 		}
 	} end_test_case;
 
-	const std::unordered_map<Vertice, Weight>* neighbors;
+	const std::unordered_map<Vertex, Weight>* neighbors;
 
 	test_case("asking for neighborhood raises no errors") {
 		neighbors = &graph->neighborsOf(2);

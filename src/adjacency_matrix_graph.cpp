@@ -17,13 +17,13 @@ AdjacencyMatrixGraph::~AdjacencyMatrixGraph (void) {
 
 Weight AdjacencyMatrixGraph::weight (const Graph::Edge& edge) const {
 	Weight weight;
-	Vertice i, j, index;
-	if (edge.vertice1 > edge.vertice2) {
-		i = edge.vertice2;
-		j = edge.vertice1;
-	} else if (edge.vertice1 < edge.vertice2) {
-		i = edge.vertice1;
-		j = edge.vertice2;
+	Vertex i, j, index;
+	if (edge.vertex1 > edge.vertex2) {
+		i = edge.vertex2;
+		j = edge.vertex1;
+	} else if (edge.vertex1 < edge.vertex2) {
+		i = edge.vertex1;
+		j = edge.vertex2;
 	} else {
 		return -1;
 	}
@@ -32,28 +32,28 @@ Weight AdjacencyMatrixGraph::weight (const Graph::Edge& edge) const {
 	return this->adjacencyMatrix[index];
 }
 
-const unordered_map<Vertice, Weight>& AdjacencyMatrixGraph::neighborsOf (Vertice vertice) const {
+const unordered_map<Vertex, Weight>& AdjacencyMatrixGraph::neighborsOf (Vertex vertex) const {
 	Weight weight;
-	Vertice vertice2;
+	Vertex vertex2;
 	Edge edge;
-	unordered_map<Vertice, Weight>* neighborhood;
-	unordered_map<Vertice, unordered_map<Vertice, Weight>*>::iterator it;
+	unordered_map<Vertex, Weight>* neighborhood;
+	unordered_map<Vertex, unordered_map<Vertex, Weight>*>::iterator it;
 
-	it = this->neighborhoodRequests.find(vertice);
+	it = this->neighborhoodRequests.find(vertex);
 	if (it != this->neighborhoodRequests.end()) {
 		neighborhood = it->second;
 	} else {
-		neighborhood = new unordered_map<Vertice, Weight>();
+		neighborhood = new unordered_map<Vertex, Weight>();
 
-		for (vertice2 = 0; vertice2 < this->getNumberOfVertices(); vertice2++) {
-			edge = {vertice, vertice2};
+		for (vertex2 = 0; vertex2 < this->getNumberOfVertices(); vertex2++) {
+			edge = {vertex, vertex2};
 			weight = this->weight(edge);
 			if (weight != -1) {
-				(*neighborhood)[vertice2] = this->weight(edge);
+				(*neighborhood)[vertex2] = this->weight(edge);
 			}
 		}
 
-		this->neighborhoodRequests[vertice] = neighborhood;
+		this->neighborhoodRequests[vertex] = neighborhood;
 	}
 
 	return *neighborhood;

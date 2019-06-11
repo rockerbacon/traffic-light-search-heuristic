@@ -15,24 +15,24 @@ size_t Graph::getNumberOfVertices (void) const {
 	return this->numberOfVertices;
 }
 
-void Graph::setTiming (Vertice vertice, TimeUnit timing) {
-	this->solution->setTiming(vertice, timing);
+void Graph::setTiming (Vertex vertex, TimeUnit timing) {
+	this->solution->setTiming(vertex, timing);
 }
 
-TimeUnit Graph::getTiming (Vertice vertice) const {
-	this->solution->getTiming(vertice);
+TimeUnit Graph::getTiming (Vertex vertex) const {
+	this->solution->getTiming(vertex);
 }
 
-TimeUnit Graph::penalty (Vertice vertice1, Vertice vertice2, Weight edgeWeight) const {
-	TimeUnit timingVertice1 = this->solution->getTiming(vertice1);
-	TimeUnit timingVertice2 = this->solution->getTiming(vertice2);
-	Weight weight = (edgeWeight == -1) ? this->weight({vertice1, vertice2}) : edgeWeight;
+TimeUnit Graph::penalty (Vertex vertex1, Vertex vertex2, Weight edgeWeight) const {
+	TimeUnit timingVertex1 = this->solution->getTiming(vertex1);
+	TimeUnit timingVertex2 = this->solution->getTiming(vertex2);
+	Weight weight = (edgeWeight == -1) ? this->weight({vertex1, vertex2}) : edgeWeight;
 	TimeUnit cuv, penalty;
 
 	if (weight == -1) {
 		return 0;
 	} else {
-		cuv = abs(timingVertice2 - weight - timingVertice1)%this->cycle;
+		cuv = abs(timingVertex2 - weight - timingVertex1)%this->cycle;
 	}
 
 	if (cuv < this->cycle - cuv) {
@@ -48,19 +48,19 @@ TimeUnit Graph::getCycle (void) const {
 	return this->cycle;
 }
 
-TimeUnit Graph::verticePenalty (Vertice vertice) const {
+TimeUnit Graph::vertexPenalty (Vertex vertex) const {
 	TimeUnit totalPenalty = 0;
-	for (auto neighbor : this->neighborsOf(vertice)) {
-		totalPenalty += this->penalty(vertice, neighbor.first, neighbor.second);
-		totalPenalty += this->penalty(neighbor.first, vertice, neighbor.second);
+	for (auto neighbor : this->neighborsOf(vertex)) {
+		totalPenalty += this->penalty(vertex, neighbor.first, neighbor.second);
+		totalPenalty += this->penalty(neighbor.first, vertex, neighbor.second);
 	}
 	return totalPenalty;
 }
 
-TimeUnit Graph::verticePenaltyOnewayOnly (Vertice vertice) const {
+TimeUnit Graph::vertexPenaltyOnewayOnly (Vertex vertex) const {
 	TimeUnit totalPenalty = 0;
-	for (auto neighbor : this->neighborsOf(vertice)) {
-		totalPenalty += this->penalty(vertice, neighbor.first, neighbor.second);
+	for (auto neighbor : this->neighborsOf(vertex)) {
+		totalPenalty += this->penalty(vertex, neighbor.first, neighbor.second);
 	}
 	return totalPenalty;
 }

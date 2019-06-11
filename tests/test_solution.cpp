@@ -21,7 +21,7 @@ Weight	weight1 = 7,
 
 class MockGraph : public Graph {
 	private:
-		mutable unordered_map<Vertice, unordered_map<Vertice, Weight>> adjacencyList;
+		mutable unordered_map<Vertex, unordered_map<Vertex, Weight>> adjacencyList;
 	public:
 		MockGraph (void) : Graph(numberOfTestVertices, testCycle) {
 			this->adjacencyList[0][1] = weight1;
@@ -59,14 +59,13 @@ class MockGraph : public Graph {
 				return -1;
 			}
 		}
-		virtual const std::unordered_map<Vertice, Weight>& neighborsOf(Vertice vertice) const {
-			return this->adjacencyList[vertice];
+		virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const {
+			return this->adjacencyList[vertex];
 		}
 };
 
 int main (void) {
 	Solution*	solution = NULL;
-	Solution*	constructedSolution = NULL;
 	MockGraph mockGraph;
 
 	test_case("solution instantiation throws no errors") {
@@ -82,31 +81,48 @@ int main (void) {
 		assert_equal(solution->getTiming(0), 0);
 	} end_test_case;
 
-	test_case("creating initial solution throws no errors") {
-		constructedSolution = constructSolution(mockGraph);
-		assert_true(constructedSolution != NULL);
+	test_case("creating random initial solution throws no errors") {
+		constructRandomSolution(mockGraph);
 	} end_test_case;
 
-	test_case("solution created has at least one timming that's not 0") {
+	test_case("random solution has at least one timing that's not 0") {
 		bool found = false;
 		for (size_t i = 0; i < mockGraph.getNumberOfVertices() && !found; i++) {
-			if (constructedSolution->getTiming(i) != 0) {
+			if (mockGraph.getTiming(i) != 0) {
 				found = true;
 			}
 		}
 		assert_true(found);
 	} end_test_case;
 
-	test_case("solution created has all timmings in the interval [0, cycle)") {
-		TimeUnit timming;
+	test_case("random solution has all timings in the interval [0, cycle)") {
+		TimeUnit timing;
 		for (size_t i = 0; i < mockGraph.getNumberOfVertices(); i++) {
-			timming = constructedSolution->getTiming(i);
-			assert_true(timming >= 0 && timming < testCycle);
+			timing = mockGraph.getTiming(i);
+			assert_true(timing >= 0 && timing < testCycle);
 		}
 	} end_test_case;
 
-	test_case("destroying solution created throws no errors") {
-		delete constructedSolution;
+	test_case("creating heuristic initial solution throws no errors") {
+		constructHeuristicSolution(mockGraph);
+	} end_test_case;
+
+	test_case("heuristic solution has at least one timing that's not 0") {
+		bool found = false;
+		for (size_t i = 0; i < mockGraph.getNumberOfVertices() && !found; i++) {
+			if (mockGraph.getTiming(i) != 0) {
+				found = true;
+			}
+		}
+		assert_true(found);
+	} end_test_case;
+
+	test_case("heuristic solution has all timings in the interval [0, cycle)") {
+		TimeUnit timing;
+		for (size_t i = 0; i < mockGraph.getNumberOfVertices(); i++) {
+			timing = mockGraph.getTiming(i);
+			assert_true(timing >= 0 && timing < testCycle);
+		}
 	} end_test_case;
 
 	test_case("destroying directly instatited solution throws no errors") {
