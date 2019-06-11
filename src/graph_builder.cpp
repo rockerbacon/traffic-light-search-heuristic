@@ -51,6 +51,86 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	}
 }
 
+bool GraphBuilder::generateRandomGraph(size_t nVertices, unsigned maxDegree, int minWeight, int maxWeight)
+{
+	if(nVertices < 2)
+	{
+		return false;
+	}
+
+	unsigned minEdges = nVertices - 1;
+
+	//https://math.stackexchange.com/questions/237103/proof-related-to-minimum-and-maximum-degree-of-vertices-of-an-undirected-graph
+	if(maxDegree < (2 * minEdges)/nVertices)
+	{
+		return false;
+	}
+
+	if(maxDegree > nVertices - 1)
+	{
+		return false;
+	}
+
+	srand(time(NULL));
+	unsigned dst[nVertices], dstEnd = nVertices;
+	unsigned src[nVertices], srcEnd = 0;
+	unsigned spareDegrees[nVertices];
+	unsigned a, b, weight;
+	size_t r;
+
+	for(size_t i = 0; i < nVertices; i++)
+	{
+		dst[i] = i;
+		spareDegrees[i] = maxDegree;
+	}
+
+	random_shuffle(dst, dst + nVertices);
+
+	src[srcEnd++] = dst[--dstEnd];
+
+	while(dstEnd != 0)
+	{
+		r = rand() % srcEnd;
+		a = src[r];
+
+		if(!spareDegrees[a])
+		{
+			continue;
+		}
+
+		b = dst[--dstEnd];
+
+		spareDegrees[a]--;
+		spareDegrees[b]--;
+
+		weight = rand() % (maxWeight - minWeight + 1) + minWeight;
+
+		this->addEdge({a, b}, weight);
+		this->addEdge({b, a}, weight);
+
+		src[srcEnd++] = b;
+	}
+
+	for(size_t i = 0; i < nVertices; i++)
+	{
+		if(spareDegrees[dst[i]])
+		{
+			r = rand() % (spareDegrees[dst[i]] + 1);
+
+			for(size_t j = i + 1; j < nVertices && r > 0; j++, r--)
+			{
+				if(spareDegrees[dst[j]])
+				{
+					spareDegrees[dst[i]]--;
+					spareDegrees[dst[j]]--;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
 	size_t matrixDimension = this->highestVertexIndex+1;
 	size_t matrixDimensionX2minus1 = matrixDimension*2-1;

@@ -2,6 +2,9 @@
 
 #include <cstdlib>
 #include <unordered_map>
+#include <algorithm>
+#include <time.h>
+#include <stack>
 
 namespace traffic {
 
@@ -85,6 +88,7 @@ namespace traffic {
 			~GraphBuilder(void);
 
 			void addEdge(const Graph::Edge& edge, Weight weight);
+			bool generateRandomGraph(size_t nVertices, unsigned maxDegree, int minWeight, int maxWeight);
 
 			AdjacencyMatrixGraph* buildAsAdjacencyMatrix(void) const;
 			AdjacencyListGraph* buildAsAdjacencyList(void) const;
