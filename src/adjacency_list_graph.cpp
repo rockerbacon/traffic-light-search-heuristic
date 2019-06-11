@@ -8,7 +8,7 @@ AdjacencyListGraph::AdjacencyListGraph(unordered_map<Vertice, Weight>* adjacency
 }
 
 AdjacencyListGraph::~AdjacencyListGraph(void) {
-	delete this->adjacencyList;
+	delete [] this->adjacencyList;
 }
 
 Weight AdjacencyListGraph::weight(const Edge& edge) const {

@@ -86,10 +86,12 @@ namespace traffic {
 
 			void addEdge(const Graph::Edge& edge, Weight weight);
 
-			Graph* buildAsAdjacencyMatrix(void);
-			Graph* buildAsAdjacencyList(void);
+			AdjacencyMatrixGraph* buildAsAdjacencyMatrix(void) const;
+			AdjacencyListGraph* buildAsAdjacencyList(void) const;
 
 			void withCycle(TimeUnit cycle);
 	};
+
+	Solution* constructSolution (const Graph& graph);
 
 };

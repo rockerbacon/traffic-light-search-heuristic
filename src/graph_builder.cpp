@@ -51,7 +51,7 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	}
 }
 
-Graph* GraphBuilder::buildAsAdjacencyMatrix(void) {
+AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
 	size_t matrixDimension = this->highestVerticeIndex+1;
 	size_t matrixDimensionX2minus1 = matrixDimension*2-1;
 	size_t matrixTotalSize = matrixDimension/2*matrixDimension + matrixDimension/2;
@@ -75,7 +75,7 @@ Graph* GraphBuilder::buildAsAdjacencyMatrix(void) {
 	return new AdjacencyMatrixGraph(adjacencyMatrix, matrixDimension, this->cycle);
 }
 
-Graph* GraphBuilder::buildAsAdjacencyList(void) {
+AdjacencyListGraph* GraphBuilder::buildAsAdjacencyList(void) const {
 	size_t adjacencyListDimension = this->highestVerticeIndex+1;
 	auto adjacencyList = new unordered_map<Vertice, Weight>[adjacencyListDimension];
 	Vertice i, j, aux;
