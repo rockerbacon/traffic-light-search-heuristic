@@ -76,7 +76,7 @@ Graph* GraphBuilder::buildAsAdjacencyMatrix(void) {
 }
 
 Graph* GraphBuilder::buildAsAdjacencyList(void) {
-	size_t adjacencyListDimension = this->highestVerticeIndex;
+	size_t adjacencyListDimension = this->highestVerticeIndex+1;
 	auto adjacencyList = new unordered_map<Vertice, Weight>[adjacencyListDimension];
 	Vertice i, j, aux;
 
@@ -86,10 +86,11 @@ Graph* GraphBuilder::buildAsAdjacencyList(void) {
 		for (auto& jt: *itVerticeMap) {
 			j = jt.first;
 			adjacencyList[i][j] = jt.second;
+			adjacencyList[j][i] = jt.second;
 		}
 	}
 
-	return new AdjacencyListGraph(adjacencyList, adjacencyListDimension+1, this->cycle);
+	return new AdjacencyListGraph(adjacencyList, adjacencyListDimension, this->cycle);
 }
 
 void GraphBuilder::withCycle (TimeUnit cycle) {

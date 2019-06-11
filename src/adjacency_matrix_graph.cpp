@@ -1,6 +1,7 @@
 #include "traffic_graph.h"
 
 using namespace traffic;
+using namespace std;
 
 AdjacencyMatrixGraph::AdjacencyMatrixGraph (Weight *adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle) : Graph(numberOfVertices, cycle) {
 	this->adjacencyMatrix = adjacencyMatrix;
@@ -26,4 +27,8 @@ Weight AdjacencyMatrixGraph::weight (const Graph::Edge& edge) const {
 
 	index = j + i*(this->matrixDimensionX2minus1 - i)/2;
 	return this->adjacencyMatrix[index];
+}
+
+const unordered_map<Vertice, Weight>& AdjacencyMatrixGraph::neighborsOf (Vertice vertice) const {
+	return unordered_map<Vertice, Weight>();
 }

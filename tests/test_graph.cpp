@@ -24,6 +24,7 @@ Graph::Edge	edge1 = EDGE1,
 class MockGraphImplementation : public Graph {
 	private:
 		unordered_map<Vertice, Weight> neighborsOf5;
+		unordered_map<Vertice, Weight> emptyMap;
 	public:
 		MockGraphImplementation() : Graph(NUMBER_OF_VERTICES, CYCLE) {
 			this->neighborsOf5[edge1.vertice1] = EDGE1_WEIGHT;
@@ -32,7 +33,7 @@ class MockGraphImplementation : public Graph {
 		}
 
 		virtual Weight weight(const Graph::Edge& edge) const {
-			
+
 			if (edge == edge1) {
 				return EDGE1_WEIGHT;
 			} else if (edge == edge2) {
@@ -44,11 +45,11 @@ class MockGraphImplementation : public Graph {
 			}
 		}
 
-		virtual Neighborhood neighborsOf (Vertice vertice) const {
+		virtual const unordered_map<Vertice, Weight>& neighborsOf (Vertice vertice) const {
 			if (vertice == 5) {
-				return Neighborhood(this->neighborsOf5);
+				return this->neighborsOf5;
 			} else {
-				return Neighborhood(unordered_map<Vertice, Weight>());
+				return this->emptyMap;
 			}
 		}
 };
@@ -105,7 +106,7 @@ int main (void) {
 
 	test_case ("total penalty for a vertice") {
 		TimeUnit penalty;
-		TimeUnit expectedPenalty = 2+6+5;
+		TimeUnit expectedPenalty = 2+6+5 + 6+6+3;
 		penalty = graph->verticePenalty(5);
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;

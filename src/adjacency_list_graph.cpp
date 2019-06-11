@@ -38,3 +38,7 @@ Weight AdjacencyListGraph::weight(const Edge& edge) const {
 	}
 	return weight;
 }
+
+const unordered_map<Vertice, Weight>& AdjacencyListGraph::neighborsOf(Vertice vertice) const {
+	return *(this->adjacencyList + vertice);
+}
