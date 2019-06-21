@@ -44,6 +44,22 @@ int main (void) {
 		}
 	} end_test_case;
 
+	test_case("no edge has weight greater than the maximum weight") {
+		for (Vertex u = 0; u < NUMBER_OF_VERTICES; u++) {
+			for (auto v : graph->neighborsOf(u)) {
+				assert_less_than_or_equal(v.second, MAX_EDGE_WEIGHT);
+			}
+		}
+	} end_test_case;
+
+	test_case("no edge has weight less than the minimum weight") {
+		for (Vertex u = 0; u < NUMBER_OF_VERTICES; u++) {
+			for (auto v : graph->neighborsOf(u)) {
+				assert_greater_than_or_equal(v.second, MIN_EDGE_WEIGHT);
+			}
+		}
+	} end_test_case;
+
 	test_case("graph is connected")
 	{
 		int verticesCount;
