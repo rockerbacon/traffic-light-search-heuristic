@@ -5,7 +5,7 @@
 namespace traffic {
 
 	typedef size_t Vertex;
-	typedef unsigned int TimeUnit;
+	typedef int TimeUnit;
 	typedef int Weight;
 
 	class Solution {
@@ -15,7 +15,7 @@ namespace traffic {
 			Solution (size_t numberOfVertices);
 			~Solution (void);
 			void setTiming(Vertex vertex, TimeUnit timing);
-			TimeUnit getTiming(Vertex vertex);
+			TimeUnit getTiming(Vertex vertex) const;
 	};
 
 	class Graph {

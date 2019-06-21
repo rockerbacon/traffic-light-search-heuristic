@@ -112,4 +112,35 @@ int main (void) {
 		}
 	} end_test_case;
 
+	test_case("distance between two equal solutions is 0") {
+		Solution a(numberOfTestVertices), b(numberOfTestVertices);
+		for (size_t i = 0; i < numberOfTestVertices; i++) {
+			a.setTiming(i, i);
+			b.setTiming(i, i);
+		}
+		assert_equal(distance(mockGraph, a, b), 0);
+	} end_test_case;
+
+	test_case("distance between two solutions with only one timing is correctly calculated") {
+		Solution a(numberOfTestVertices), b(numberOfTestVertices);
+		a.setTiming(1, testCycle-2);
+		b.setTiming(1, 1);
+		assert_equal(distance(mockGraph, a, b), 3);
+	} end_test_case;
+
+	test_case("distance between two solutions with multiple timings is correctly calculated") {
+		Solution a(numberOfTestVertices), b(numberOfTestVertices);
+		//3
+		a.setTiming(0, 18);
+		b.setTiming(0, 1);
+		//4
+		a.setTiming(1, 4);
+		b.setTiming(1, 8);
+		//10
+		a.setTiming(2, 10);
+		b.setTiming(2, 0);
+
+		assert_equal(distance(mockGraph, a, b), 3+4+10);
+	} end_test_case;
+
 }

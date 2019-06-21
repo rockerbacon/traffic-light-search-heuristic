@@ -15,7 +15,7 @@ OBJS=$(patsubst $(SRC_DIR)/%.cpp, $(OBJS_BUILD_DIR)/%.o, $(wildcard $(SRC_DIR)/*
 TESTS=$(patsubst $(TESTS_DIR)/%.cpp, $(TEST_BUILD_DIR)/%, $(wildcard $(TESTS_DIR)/*.cpp))
 RELEASES=$(patsubst $(RELEASE_SRC_DIR)/%.cpp, $(RELEASE_BUILD_DIR)/%, $(wildcard $(RELEASE_SRC_DIR)/*.cpp))
 
-CXXFLAGS=-I$(HEADERS_DIR) -lm
+CXXFLAGS=-I$(HEADERS_DIR)
 
 .SECONDARY: $(OBJS)
 
