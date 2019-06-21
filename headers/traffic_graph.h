@@ -1,10 +1,6 @@
 #pragma once
 
-#include <cstdlib>
 #include <unordered_map>
-#include <algorithm>
-#include <time.h>
-#include <stack>
 
 namespace traffic {
 
@@ -84,11 +80,11 @@ namespace traffic {
 			Vertex highestVertexIndex;
 
 		public:
-			GraphBuilder();
+			GraphBuilder(void);
+			GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDegree, int minWeight, int maxWeight);
 			~GraphBuilder(void);
 
-			void addEdge(const Graph::Edge& edge, Weight weight);
-			bool generateRandomGraph(size_t nVertices, unsigned maxDegree, int minWeight, int maxWeight);
+			bool addEdge(const Graph::Edge& edge, Weight weight);
 
 			AdjacencyMatrixGraph* buildAsAdjacencyMatrix(void) const;
 			AdjacencyListGraph* buildAsAdjacencyList(void) const;
