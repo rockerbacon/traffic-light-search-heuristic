@@ -96,7 +96,4 @@ namespace traffic {
 			void withCycle(TimeUnit cycle);
 	};
 
-	void constructRandomSolution (Graph& graph);
-	void constructHeuristicSolution (Graph& graph, unsigned char numberOfTuplesToTestPerIteration=3);
-
 };
