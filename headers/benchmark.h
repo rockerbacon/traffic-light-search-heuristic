@@ -77,4 +77,55 @@ namespace benchmark {
 			void notifyBenchmarkEnded (void);
 	};
 
+	template<typename Rep, typename Period=std::ratio<1>>
+	std::string format_chrono_duration (std::chrono::duration<Rep, Period> duration) {
+		std::ostringstream str_builder;
+		auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+		duration -= std::chrono::duration_cast<decltype(duration)>(hours);
+		auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration);
+		duration -= std::chrono::duration_cast<decltype(duration)>(minutes);
+		auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+		duration -= std::chrono::duration_cast<decltype(duration)>(seconds);
+		auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+		duration -= std::chrono::duration_cast<decltype(duration)>(milliseconds);
+		auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+
+		auto hours_count = hours.count();
+		auto minutes_count = minutes.count();
+		auto seconds_count = seconds.count();
+		auto milliseconds_count = milliseconds.count();
+		auto microseconds_count = microseconds.count();
+		if (hours_count > 0) {
+			str_builder << hours_count << 'h';
+		}
+		if (minutes_count > 0) {
+			if (str_builder.tellp() > 0) {
+				str_builder << ' ';
+			}
+			str_builder << minutes_count << 'm';
+		}
+		if (seconds_count > 0) {
+			if (str_builder.tellp() > 0) {
+				str_builder << ' ';
+			}
+			str_builder << seconds_count << 's';
+		}
+		if (milliseconds_count > 0) {
+			if (str_builder.tellp() > 0) {
+				str_builder << ' ';
+			}
+			str_builder << milliseconds_count << "ms";
+		}
+		if (microseconds_count > 0) {
+			if (str_builder.tellp() > 0) {
+				str_builder << ' ';
+			}
+			str_builder << microseconds_count << "us";
+		}
+		if (str_builder.tellp() == 0) {
+			str_builder << "0us";
+		}
+		return str_builder.str();
+	}
+
 };

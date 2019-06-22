@@ -67,16 +67,23 @@ int main (int argc, char** argv) {
 	list<Solution*> randomSolutions, heuristicSolutions;
 	double varietyFactor, penaltyFactor;
 	decltype(randomSolutions)::iterator it;
+	chrono::nanoseconds avgRandomTime, avgHeuristicTime;
+	chrono::high_resolution_clock::time_point beginTime;
+	string formatedAvgRandomTime, formatedAvgHeuristicTime;
+	double timeFactor;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, numberOfRuns, cycle);
 
 	terminalObserver = new TerminalObserver("initial solution construction", numberOfRuns);
 	terminalObserver->observeVariable("Random construction variety", avgRandomVariety);
 	terminalObserver->observeVariable("Random construction penalty", avgRandomPenalty);
+	terminalObserver->observeVariable("Random construction time", formatedAvgRandomTime);
 	terminalObserver->observeVariable("Heuristic construction variety", avgHeuristicVariety);
 	terminalObserver->observeVariable("Heuristic construction penalty", avgHeuristicPenalty);
+	terminalObserver->observeVariable("Heuristic construction time", formatedAvgHeuristicTime);
 	terminalObserver->observeVariable("Heuristic/Random variety factor", varietyFactor);
 	terminalObserver->observeVariable("Heuristic/Random penalty factor", penaltyFactor);
+	terminalObserver->observeVariable("Heuristic/Random time factor", timeFactor);
 	observers.push_back(terminalObserver);
 
 	avgRandomVariety = 0;
@@ -89,12 +96,17 @@ int main (int argc, char** argv) {
 
 		for (auto o : observers) o->notifyRunBegun();
 
+		beginTime = chrono::high_resolution_clock::now();
 		constructRandomSolution(*graph);
 		if (i == 0) {
+			avgRandomTime = chrono::high_resolution_clock::now() - beginTime;
 			avgRandomPenalty = graph->totalPenalty();
 		} else {
+			avgRandomTime = (avgRandomTime + chrono::high_resolution_clock::now() - beginTime)/2;
 			avgRandomPenalty = (avgRandomPenalty+graph->totalPenalty())/2;
 		}
+		formatedAvgRandomTime = format_chrono_duration(avgRandomTime);
+
 		randomSolution = graph->extractSolution();
 
 		if (i > 0) {
@@ -110,12 +122,17 @@ int main (int argc, char** argv) {
 		}
 		randomSolutions.push_back(randomSolution);
 
+		beginTime = chrono::high_resolution_clock::now();
 		constructHeuristicSolution(*graph);
 		if (i == 0) {
+			avgHeuristicTime = chrono::high_resolution_clock::now() - beginTime;
 			avgHeuristicPenalty = graph->totalPenalty();
 		} else {
+			avgHeuristicTime = (avgHeuristicTime + chrono::high_resolution_clock::now() - beginTime)/2;
 			avgHeuristicPenalty = (avgHeuristicPenalty + graph->totalPenalty())/2;
 		}
+		formatedAvgHeuristicTime = format_chrono_duration(avgHeuristicTime);
+
 		heuristicSolution = graph->extractSolution();
 
 		if (i > 0) {
@@ -133,6 +150,7 @@ int main (int argc, char** argv) {
 
 		varietyFactor = (double)avgHeuristicVariety/avgRandomVariety;
 		penaltyFactor = (double)avgHeuristicPenalty/avgRandomPenalty;
+		timeFactor = (double)avgHeuristicTime.count()/avgRandomTime.count();
 
 		for (auto o : observers) {
 			o->notifyRunUpdate();
