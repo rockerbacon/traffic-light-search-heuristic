@@ -60,28 +60,27 @@ int main (int argc, char** argv) {
 	TerminalObserver *terminalObserver;
 	size_t numberOfVertices;
 	unsigned numberOfRuns;
-	TimeUnit totalRandomVariety, totalHeuristicVariety;
-	TimeUnit totalRandomPenalty, totalHeuristicPenalty;
+	double avgRandomVariety, avgHeuristicVariety;
+	double avgRandomPenalty, avgHeuristicPenalty;
 	TimeUnit cycle;
 	Solution *randomSolution, *heuristicSolution;
 	list<Solution*> randomSolutions, heuristicSolutions;
 	double varietyFactor, penaltyFactor;
+	decltype(randomSolutions)::iterator it;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, numberOfRuns, cycle);
 
 	terminalObserver = new TerminalObserver("initial solution construction", numberOfRuns);
-	terminalObserver->observeVariable("Random construction variety", totalRandomVariety);
-	terminalObserver->observeVariable("Random construction penalty", totalRandomPenalty);
-	terminalObserver->observeVariable("Heuristic construction variety", totalHeuristicVariety);
-	terminalObserver->observeVariable("Heuristic construction penalty", totalHeuristicPenalty);
+	terminalObserver->observeVariable("Random construction variety", avgRandomVariety);
+	terminalObserver->observeVariable("Random construction penalty", avgRandomPenalty);
+	terminalObserver->observeVariable("Heuristic construction variety", avgHeuristicVariety);
+	terminalObserver->observeVariable("Heuristic construction penalty", avgHeuristicPenalty);
 	terminalObserver->observeVariable("Heuristic/Random variety factor", varietyFactor);
 	terminalObserver->observeVariable("Heuristic/Random penalty factor", penaltyFactor);
 	observers.push_back(terminalObserver);
 
-	totalRandomVariety = 0;
-	totalHeuristicVariety = 0;
-	totalRandomPenalty = 0;
-	totalHeuristicPenalty = 0;
+	avgRandomVariety = 0;
+	avgHeuristicVariety = 0;
 	for (auto o : observers) o->notifyBenchmarkBegun();
 	for (unsigned i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, 1, numberOfVertices/3, 1, cycle-1);
@@ -91,23 +90,49 @@ int main (int argc, char** argv) {
 		for (auto o : observers) o->notifyRunBegun();
 
 		constructRandomSolution(*graph);
-		totalRandomPenalty += graph->totalPenalty();
+		if (i == 0) {
+			avgRandomPenalty = graph->totalPenalty();
+		} else {
+			avgRandomPenalty = (avgRandomPenalty+graph->totalPenalty())/2;
+		}
 		randomSolution = graph->extractSolution();
-		for (auto previousSolution : randomSolutions) {
-			totalRandomVariety += distance(*graph, *previousSolution, *randomSolution);
+
+		if (i > 0) {
+			it = randomSolutions.begin();
+			if (avgRandomVariety == 0) {
+				avgRandomVariety = distance(*graph, **it, *randomSolution);
+			} else {
+				avgRandomVariety = (avgRandomVariety+distance(*graph, **it, *randomSolution))/2;
+			}
+			for (it++; it != randomSolutions.end(); it++) {
+				avgRandomVariety = (avgRandomVariety+distance(*graph, **it, *randomSolution))/2;
+			}
 		}
 		randomSolutions.push_back(randomSolution);
 
 		constructHeuristicSolution(*graph);
-		totalHeuristicPenalty += graph->totalPenalty();
+		if (i == 0) {
+			avgHeuristicPenalty = graph->totalPenalty();
+		} else {
+			avgHeuristicPenalty = (avgHeuristicPenalty + graph->totalPenalty())/2;
+		}
 		heuristicSolution = graph->extractSolution();
-		for (auto previousSolution : heuristicSolutions) {
-			totalHeuristicVariety += distance(*graph, *previousSolution, *heuristicSolution);
+
+		if (i > 0) {
+			it = heuristicSolutions.begin();
+			if (avgHeuristicVariety == 0) {
+				avgHeuristicVariety = distance(*graph, **it, *heuristicSolution);
+			} else {
+				avgHeuristicVariety = avgHeuristicVariety+distance(*graph, **it, *heuristicSolution);
+			}
+			for (it++; it != heuristicSolutions.end(); it++) {
+				avgHeuristicVariety = (avgHeuristicVariety+distance(*graph, **it, *heuristicSolution))/2;
+			}
 		}
 		heuristicSolutions.push_back(heuristicSolution);
 
-		varietyFactor = (double)totalHeuristicVariety/totalRandomVariety;
-		penaltyFactor = (double)totalHeuristicPenalty/totalRandomPenalty;
+		varietyFactor = (double)avgHeuristicVariety/avgRandomVariety;
+		penaltyFactor = (double)avgHeuristicPenalty/avgRandomPenalty;
 
 		for (auto o : observers) {
 			o->notifyRunUpdate();

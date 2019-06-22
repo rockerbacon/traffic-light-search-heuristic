@@ -38,4 +38,3 @@ benchmark_initial_solution [--runs number] [--vertices number]
 
 #### KNOWN BUGS
 - Scrolling of the terminal can cause the cursor to update information on new lines instead of replacing older lines, causing duplication of information. To avoid, simply ensure that your terminal is clean before running the program;
-- Since metrics are calculated by total instead of average it's easy to overflow it;
