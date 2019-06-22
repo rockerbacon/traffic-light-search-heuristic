@@ -112,7 +112,7 @@ void TerminalObserver::notifyRunBegun (void) {
 
 void TerminalObserver::notifyRunUpdate (void) {
 	cout << MOVE_CURSOR_TO_SAVED_POSITION << CLEAR_LINE;
-	cout << "\tExecution time: " << this->stopwatch.formatedTotalTime() aa << endl;
+	cout << "\tExecution time: " << this->stopwatch.formatedTotalTime() << endl;
 	for (auto observableVariable : this->variablesToObserve) {
 		cout << CLEAR_LINE;
 		cout << "\t" << observableVariable->getLabel() << ": " << observableVariable->getValue() << endl;
