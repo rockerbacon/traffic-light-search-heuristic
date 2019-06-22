@@ -20,3 +20,18 @@ make
 make release/[program source name]
 ```
 Where _[program source name]_ is the name of the .cpp file in the first depth of _src_, without its extension
+
+## Available Programs
+### Benchmark constructive heuristic
+This programs benchmarks a purely random construction vs the proposed constructive heuristic, analyzing both variety and penalty. The graphs used for the solutions are generated randomly each run and have the following properties:
+- Graph is connected
+- Graph has cycle = 20
+- Each vertex has a random degree in the closed interval [1, vertices/3] (see usage section)
+- Each edge has a weight in the closed interval [1, cycle-1]
+
+Usage:
+```
+benchmark_initial_solution [--runs number] [--vertices number]
+```
+- _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 10)
+- _vertices_: number of vertices the random generated graph should have (default 10)
