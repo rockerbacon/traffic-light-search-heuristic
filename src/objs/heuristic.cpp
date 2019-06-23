@@ -113,11 +113,11 @@ struct Perturbation {
 
 Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, size_t perturbationHistorySize) {
 	Solution bestSolution(initialSolution), solution(initialSolution);
-	TimeUnit bestTimingForV, bestPenalty, penalty;
+	TimeUnit bestTimingForVertex, bestPenalty;
 	unordered_set<Vertex> perturbationHistory, perturbationHistoryCompliment; // TODO optimize space usage
 	queue<decltype(perturbationHistory)::const_iterator> perturbationHistoryRemovalQueue;
 	decltype(perturbationHistory)::const_iterator perturbationIterator;
-	Vertex v;
+	Vertex vertex;
 	Perturbation *perturbations;
 	size_t i, numberOfIterations, vertexIndex;
 	TimeUnit rouletteMax, roulette, rouletteTarget;
@@ -129,18 +129,18 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1), roulettePicker;
 
 	perturbations = new Perturbation[numberOfPerturbations+1];
-	for (v = 0; v < graph.getNumberOfVertices(); v++) {
-		perturbationHistoryCompliment.emplace(v);
+	for (vertex = 0; vertex < graph.getNumberOfVertices(); vertex++) {
+		perturbationHistoryCompliment.emplace(vertex);
 	}
 
 	numberOfIterations = 0;
 	// TODO define stop criteria
-	while (numberOfIterations < 20) {
+	while (numberOfIterations < 10) {
 		vertexIndexPicker = uniform_int_distribution<Vertex>(0, perturbationHistoryCompliment.size()-1);
 		vertexIndex = vertexIndexPicker(randomEngine);
 		perturbationIterator = perturbationHistoryCompliment.cbegin();
 		advance(perturbationIterator, vertexIndex);
-		v = *perturbationIterator;
+		vertex = *perturbationIterator;
 		if (perturbationHistory.size() == perturbationHistorySize) {
 			perturbationIterator = perturbationHistoryRemovalQueue.front();
 			perturbationHistoryRemovalQueue.pop();
@@ -148,27 +148,26 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 
 			perturbationHistoryCompliment.emplace(*perturbationIterator);
 		}
-		perturbationHistoryCompliment.erase(v);
-		perturbationIterator = perturbationHistory.emplace(v).first;
+		perturbationHistoryCompliment.erase(vertex);
+		perturbationIterator = perturbationHistory.emplace(vertex).first;
 		perturbationHistoryRemovalQueue.push(perturbationIterator);
-		bestTimingForV = bestSolution.getTiming(v);
-		bestPenalty = graph.vertexPenalty(v, bestSolution);
-		perturbations[0].timing = bestTimingForV;
+		bestTimingForVertex = bestSolution.getTiming(vertex);
+		bestPenalty = graph.vertexPenalty(vertex, bestSolution);
+		perturbations[0].timing = bestTimingForVertex;
 		perturbations[0].penalty = bestPenalty;
 		rouletteMax = bestPenalty;
 		for (i = 1; i <= numberOfPerturbations; i++) {
 			perturbations[i].timing = timingPicker(randomEngine);
-			solution.setTiming(v, perturbations[i].timing);
-			perturbations[i].penalty = graph.vertexPenalty(v, solution);
+			solution.setTiming(vertex, perturbations[i].timing);
+			perturbations[i].penalty = graph.vertexPenalty(vertex, solution);
 			rouletteMax += perturbations[i].penalty;
 
-			if (penalty < bestPenalty) {
-				bestSolution.setTiming(v, perturbations[i].timing);
-				bestPenalty = penalty;
+			if (perturbations[i].penalty < bestPenalty) {
+				bestSolution.setTiming(vertex, perturbations[i].timing);
+				bestPenalty = perturbations[i].penalty;
 			}
 		}
 		// TODO review roulette
-		// TODO sorting should sort both perturbationsInV and perturbationsPenalties
 		sort(perturbations, perturbations + numberOfPerturbations+1, [](const Perturbation& a, const Perturbation &b) -> bool {
 			return a.penalty < b.penalty;
 		});
@@ -180,7 +179,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 		while (stillPickingSolution && i <= numberOfPerturbations) {
 			roulette += perturbations[i].penalty;
 			if (rouletteTarget < roulette) {
-				solution.setTiming(v, perturbations[i].timing);
+				solution.setTiming(vertex, perturbations[i].timing);
 				stillPickingSolution = false;
 			}
 			i++;
