@@ -67,7 +67,7 @@ class MockGraph : public Graph {
 
 int main (void) {
 	MockGraph mockGraph;
-	Solution solution(numberOfTestVertices), initialSolution(numberOfTestVertices);
+	Solution solution, initialSolution;
 
 	test_case("creating random initial solution throws no errors") {
 		solution = constructRandomSolution(mockGraph);
@@ -150,6 +150,7 @@ int main (void) {
 	} end_test_case;
 
 	test_case("local search raises no errors") {
+		initialSolution = Solution(numberOfTestVertices);
 		for (Vertex v = 0; v < numberOfTestVertices; v++) {
 			if (v&1) {
 				initialSolution.setTiming(v, 0);

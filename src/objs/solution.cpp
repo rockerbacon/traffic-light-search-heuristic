@@ -5,6 +5,11 @@
 using namespace traffic;
 using namespace std;
 
+Solution::Solution (void) {
+	this->vertexTimings = nullptr;
+	this->numberOfVertices = 0;
+}
+
 Solution::Solution(size_t numberOfVertices) {
 	this->vertexTimings = new TimeUnit[numberOfVertices];
 	this->numberOfVertices = numberOfVertices;

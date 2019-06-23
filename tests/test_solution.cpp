@@ -10,9 +10,12 @@ int main (void) {
 	Solution* solution = NULL;
 	Solution* b;
 
-	test_case("solution instantiation throws no errors") {
+	test_case("solution instantiation with initial size throws no errors") {
 		solution = new Solution(numberOfTestVertices);
-		b = new Solution(numberOfTestVertices);
+	} end_test_case;
+
+	test_case("empty solution instantiation throws no errors") {
+		b = new Solution();
 	} end_test_case;
 
 	test_case("number of vertices is correct") {

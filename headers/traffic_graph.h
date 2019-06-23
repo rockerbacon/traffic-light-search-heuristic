@@ -14,6 +14,7 @@ namespace traffic {
 			TimeUnit* vertexTimings;
 			size_t numberOfVertices;
 		public:
+			Solution (void);
 			Solution (const Solution& other);
 			Solution (Solution&& other);
 			explicit Solution (size_t numberOfVertices);
