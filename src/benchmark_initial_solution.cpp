@@ -63,14 +63,14 @@ int main (int argc, char** argv) {
 	double avgRandomVariety, avgHeuristicVariety;
 	double avgRandomPenalty, avgHeuristicPenalty;
 	TimeUnit cycle;
-	Solution *randomSolution, *heuristicSolution;
-	list<Solution*> randomSolutions, heuristicSolutions;
+	list<Solution> randomSolutions, heuristicSolutions;
 	double varietyFactor, penaltyFactor;
 	decltype(randomSolutions)::iterator it;
 	chrono::nanoseconds avgRandomTime, avgHeuristicTime;
 	chrono::high_resolution_clock::time_point beginTime;
 	string formatedAvgRandomTime, formatedAvgHeuristicTime;
 	double timeFactor;
+	Solution solution;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, numberOfRuns, cycle);
 
@@ -97,59 +97,55 @@ int main (int argc, char** argv) {
 		for (auto o : observers) o->notifyRunBegun();
 
 		beginTime = chrono::high_resolution_clock::now();
-		constructRandomSolution(*graph);
+		solution = constructRandomSolution(*graph);
 		if (i == 0) {
 			avgRandomTime = chrono::high_resolution_clock::now() - beginTime;
-			avgRandomPenalty = graph->totalPenalty();
+			avgRandomPenalty = graph->totalPenalty(solution);
 		} else {
 			avgRandomTime = (avgRandomTime + chrono::high_resolution_clock::now() - beginTime)/2;
-			avgRandomPenalty = (avgRandomPenalty+graph->totalPenalty())/2;
+			avgRandomPenalty = (avgRandomPenalty+graph->totalPenalty(solution))/2;
 		}
 		formatedAvgRandomTime = format_chrono_duration(avgRandomTime);
-
-		randomSolution = graph->extractSolution();
 
 		if (i > 0) {
 			it = randomSolutions.begin();
 			if (avgRandomVariety == 0) {
-				avgRandomVariety = distance(*graph, **it, *randomSolution);
+				avgRandomVariety = distance(*graph, *it, solution);
 			} else {
-				avgRandomVariety = (avgRandomVariety+distance(*graph, **it, *randomSolution))/2;
+				avgRandomVariety = (avgRandomVariety+distance(*graph, *it, solution))/2;
 			}
 			for (it++; it != randomSolutions.end(); it++) {
-				avgRandomVariety = (avgRandomVariety+distance(*graph, **it, *randomSolution))/2;
+				avgRandomVariety = (avgRandomVariety+distance(*graph, *it, solution))/2;
 			}
 		}
-		randomSolutions.push_back(randomSolution);
+		randomSolutions.push_back(solution);
 
 		beginTime = chrono::high_resolution_clock::now();
-		constructHeuristicSolution(*graph);
+		solution = constructHeuristicSolution(*graph);
 		if (i == 0) {
 			avgHeuristicTime = chrono::high_resolution_clock::now() - beginTime;
-			avgHeuristicPenalty = graph->totalPenalty();
+			avgHeuristicPenalty = graph->totalPenalty(solution);
 		} else {
 			avgHeuristicTime = (avgHeuristicTime + chrono::high_resolution_clock::now() - beginTime)/2;
-			avgHeuristicPenalty = (avgHeuristicPenalty + graph->totalPenalty())/2;
+			avgHeuristicPenalty = (avgHeuristicPenalty + graph->totalPenalty(solution))/2;
 		}
 		formatedAvgHeuristicTime = format_chrono_duration(avgHeuristicTime);
-
-		heuristicSolution = graph->extractSolution();
 
 		if (i > 0) {
 			it = heuristicSolutions.begin();
 			if (avgHeuristicVariety == 0) {
-				avgHeuristicVariety = distance(*graph, **it, *heuristicSolution);
+				avgHeuristicVariety = distance(*graph, *it, solution);
 			} else {
-				avgHeuristicVariety = avgHeuristicVariety+distance(*graph, **it, *heuristicSolution);
+				avgHeuristicVariety = avgHeuristicVariety+distance(*graph, *it, solution);
 			}
 			for (it++; it != heuristicSolutions.end(); it++) {
-				avgHeuristicVariety = (avgHeuristicVariety+distance(*graph, **it, *heuristicSolution))/2;
+				avgHeuristicVariety = (avgHeuristicVariety+distance(*graph, *it, solution))/2;
 			}
 		}
-		heuristicSolutions.push_back(heuristicSolution);
+		heuristicSolutions.push_back(solution);
 
-		varietyFactor = (double)avgHeuristicVariety/avgRandomVariety;
-		penaltyFactor = (double)avgHeuristicPenalty/avgRandomPenalty;
+		varietyFactor = avgHeuristicVariety/avgRandomVariety;
+		penaltyFactor = avgHeuristicPenalty/avgRandomPenalty;
 		timeFactor = (double)avgHeuristicTime.count()/avgRandomTime.count();
 
 		for (auto o : observers) {
@@ -163,12 +159,6 @@ int main (int argc, char** argv) {
 	for (auto o : observers) o->notifyBenchmarkEnded();
 
 	delete terminalObserver;
-	for (auto solution : randomSolutions) {
-		delete solution;
-	}
-	for (auto solution : heuristicSolutions) {
-		delete solution;
-	}
 
 	return 0;
 }
