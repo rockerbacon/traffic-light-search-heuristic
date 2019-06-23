@@ -5,8 +5,8 @@
 #include "heuristic.h"
 #include "benchmark.h"
 
-#define DEFAULT_NUMBER_OF_VERTICES 10
-#define DEFAULT_NUMBER_OF_RUNS 10
+#define DEFAULT_NUMBER_OF_VERTICES 500
+#define DEFAULT_NUMBER_OF_RUNS 100
 #define DEFAULT_CYCLE 20
 
 #define WRONG_ARGUMENTS_EXIT_CODE 1

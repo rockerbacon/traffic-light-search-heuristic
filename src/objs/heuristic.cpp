@@ -157,6 +157,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 		perturbationHistoryCompliment.erase(vertex);
 		perturbationIterator = perturbationHistory.emplace(vertex).first;
 		perturbationHistoryRemovalQueue.push(perturbationIterator);
+
 		bestPenalty = graph.vertexPenalty(vertex, bestSolution);
 		perturbations[0].timing = bestSolution.getTiming(vertex);
 		perturbations[0].penalty = bestPenalty;
@@ -173,18 +174,19 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 				iterationHadNoImprovement = false;
 			}
 		}
+
 		// TODO review roulette
 		sort(perturbations, perturbations + numberOfPerturbations+1, [](const Perturbation& a, const Perturbation &b) -> bool {
 			return a.penalty < b.penalty;
 		});
 		stillPickingSolution = true;
-		roulettePicker = uniform_int_distribution<TimeUnit>(0, rouletteMax-1);
+		roulettePicker = uniform_int_distribution<TimeUnit>(0, rouletteMax);
 		rouletteTarget = roulettePicker(randomEngine);
 		roulette = 0;
 		i = 0;
 		while (stillPickingSolution) {
 			roulette += perturbations[i].penalty;
-			if (rouletteTarget < roulette) {
+			if (rouletteTarget <= roulette) {
 				solution.setTiming(vertex, perturbations[i].timing);
 				stillPickingSolution = false;
 			}
