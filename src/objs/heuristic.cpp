@@ -111,7 +111,7 @@ struct Perturbation {
 	TimeUnit penalty;
 };
 
-Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, size_t perturbationHistorySize) {
+Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, size_t perturbationHistorySize, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
 	Solution bestSolution(initialSolution), solution(initialSolution);
 	TimeUnit bestPenalty;
 	unordered_set<Vertex> perturbationHistory, perturbationHistoryCompliment;
@@ -119,9 +119,10 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 	decltype(perturbationHistory)::const_iterator perturbationIterator;
 	Vertex vertex;
 	Perturbation *perturbations;
-	size_t numberOfIterations, i;
+	size_t i;
 	TimeUnit rouletteMax, roulette, rouletteTarget;
-	bool stillPickingSolution;
+	bool stillPickingSolution, iterationHadNoImprovement;
+	LocalSearchMetrics metrics;
 
 	random_device seeder;
 	mt19937 randomEngine(seeder());
@@ -136,9 +137,11 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 		perturbationHistoryCompliment.emplace(vertex);
 	}
 
-	numberOfIterations = 0;
-	// TODO define stop criteria
-	while (numberOfIterations < 10) {
+	metrics.numberOfIterations = 0;
+	metrics.numberOfIterationsWithoutImprovement = 0;
+	while (stopCriteriaNotMet(metrics)) {
+		iterationHadNoImprovement = true;
+
 		vertexIndexPicker = uniform_int_distribution<Vertex>(0, perturbationHistoryCompliment.size()-1);
 		i = vertexIndexPicker(randomEngine);
 		perturbationIterator = perturbationHistoryCompliment.cbegin();
@@ -167,6 +170,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 			if (perturbations[i].penalty < bestPenalty) {
 				bestSolution.setTiming(vertex, perturbations[i].timing);
 				bestPenalty = perturbations[i].penalty;
+				iterationHadNoImprovement = false;
 			}
 		}
 		// TODO review roulette
@@ -187,10 +191,25 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 			i++;
 		}
 
-		numberOfIterations++;
+		metrics.numberOfIterations++;
+		if (iterationHadNoImprovement) {
+			metrics.numberOfIterationsWithoutImprovement++;
+		}
 	}
 
 	delete [] perturbations;
 
 	return bestSolution;
+}
+
+function<bool(const LocalSearchMetrics&)> stop_criteria::numberOfIterations(unsigned numberOfIterationsToStop) {
+	return [=](const LocalSearchMetrics& metrics) -> bool {
+		return metrics.numberOfIterations < numberOfIterationsToStop;
+	};
+}
+
+function<bool(const LocalSearchMetrics&)> stop_criteria::numberOfIterationsWithoutImprovement(unsigned numberOfIterationsToStop) {
+	return [=](const LocalSearchMetrics& metrics) -> bool {
+		return metrics.numberOfIterationsWithoutImprovement < numberOfIterationsToStop;
+	};
 }
