@@ -29,12 +29,34 @@ This programs benchmarks a purely random construction vs the proposed constructi
 - Each vertex has a random degree in the closed interval [1, vertices/3] (see usage section)
 - Each edge has a weight in the closed interval [1, cycle-1]
 
-Usage:
+#### Usage:
 ```
 benchmark_initial_solution [--runs number] [--vertices number]
 ```
 - _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 10)
 - _vertices_: number of vertices the random generated graph should have (default 10)
+
+#### KNOWN BUGS
+- Scrolling of the terminal can cause the cursor to update information on new lines instead of replacing older lines, causing duplication of information. To avoid, simply ensure that your terminal is clean before running the program;
+
+### Benchmark local search
+This program benchmarks the proposed local search heuristic using the proposed constructive heuristic as its initial solution. The graphs used are generated randomly each run and have the following properties:
+- Graph is connected
+- Graph has cycle = 20
+- Each vertex has a random degree in the closed interval [1, maxVertexDegree] (see usage section)
+- Each edge has a weight in the closed interval [1, cycle-1]
+
+#### Usage:
+```
+benchmark_local_search [--runs number] [--vertices number] [--maxVertexDegree number] [--useAdjacencyList | --useAdjacencyMatrix] [--perturbations number] [--history number] [(--iterationsWithoutImprovement | --iterations) number]
+```
+- _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 50)
+- _vertices_: number of vertices the random generated graphs should have (default 500)
+- _maxVertexDegree_: maximum degree a vertex is allowed to have (default 10)
+- _useAdjacencyList_ or _useAdjacencyMatrix_: the representation the random generated graphs should use. An adjacency matrix will still build an underlying adjacency list for easier vertex neighborhood iterations (default _useAdjacencyList_)
+- _perturbations_: number of perturbations to generate and analize on every iteration of the search (default 5)
+- _history_: maximum size to keep for the history. The history keeps the same vertex to be perturbated successively, every time the history fills the oldest vertex is removed allowing it to be perturbated again (default _vertices_/10)
+- _iterationsWithoutImprovement_ or _iterations_: stop criteria for the local search (default _iterationsWithoutImprovement_ 30)
 
 #### KNOWN BUGS
 - Scrolling of the terminal can cause the cursor to update information on new lines instead of replacing older lines, causing duplication of information. To avoid, simply ensure that your terminal is clean before running the program;
