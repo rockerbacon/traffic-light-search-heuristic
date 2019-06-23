@@ -2,30 +2,19 @@
 
 using namespace traffic;
 Graph::Graph(size_t numberOfVertices, TimeUnit cycle) {
-	this->solution = new Solution(numberOfVertices);
 	this->numberOfVertices = numberOfVertices;
 	this->cycle = cycle;
 }
 
-Graph::~Graph(void) {
-	delete this->solution;
-}
+Graph::~Graph (void) {}
 
 size_t Graph::getNumberOfVertices (void) const {
 	return this->numberOfVertices;
 }
 
-void Graph::setTiming (Vertex vertex, TimeUnit timing) {
-	this->solution->setTiming(vertex, timing);
-}
-
-TimeUnit Graph::getTiming (Vertex vertex) const {
-	this->solution->getTiming(vertex);
-}
-
-TimeUnit Graph::penalty (Vertex vertex1, Vertex vertex2, Weight edgeWeight) const {
-	TimeUnit timingVertex1 = this->solution->getTiming(vertex1);
-	TimeUnit timingVertex2 = this->solution->getTiming(vertex2);
+TimeUnit Graph::penalty (Vertex vertex1, Vertex vertex2, const Solution& solution, Weight edgeWeight) const {
+	TimeUnit timingVertex1 = solution.getTiming(vertex1);
+	TimeUnit timingVertex2 = solution.getTiming(vertex2);
 	Weight weight = (edgeWeight == -1) ? this->weight({vertex1, vertex2}) : edgeWeight;
 	TimeUnit cuv, penalty;
 
@@ -48,33 +37,27 @@ TimeUnit Graph::getCycle (void) const {
 	return this->cycle;
 }
 
-TimeUnit Graph::vertexPenalty (Vertex vertex) const {
+TimeUnit Graph::vertexPenalty (Vertex vertex, const Solution& solution) const {
 	TimeUnit totalPenalty = 0;
 	for (auto neighbor : this->neighborsOf(vertex)) {
-		totalPenalty += this->penalty(vertex, neighbor.first, neighbor.second);
-		totalPenalty += this->penalty(neighbor.first, vertex, neighbor.second);
+		totalPenalty += this->penalty(vertex, neighbor.first, solution, neighbor.second);
+		totalPenalty += this->penalty(neighbor.first, vertex, solution, neighbor.second);
 	}
 	return totalPenalty;
 }
 
-TimeUnit Graph::vertexPenaltyOnewayOnly (Vertex vertex) const {
+TimeUnit Graph::vertexPenaltyOnewayOnly (Vertex vertex, const Solution& solution) const {
 	TimeUnit totalPenalty = 0;
 	for (auto neighbor : this->neighborsOf(vertex)) {
-		totalPenalty += this->penalty(vertex, neighbor.first, neighbor.second);
+		totalPenalty += this->penalty(vertex, neighbor.first, solution, neighbor.second);
 	}
 	return totalPenalty;
 }
 
-Solution* Graph::extractSolution (void) {
-	Solution* solution = this->solution;
-	this->solution = new Solution(this->numberOfVertices);
-	return solution;
-}
-
-TimeUnit Graph::totalPenalty (void) {
+TimeUnit Graph::totalPenalty (const Solution& solution) const {
 	TimeUnit totalPenalty = 0;
 	for (Vertex v = 0; v < this->numberOfVertices; v++) {
-		totalPenalty += this->vertexPenaltyOnewayOnly(v);
+		totalPenalty += this->vertexPenaltyOnewayOnly(v, solution);
 	}
 	return totalPenalty;
 }

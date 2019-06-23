@@ -47,6 +47,7 @@ namespace benchmark {
 
 	class Observer {
 		public:
+			virtual ~Observer (void);
 			virtual void notifyBenchmarkBegun (void) = 0;
 			virtual void notifyRunBegun (void) = 0;
 			virtual void notifyRunUpdate (void) = 0;

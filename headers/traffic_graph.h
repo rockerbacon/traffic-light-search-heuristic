@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <iostream>
 
 namespace traffic {
 
@@ -11,16 +12,28 @@ namespace traffic {
 	class Solution {
 		private:
 			TimeUnit* vertexTimings;
+			size_t numberOfVertices;
 		public:
-			Solution (size_t numberOfVertices);
+			Solution (const Solution& other);
+			Solution (Solution&& other);
+			explicit Solution (size_t numberOfVertices);
 			~Solution (void);
 			void setTiming(Vertex vertex, TimeUnit timing);
 			TimeUnit getTiming(Vertex vertex) const;
+			size_t getNumberOfVertices(void) const;
+
+			friend void swap (Solution& a, Solution& b) {
+				using std::swap;
+
+				swap(a.numberOfVertices, b.numberOfVertices);
+				swap(a.vertexTimings, b.vertexTimings);
+			}
+
+			Solution& operator= (Solution other);
 	};
 
 	class Graph {
 		private:
-			Solution* solution;
 			TimeUnit cycle;
 			size_t numberOfVertices;
 		public:
@@ -33,19 +46,16 @@ namespace traffic {
 			};
 
 			Graph(size_t numberOfVertices, TimeUnit cycle);
-			~Graph(void);
+			virtual ~Graph(void);
 
 			virtual int weight(const Edge& edge) const = 0;
-			void setTiming(Vertex vertex, TimeUnit timing);
-			TimeUnit getTiming(Vertex vertex) const;
 			size_t getNumberOfVertices(void) const;
-			TimeUnit penalty(Vertex vertex1, Vertex vertex2, Weight weight=-1) const;
+			TimeUnit penalty(Vertex vertex1, Vertex vertex2, const Solution& solution, Weight weight=-1) const;
 			TimeUnit getCycle (void) const;
-			TimeUnit vertexPenalty(Vertex vertex) const;
+			TimeUnit vertexPenalty(Vertex vertex, const Solution& solution) const;
 			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const = 0;
-			TimeUnit vertexPenaltyOnewayOnly(Vertex vertex) const;
-			Solution* extractSolution (void);
-			TimeUnit totalPenalty(void);
+			TimeUnit vertexPenaltyOnewayOnly(Vertex vertex, const Solution& solution) const;
+			TimeUnit totalPenalty(const Solution& solution) const;
 
 	};
 
@@ -58,8 +68,8 @@ namespace traffic {
 			AdjacencyMatrixGraph(Weight* adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyMatrixGraph(void);
 
-			virtual Weight weight(const Edge& edge) const;
-			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const;
+			Weight weight(const Edge& edge) const;
+			const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const;
 
 	};
 
@@ -71,8 +81,8 @@ namespace traffic {
 			AdjacencyListGraph(std::unordered_map<Vertex, Weight>* adjacencyList, size_t numberOfVertices, TimeUnit cycle);
 			~AdjacencyListGraph(void);
 
-			virtual Weight weight(const Edge& edge) const;
-			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const;
+			Weight weight(const Edge& edge) const;
+			const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const;
 	};
 
 	class GraphBuilder {

@@ -5,23 +5,29 @@
 #include <chrono>
 #include <limits>
 #include <algorithm>
+#include <queue>
+
+#include <iostream>
 
 using namespace traffic;
 using namespace std;
 
-void traffic::constructRandomSolution (Graph& graph) {
+Solution traffic::constructRandomSolution (const Graph& graph) {
 
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
+	Solution solution(graph.getNumberOfVertices());
 
 	for (Vertex v = 0; v < graph.getNumberOfVertices(); v++) {
-		graph.setTiming(v, timingPicker(randomEngine));
+		solution.setTiming(v, timingPicker(randomEngine));
 	}
+
+	return solution;
 
 }
 
-void traffic::constructHeuristicSolution (Graph& graph, unsigned char numberOfTuplesToTestPerIteration) {
+Solution traffic::constructHeuristicSolution (const Graph& graph, unsigned char numberOfTuplesToTestPerIteration) {
 	vector<Vertex> unvisitedVertices(graph.getNumberOfVertices());
 	const unordered_map<Vertex, Weight>* neighborhood;
 	unordered_map<Vertex, Weight>::const_iterator neighborhoodIterator;
@@ -35,9 +41,10 @@ void traffic::constructHeuristicSolution (Graph& graph, unsigned char numberOfTu
 	TimeUnit maxPenaltyPossible = numeric_limits<TimeUnit>::max();
 	size_t i;
 	TimeUnit candidateTimingVertex1, candidateTimingVertex2, penalty;
+	Solution solution(graph.getNumberOfVertices());
 
 	for (Vertex i = 0; i < graph.getNumberOfVertices(); i++) {
-		graph.setTiming(i, 0);
+		solution.setTiming(i, 0);
 		unvisitedVertices.push_back(i);
 	}
 	shuffle(unvisitedVertices.begin(), unvisitedVertices.end(), randomEngine);
@@ -63,10 +70,10 @@ void traffic::constructHeuristicSolution (Graph& graph, unsigned char numberOfTu
 			candidateTimingVertex1 = candidateTimings[i*2];
 			candidateTimingVertex2 = candidateTimings[i*2+1];
 
-			graph.setTiming(vertex1, candidateTimingVertex1);
-			graph.setTiming(vertex2, candidateTimingVertex2);
+			solution.setTiming(vertex1, candidateTimingVertex1);
+			solution.setTiming(vertex2, candidateTimingVertex2);
 
-			penalty = graph.vertexPenalty(vertex1) + graph.vertexPenalty(vertex2);
+			penalty = graph.vertexPenalty(vertex1, solution) + graph.vertexPenalty(vertex2, solution);
 			if (penalty < bestPenalty) {
 				bestPenalty = penalty;
 				bestVertex1Timing = candidateTimingVertex1;
@@ -74,12 +81,14 @@ void traffic::constructHeuristicSolution (Graph& graph, unsigned char numberOfTu
 			}
 		}
 
-		graph.setTiming(vertex1, bestVertex1Timing);
-		graph.setTiming(vertex2, bestVertex2Timing);
+		solution.setTiming(vertex1, bestVertex1Timing);
+		solution.setTiming(vertex2, bestVertex2Timing);
 
 	}
 
 	delete [] candidateTimings;
+
+	return solution;
 }
 
 TimeUnit traffic::distance(const Graph& graph, const Solution& a, const Solution& b) {
@@ -95,4 +104,92 @@ TimeUnit traffic::distance(const Graph& graph, const Solution& a, const Solution
 		}
 	}
 	return totalDistance;
+}
+
+struct Perturbation {
+	TimeUnit timing;
+	TimeUnit penalty;
+};
+
+Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, size_t perturbationHistorySize) {
+	Solution bestSolution(initialSolution), solution(initialSolution);
+	TimeUnit bestTimingForV, bestPenalty, penalty;
+	unordered_set<Vertex> perturbationHistory, perturbationHistoryCompliment; // TODO optimize space usage
+	queue<decltype(perturbationHistory)::const_iterator> perturbationHistoryRemovalQueue;
+	decltype(perturbationHistory)::const_iterator perturbationIterator;
+	Vertex v;
+	Perturbation *perturbations;
+	size_t i, numberOfIterations, vertexIndex;
+	TimeUnit rouletteMax, roulette, rouletteTarget;
+	bool stillPickingSolution;
+
+	random_device seeder;
+	mt19937 randomEngine(seeder());
+	uniform_int_distribution<Vertex> vertexIndexPicker;
+	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1), roulettePicker;
+
+	perturbations = new Perturbation[numberOfPerturbations+1];
+	for (v = 0; v < graph.getNumberOfVertices(); v++) {
+		perturbationHistoryCompliment.emplace(v);
+	}
+
+	numberOfIterations = 0;
+	// TODO define stop criteria
+	while (numberOfIterations < 20) {
+		vertexIndexPicker = uniform_int_distribution<Vertex>(0, perturbationHistoryCompliment.size()-1);
+		vertexIndex = vertexIndexPicker(randomEngine);
+		perturbationIterator = perturbationHistoryCompliment.cbegin();
+		advance(perturbationIterator, vertexIndex);
+		v = *perturbationIterator;
+		if (perturbationHistory.size() == perturbationHistorySize) {
+			perturbationIterator = perturbationHistoryRemovalQueue.front();
+			perturbationHistoryRemovalQueue.pop();
+			perturbationHistory.erase(perturbationIterator);
+
+			perturbationHistoryCompliment.emplace(*perturbationIterator);
+		}
+		perturbationHistoryCompliment.erase(v);
+		perturbationIterator = perturbationHistory.emplace(v).first;
+		perturbationHistoryRemovalQueue.push(perturbationIterator);
+		bestTimingForV = bestSolution.getTiming(v);
+		bestPenalty = graph.vertexPenalty(v, bestSolution);
+		perturbations[0].timing = bestTimingForV;
+		perturbations[0].penalty = bestPenalty;
+		rouletteMax = bestPenalty;
+		for (i = 1; i <= numberOfPerturbations; i++) {
+			perturbations[i].timing = timingPicker(randomEngine);
+			solution.setTiming(v, perturbations[i].timing);
+			perturbations[i].penalty = graph.vertexPenalty(v, solution);
+			rouletteMax += perturbations[i].penalty;
+
+			if (penalty < bestPenalty) {
+				bestSolution.setTiming(v, perturbations[i].timing);
+				bestPenalty = penalty;
+			}
+		}
+		// TODO review roulette
+		// TODO sorting should sort both perturbationsInV and perturbationsPenalties
+		sort(perturbations, perturbations + numberOfPerturbations+1, [](const Perturbation& a, const Perturbation &b) -> bool {
+			return a.penalty < b.penalty;
+		});
+		stillPickingSolution = true;
+		roulettePicker = uniform_int_distribution<TimeUnit>(0, rouletteMax-1);
+		rouletteTarget = roulettePicker(randomEngine);
+		roulette = 0;
+		i = 0;
+		while (stillPickingSolution && i <= numberOfPerturbations) {
+			roulette += perturbations[i].penalty;
+			if (rouletteTarget < roulette) {
+				solution.setTiming(v, perturbations[i].timing);
+				stillPickingSolution = false;
+			}
+			i++;
+		}
+
+		numberOfIterations++;
+	}
+
+	delete [] perturbations;
+
+	return bestSolution;
 }
