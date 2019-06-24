@@ -6,8 +6,10 @@
 #include "benchmark.h"
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
-#define DEFAULT_NUMBER_OF_RUNS 100
-#define DEFAULT_CYCLE 20
+#define DEFAULT_NUMBER_OF_RUNS 1000
+#define DEFAULT_CYCLE 22
+#define DEFAULT_MIN_VERTEX_DEGREE 5
+#define DEFAULT_MAX_VERTEX_DEGREE 10
 
 #define WRONG_ARGUMENTS_EXIT_CODE 1
 
@@ -15,8 +17,10 @@ using namespace std;
 using namespace traffic;
 using namespace benchmark;
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, unsigned &numberOfRuns, TimeUnit &cycle) {
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
+	minVertexDegree = DEFAULT_MIN_VERTEX_DEGREE;
+	maxVertexDegree = DEFAULT_MAX_VERTEX_DEGREE;
 	numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
 	cycle = DEFAULT_CYCLE;
 
@@ -46,8 +50,52 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 
+			} else if (strcmp(argv[i], "--cycle") == 0) {
+
+				i++;
+				if (i >= argc) {
+					cout << "--cycle argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				cycle = atoi(argv[i]);
+				if (numberOfRuns == 0) {
+					cout << "--cycle argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+			} else if (strcmp(argv[i], "--minVertexDegree") == 0) {
+
+				i++;
+				if (i >= argc) {
+					cout << "--minVertexDegree argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				minVertexDegree = atoi(argv[i]);
+				if (numberOfRuns == 0) {
+					cout << "--minVertexDegree argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+			} else if (strcmp(argv[i], "--maxVertexDegree") == 0) {
+
+				i++;
+				if (i >= argc) {
+					cout << "--maxVertexDegree argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				maxVertexDegree = atoi(argv[i]);
+				if (numberOfRuns == 0) {
+					cout << "--maxVertexDegree argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+			} else {
+				cout << "unknown argument " << argv[i] << endl;
+				exit(WRONG_ARGUMENTS_EXIT_CODE);
 			}
+
 			i++;
+
 		}
 	}
 }
@@ -58,7 +106,7 @@ int main (int argc, char** argv) {
 	Graph *graph;
 	list<Observer*> observers;
 	TerminalObserver *terminalObserver;
-	size_t numberOfVertices;
+	size_t numberOfVertices, minVertexDegree, maxVertexDegree;
 	unsigned numberOfRuns;
 	double avgRandomVariety, avgHeuristicVariety;
 	double avgRandomPenalty, avgHeuristicPenalty;
@@ -73,7 +121,7 @@ int main (int argc, char** argv) {
 	double lowerBoundRandomFactor, lowerBoundHeuristicFactor;
 	Solution solution;
 
-	setupExecutionParameters(argc, argv, numberOfVertices, numberOfRuns, cycle);
+	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle);
 
 	terminalObserver = new TerminalObserver("initial solution construction", numberOfRuns);
 	terminalObserver->observeVariable("Lower bound", avgLowerBound);
@@ -92,7 +140,7 @@ int main (int argc, char** argv) {
 	avgHeuristicVariety = 0;
 	for (auto o : observers) o->notifyBenchmarkBegun();
 	for (unsigned i = 0; i < numberOfRuns; i++) {
-		graphBuilder = new GraphBuilder(numberOfVertices, 1, numberOfVertices/3, 1, cycle-1);
+		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
 		graph = graphBuilder->buildAsAdjacencyList();
 
