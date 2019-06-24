@@ -158,7 +158,7 @@ int main (void) {
 				initialSolution.setTiming(v, testCycle-1);
 			}
 		}
-		solution = localSearchHeuristic(mockGraph, initialSolution, mockGraph.getCycle()/5, stop_criteria::numberOfIterations(5));
+		solution = localSearchHeuristic(mockGraph, initialSolution, stop_criteria::numberOfIterations(5));
 	} end_test_case;
 
 	test_case("searched solution is different from initial solution") {

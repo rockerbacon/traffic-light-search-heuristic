@@ -21,13 +21,12 @@ enum GraphModel {
 	ADJACENCY_MATRIX
 };
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, unsigned &numberOfPerturbations, function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	maxVertexDegree = DEFAULT_MAX_VERTEX_DEGREE;
 	numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
 	cycle = DEFAULT_CYCLE;
 	graphModel = DEFAULT_GRAPH_MODEL;
-	numberOfPerturbations = DEFAULT_NUMBER_OF_PERTURBATIONS;
 	stopCriteriaNotMet = DEFAULT_STOP_CRITERIA;
 
 	if (argc > 1) {
@@ -80,19 +79,6 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 
 				graphModel = GraphModel::ADJACENCY_MATRIX;
 
-			} else if (strcmp(argv[i], "--perturbations") == 0) {
-
-				i++;
-				if (i >= argc) {
-					cout << "--perturbations argument requires a number greater than 0" << endl;
-					exit(WRONG_ARGUMENTS_EXIT_CODE);
-				}
-				numberOfPerturbations = atoi(argv[i]);
-				if (numberOfPerturbations == 0) {
-					cout << "--perturbations argument requires a number greater than 0" << endl;
-					exit(WRONG_ARGUMENTS_EXIT_CODE);
-				}
-
 			} else if (strcmp(argv[i], "--iterationsWithoutImprovement") == 0) {
 
 				unsigned numberOfIterations;
@@ -140,7 +126,7 @@ int main (int argc, char** argv) {
 	Graph *graph = nullptr;
 	Solution constructedSolution, searchedSolution;
 	size_t numberOfVertices, maxVertexDegree;
-	unsigned numberOfRuns, numberOfPerturbations;
+	unsigned numberOfRuns;
 	TimeUnit cycle;
 	GraphModel graphModel;
 	function<bool(const LocalSearchMetrics&)> stopCriteriaNotMet;
@@ -148,7 +134,7 @@ int main (int argc, char** argv) {
 	list<Observer*> observers;
 	double avgInitialConstructionPenalty, avgLocalSearchPenalty, penaltyFactor;
 
-	setupExecutionParameters(argc, argv, numberOfVertices, maxVertexDegree, numberOfRuns, cycle, graphModel, numberOfPerturbations, stopCriteriaNotMet);
+	setupExecutionParameters(argc, argv, numberOfVertices, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMet);
 
 	terminalObserver = new TerminalObserver("local search heuristic", numberOfRuns);
 	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
@@ -174,7 +160,7 @@ int main (int argc, char** argv) {
 		for (auto o : observers) o->notifyRunBegun();
 
 		constructedSolution = constructHeuristicSolution(*graph);
-		searchedSolution = localSearchHeuristic(*graph, constructedSolution, numberOfPerturbations, stopCriteriaNotMet);
+		searchedSolution = localSearchHeuristic(*graph, constructedSolution, stopCriteriaNotMet);
 
 		if (i == 0) {
 			avgInitialConstructionPenalty = graph->totalPenalty(constructedSolution);

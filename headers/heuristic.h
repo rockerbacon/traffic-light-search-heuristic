@@ -20,5 +20,5 @@ namespace traffic {
 		std::function<bool(const LocalSearchMetrics&)> numberOfIterationsWithoutImprovement (unsigned numberOfIterationsToStop);
 	};
 
-	Solution localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet);
+	Solution localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet);
 };
