@@ -34,9 +34,9 @@ benchmark_initial_solution [--vertices number] [--runs number]
 ```
 - _vertices_: number of vertices the random generated graph should have (default 500)
 - _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 1000)
-- _minVertexDegree_: minimum degree a vertex is allowed to have (default 5)
+- _minVertexDegree_: minimum degree a vertex is allowed to have (default 4)
 - _maxVertexDegree_: maximum degree a vertex is allowed to have (default 10)
-- _cycle_: cycle for the random generated graphs (default 22)
+- _cycle_: cycle for the random generated graphs (default 24)
 
 #### KNOWN BUGS
 - Scrolling of the terminal can cause the cursor to update information on new lines instead of replacing older lines, causing duplication of information. To avoid, simply ensure that your terminal is clean before running the program;
@@ -53,11 +53,11 @@ benchmark_local_search [--vertices number] [--runs number] [--minVertexDegree nu
 ```
 - _vertices_: number of vertices the random generated graphs should have (default 500)
 - _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 100)
-- _minVertexDegree_: minimum degree a vertex is allowed to have (default 5)
+- _minVertexDegree_: minimum degree a vertex is allowed to have (default 4)
 - _maxVertexDegree_: maximum degree a vertex is allowed to have (default 10)
 - _useAdjacencyList_ or _useAdjacencyMatrix_: the representation the random generated graphs should use. An adjacency matrix will still build an underlying adjacency list for easier vertex neighborhood iterations (default _useAdjacencyList_)
 - _iterationsWithoutImprovement_ or _iterations_: stop criteria for the local search (default _iterations_ 10000)
-- _cycle_: cycle for the random generated graphs (default 22)
+- _cycle_: cycle for the random generated graphs (default 24)
 
 #### KNOWN BUGS
 - Scrolling of the terminal can cause the cursor to update information on new lines instead of replacing older lines, causing duplication of information. To avoid, simply ensure that your terminal is clean before running the program;
