@@ -133,6 +133,9 @@ int main (int argc, char** argv) {
 	TerminalObserver *terminalObserver;
 	list<Observer*> observers;
 	double avgInitialConstructionPenalty, avgLocalSearchPenalty, penaltyFactor;
+	chrono::high_resolution_clock::time_point beginSearch;
+	chrono::high_resolution_clock::duration avgSearchDuration;
+	string formatedAvgSearchDuration;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMet);
 
@@ -140,6 +143,7 @@ int main (int argc, char** argv) {
 	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
 	terminalObserver->observeVariable("local search penalty", avgLocalSearchPenalty);
 	terminalObserver->observeVariable("search/initial penalty factor", penaltyFactor);
+	terminalObserver->observeVariable("search duration", formatedAvgSearchDuration);
 	observers.push_back(terminalObserver);
 
 	avgInitialConstructionPenalty = 0;
@@ -159,17 +163,21 @@ int main (int argc, char** argv) {
 
 		for (auto o : observers) o->notifyRunBegun();
 
+		beginSearch = chrono::high_resolution_clock::now();
 		constructedSolution = constructHeuristicSolution(*graph);
 		searchedSolution = localSearchHeuristic(*graph, constructedSolution, stopCriteriaNotMet);
 
 		if (i == 0) {
+			avgSearchDuration = chrono::high_resolution_clock::now() - beginSearch;
 			avgInitialConstructionPenalty = graph->totalPenalty(constructedSolution);
 			avgLocalSearchPenalty = graph->totalPenalty(searchedSolution);
 		} else {
+			avgSearchDuration = (avgSearchDuration + chrono::high_resolution_clock::now() - beginSearch)/2;
 			avgInitialConstructionPenalty = (avgInitialConstructionPenalty + graph->totalPenalty(constructedSolution))/2;
 			avgLocalSearchPenalty = (avgLocalSearchPenalty + graph->totalPenalty(searchedSolution))/2;
 		}
 		penaltyFactor = avgLocalSearchPenalty/avgInitialConstructionPenalty;
+		formatedAvgSearchDuration = format_chrono_duration(avgSearchDuration);
 
 		for (auto o : observers) {
 			o->notifyRunUpdate();

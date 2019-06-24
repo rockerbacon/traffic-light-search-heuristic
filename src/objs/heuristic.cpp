@@ -112,8 +112,7 @@ struct Perturbation {
 };
 
 Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
-	Solution bestSolution(initialSolution), solution(initialSolution);
-	TimeUnit bestTiming, bestPenalty;
+	Solution solution(initialSolution);
 	TimeUnit currentTiming, currentPenalty;
 	TimeUnit perturbationTiming, perturbationPenalty;
 	Vertex vertex;
@@ -123,8 +122,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
-	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1), roulettePicker;
-	uniform_real_distribution<double> probabilityPicker(0, 1);
+	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
@@ -142,20 +140,8 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 
 		if (perturbationPenalty < currentPenalty) {
 			iterationHadNoImprovement = false;
-		} else if (probabilityPicker(randomEngine) < 0.5) {
-			solution.setTiming(vertex, currentTiming);
-		}
-
-		bestTiming = bestSolution.getTiming(vertex);
-		bestPenalty = graph.vertexPenalty(vertex, bestSolution);
-
-		bestSolution.setTiming(vertex, perturbationTiming);
-		currentPenalty = graph.vertexPenalty(vertex, bestSolution);
-		if (currentPenalty < bestPenalty) {
-			bestTiming = perturbationTiming;
-			bestPenalty = currentPenalty;
 		} else {
-			bestSolution.setTiming(vertex, bestTiming);
+			solution.setTiming(vertex, currentTiming);
 		}
 
 		metrics.numberOfIterations++;
@@ -166,7 +152,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 		}
 	}
 
-	return bestSolution;
+	return solution;
 }
 
 function<bool(const LocalSearchMetrics&)> stop_criteria::numberOfIterations(unsigned numberOfIterationsToStop) {
