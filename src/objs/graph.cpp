@@ -61,3 +61,25 @@ TimeUnit Graph::totalPenalty (const Solution& solution) const {
 	}
 	return totalPenalty;
 }
+
+TimeUnit Graph::lowerBound (void) const {
+	TimeUnit lowerBound = 0;
+	TimeUnit weightTimes2;
+	Edge edge;
+
+	for (edge.vertex1 = 0; edge.vertex1 < this->numberOfVertices-1; edge.vertex1++) {
+		for (edge.vertex2 = edge.vertex1+1; edge.vertex2 < this->numberOfVertices; edge.vertex2++) {
+			weightTimes2 = this->weight(edge);
+			if (weightTimes2 != -1) {
+				weightTimes2 = weightTimes2*2%this->getCycle();
+				if (weightTimes2 > this->getCycle() - weightTimes2) {
+					lowerBound += this->getCycle() - weightTimes2;
+				} else {
+					lowerBound += weightTimes2;
+				}
+			}
+		}
+	}
+
+	return lowerBound;
+}

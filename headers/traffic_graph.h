@@ -57,6 +57,7 @@ namespace traffic {
 			virtual const std::unordered_map<Vertex, Weight>& neighborsOf(Vertex vertex) const = 0;
 			TimeUnit vertexPenaltyOnewayOnly(Vertex vertex, const Solution& solution) const;
 			TimeUnit totalPenalty(const Solution& solution) const;
+			TimeUnit lowerBound(void) const;
 
 	};
 

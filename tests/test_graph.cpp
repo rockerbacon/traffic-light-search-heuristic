@@ -148,6 +148,10 @@ int main (void) {
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;
 
+	test_case("lower bound is correctly calculated") {
+		assert_equal(graph->lowerBound(), 16);
+	} end_test_case;
+
 	test_case("destroying graph raises no errors") {
 		delete graph;
 	} end_test_case;
