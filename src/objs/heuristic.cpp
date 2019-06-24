@@ -111,12 +111,9 @@ struct Perturbation {
 	TimeUnit penalty;
 };
 
-Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, size_t perturbationHistorySize, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
+Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
 	Solution bestSolution(initialSolution), solution(initialSolution);
-	TimeUnit bestPenalty, currentPenalty;
-	unordered_set<Vertex> perturbationHistory, perturbationHistoryCompliment;
-	queue<decltype(perturbationHistory)::const_iterator> perturbationHistoryRemovalQueue;
-	decltype(perturbationHistory)::const_iterator perturbationIterator;
+	TimeUnit bestPenalty, currentPenalty, bestTiming, candidatePenalty;
 	Vertex vertex;
 	Perturbation *perturbations;
 	size_t i;
@@ -126,41 +123,22 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 
 	random_device seeder;
 	mt19937 randomEngine(seeder());
-	uniform_int_distribution<Vertex> vertexIndexPicker;
+	uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
 	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1), roulettePicker;
 
-	perturbationHistory.reserve(perturbationHistorySize);
-	perturbationHistoryCompliment.reserve(graph.getNumberOfVertices());
-
 	perturbations = new Perturbation[numberOfPerturbations+1];
-	for (vertex = 0; vertex < graph.getNumberOfVertices(); vertex++) {
-		perturbationHistoryCompliment.emplace(vertex);
-	}
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopCriteriaNotMet(metrics)) {
 		iterationHadNoImprovement = true;
 
-		vertexIndexPicker = uniform_int_distribution<Vertex>(0, perturbationHistoryCompliment.size()-1);
-		i = vertexIndexPicker(randomEngine);
-		perturbationIterator = perturbationHistoryCompliment.cbegin();
-		advance(perturbationIterator, i);
-		vertex = *perturbationIterator;
-		if (perturbationHistory.size() == perturbationHistorySize) {
-			perturbationIterator = perturbationHistoryRemovalQueue.front();
-			perturbationHistoryRemovalQueue.pop();
-			perturbationHistory.erase(perturbationIterator);
-
-			perturbationHistoryCompliment.emplace(*perturbationIterator);
-		}
-		perturbationHistoryCompliment.erase(vertex);
-		perturbationIterator = perturbationHistory.emplace(vertex).first;
-		perturbationHistoryRemovalQueue.push(perturbationIterator);
+		vertex = vertexPicker(randomEngine);
 
 		currentPenalty = graph.vertexPenalty(vertex, solution);
 		bestPenalty = graph.vertexPenalty(vertex, bestSolution);
-		perturbations[0].timing = bestSolution.getTiming(vertex);
+		bestTiming = bestSolution.getTiming(vertex);
+		perturbations[0].timing = solution.getTiming(vertex);
 		perturbations[0].penalty = bestPenalty;
 		rouletteMax = bestPenalty;
 		for (i = 1; i <= numberOfPerturbations; i++) {
@@ -173,11 +151,15 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 				iterationHadNoImprovement = false;
 			}
 
-			if (perturbations[i].penalty < bestPenalty) {
-				bestSolution.setTiming(vertex, perturbations[i].timing);
-				bestPenalty = perturbations[i].penalty;
+			bestSolution.setTiming(vertex, perturbations[i].timing);
+			candidatePenalty = graph.vertexPenalty(vertex, bestSolution);
+			if (candidatePenalty < bestPenalty) {
+				bestTiming = perturbations[i].timing;
+				bestPenalty = candidatePenalty;
 			}
 		}
+
+		bestSolution.setTiming(vertex, bestTiming);
 
 		// TODO review roulette
 		sort(perturbations, perturbations + numberOfPerturbations+1, [](const Perturbation& a, const Perturbation &b) -> bool {

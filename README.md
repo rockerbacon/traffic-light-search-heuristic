@@ -48,14 +48,13 @@ This program benchmarks the proposed local search heuristic using the proposed c
 
 #### Usage:
 ```
-benchmark_local_search [--vertices number] [--runs number] [--maxVertexDegree number] [--useAdjacencyList | --useAdjacencyMatrix] [--perturbations number] [--history number] [(--iterationsWithoutImprovement | --iterations) number]
+benchmark_local_search [--vertices number] [--runs number] [--maxVertexDegree number] [--useAdjacencyList | --useAdjacencyMatrix] [--perturbations number] [(--iterationsWithoutImprovement | --iterations) number]
 ```
 - _vertices_: number of vertices the random generated graphs should have (default 500)
 - _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 10)
 - _maxVertexDegree_: maximum degree a vertex is allowed to have (default 10)
 - _useAdjacencyList_ or _useAdjacencyMatrix_: the representation the random generated graphs should use. An adjacency matrix will still build an underlying adjacency list for easier vertex neighborhood iterations (default _useAdjacencyList_)
 - _perturbations_: number of perturbations to generate and analize on every iteration of the search (default 1)
-- _history_: maximum size to keep for the history. The history keeps the same vertex to be perturbated successively, every time the history fills the oldest vertex is removed allowing it to be perturbated again (default 125)
 - _iterationsWithoutImprovement_ or _iterations_: stop criteria for the local search (default _iterations_ 100000)
 
 #### KNOWN BUGS

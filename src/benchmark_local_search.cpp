@@ -8,7 +8,6 @@
 #define DEFAULT_CYCLE 20
 #define DEFAULT_GRAPH_MODEL GraphModel::ADJACENCY_LIST
 #define DEFAULT_NUMBER_OF_PERTURBATIONS 1
-#define DEFAULT_HISTORY_SIZE 125
 #define DEFAULT_STOP_CRITERIA stop_criteria::numberOfIterations(100000)
 
 #define WRONG_ARGUMENTS_EXIT_CODE 1
@@ -22,14 +21,13 @@ enum GraphModel {
 	ADJACENCY_MATRIX
 };
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, unsigned &numberOfPerturbations, size_t &historySize, function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, unsigned &numberOfPerturbations, function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	maxVertexDegree = DEFAULT_MAX_VERTEX_DEGREE;
 	numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
 	cycle = DEFAULT_CYCLE;
 	graphModel = DEFAULT_GRAPH_MODEL;
 	numberOfPerturbations = DEFAULT_NUMBER_OF_PERTURBATIONS;
-	historySize = DEFAULT_HISTORY_SIZE;
 	stopCriteriaNotMet = DEFAULT_STOP_CRITERIA;
 
 	if (argc > 1) {
@@ -95,15 +93,6 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 
-			} else if (strcmp(argv[i], "--history") == 0) {
-
-				i++;
-				if (i >= argc) {
-					cout << "--history argument requires a non negative number" << endl;
-					exit(WRONG_ARGUMENTS_EXIT_CODE);
-				}
-				historySize = atoi(argv[i]);
-
 			} else if (strcmp(argv[i], "--iterationsWithoutImprovement") == 0) {
 
 				unsigned numberOfIterations;
@@ -150,7 +139,7 @@ int main (int argc, char** argv) {
 	GraphBuilder *graphBuilder = nullptr;
 	Graph *graph = nullptr;
 	Solution constructedSolution, searchedSolution;
-	size_t numberOfVertices, maxVertexDegree, historySize;
+	size_t numberOfVertices, maxVertexDegree;
 	unsigned numberOfRuns, numberOfPerturbations;
 	TimeUnit cycle;
 	GraphModel graphModel;
@@ -159,7 +148,7 @@ int main (int argc, char** argv) {
 	list<Observer*> observers;
 	double avgInitialConstructionPenalty, avgLocalSearchPenalty, penaltyFactor;
 
-	setupExecutionParameters(argc, argv, numberOfVertices, maxVertexDegree, numberOfRuns, cycle, graphModel, numberOfPerturbations, historySize, stopCriteriaNotMet);
+	setupExecutionParameters(argc, argv, numberOfVertices, maxVertexDegree, numberOfRuns, cycle, graphModel, numberOfPerturbations, stopCriteriaNotMet);
 
 	terminalObserver = new TerminalObserver("local search heuristic", numberOfRuns);
 	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
@@ -185,7 +174,7 @@ int main (int argc, char** argv) {
 		for (auto o : observers) o->notifyRunBegun();
 
 		constructedSolution = constructHeuristicSolution(*graph);
-		searchedSolution = localSearchHeuristic(*graph, constructedSolution, numberOfPerturbations, historySize, stopCriteriaNotMet);
+		searchedSolution = localSearchHeuristic(*graph, constructedSolution, numberOfPerturbations, stopCriteriaNotMet);
 
 		if (i == 0) {
 			avgInitialConstructionPenalty = graph->totalPenalty(constructedSolution);
