@@ -62,6 +62,7 @@ int main (int argc, char** argv) {
 	unsigned numberOfRuns;
 	double avgRandomVariety, avgHeuristicVariety;
 	double avgRandomPenalty, avgHeuristicPenalty;
+	double avgLowerBound;
 	TimeUnit cycle;
 	list<Solution> randomSolutions, heuristicSolutions;
 	double varietyFactor, penaltyFactor;
@@ -69,21 +70,22 @@ int main (int argc, char** argv) {
 	chrono::nanoseconds avgRandomTime, avgHeuristicTime;
 	chrono::high_resolution_clock::time_point beginTime;
 	string formatedAvgRandomTime, formatedAvgHeuristicTime;
-	double timeFactor;
+	double lowerBoundRandomFactor, lowerBoundHeuristicFactor;
 	Solution solution;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, numberOfRuns, cycle);
 
 	terminalObserver = new TerminalObserver("initial solution construction", numberOfRuns);
+	terminalObserver->observeVariable("Lower bound", avgLowerBound);
 	terminalObserver->observeVariable("Random construction variety", avgRandomVariety);
 	terminalObserver->observeVariable("Random construction penalty", avgRandomPenalty);
 	terminalObserver->observeVariable("Random construction time", formatedAvgRandomTime);
+	terminalObserver->observeVariable("Random/Lower bound factor", lowerBoundRandomFactor);
 	terminalObserver->observeVariable("Heuristic construction variety", avgHeuristicVariety);
 	terminalObserver->observeVariable("Heuristic construction penalty", avgHeuristicPenalty);
 	terminalObserver->observeVariable("Heuristic construction time", formatedAvgHeuristicTime);
+	terminalObserver->observeVariable("Heuristic/Lower bound factor", lowerBoundHeuristicFactor);
 	terminalObserver->observeVariable("Heuristic/Random variety factor", varietyFactor);
-	terminalObserver->observeVariable("Heuristic/Random penalty factor", penaltyFactor);
-	terminalObserver->observeVariable("Heuristic/Random time factor", timeFactor);
 	observers.push_back(terminalObserver);
 
 	avgRandomVariety = 0;
@@ -101,13 +103,12 @@ int main (int argc, char** argv) {
 		if (i == 0) {
 			avgRandomTime = chrono::high_resolution_clock::now() - beginTime;
 			avgRandomPenalty = graph->totalPenalty(solution);
+			avgLowerBound = graph->lowerBound();
 		} else {
 			avgRandomTime = (avgRandomTime + chrono::high_resolution_clock::now() - beginTime)/2;
 			avgRandomPenalty = (avgRandomPenalty+graph->totalPenalty(solution))/2;
-		}
-		formatedAvgRandomTime = format_chrono_duration(avgRandomTime);
+			avgLowerBound = (avgLowerBound+graph->lowerBound())/2;
 
-		if (i > 0) {
 			it = randomSolutions.begin();
 			if (avgRandomVariety == 0) {
 				avgRandomVariety = distance(*graph, *it, solution);
@@ -117,7 +118,11 @@ int main (int argc, char** argv) {
 			for (it++; it != randomSolutions.end(); it++) {
 				avgRandomVariety = (avgRandomVariety+distance(*graph, *it, solution))/2;
 			}
+
 		}
+		formatedAvgRandomTime = format_chrono_duration(avgRandomTime);
+		lowerBoundRandomFactor = avgRandomPenalty/avgLowerBound;
+
 		randomSolutions.push_back(solution);
 
 		beginTime = chrono::high_resolution_clock::now();
@@ -128,10 +133,7 @@ int main (int argc, char** argv) {
 		} else {
 			avgHeuristicTime = (avgHeuristicTime + chrono::high_resolution_clock::now() - beginTime)/2;
 			avgHeuristicPenalty = (avgHeuristicPenalty + graph->totalPenalty(solution))/2;
-		}
-		formatedAvgHeuristicTime = format_chrono_duration(avgHeuristicTime);
 
-		if (i > 0) {
 			it = heuristicSolutions.begin();
 			if (avgHeuristicVariety == 0) {
 				avgHeuristicVariety = distance(*graph, *it, solution);
@@ -141,12 +143,15 @@ int main (int argc, char** argv) {
 			for (it++; it != heuristicSolutions.end(); it++) {
 				avgHeuristicVariety = (avgHeuristicVariety+distance(*graph, *it, solution))/2;
 			}
+
 		}
+		formatedAvgHeuristicTime = format_chrono_duration(avgHeuristicTime);
+		lowerBoundHeuristicFactor = avgHeuristicPenalty/avgLowerBound;
+
 		heuristicSolutions.push_back(solution);
 
 		varietyFactor = avgHeuristicVariety/avgRandomVariety;
 		penaltyFactor = avgHeuristicPenalty/avgRandomPenalty;
-		timeFactor = (double)avgHeuristicTime.count()/avgRandomTime.count();
 
 		for (auto o : observers) {
 			o->notifyRunUpdate();

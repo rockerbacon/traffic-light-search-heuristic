@@ -132,7 +132,8 @@ int main (int argc, char** argv) {
 	function<bool(const LocalSearchMetrics&)> stopCriteriaNotMet;
 	TerminalObserver *terminalObserver;
 	list<Observer*> observers;
-	double avgInitialConstructionPenalty, avgLocalSearchPenalty, penaltyFactor;
+	double avgInitialConstructionPenalty, avgLocalSearchPenalty, avgLowerBound;
+	double penaltyFactor, lowerBoundFactor;
 	chrono::high_resolution_clock::time_point beginSearch;
 	chrono::high_resolution_clock::duration avgSearchDuration;
 	string formatedAvgSearchDuration;
@@ -140,9 +141,11 @@ int main (int argc, char** argv) {
 	setupExecutionParameters(argc, argv, numberOfVertices, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMet);
 
 	terminalObserver = new TerminalObserver("local search heuristic", numberOfRuns);
+	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
 	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
 	terminalObserver->observeVariable("local search penalty", avgLocalSearchPenalty);
 	terminalObserver->observeVariable("search/initial penalty factor", penaltyFactor);
+	terminalObserver->observeVariable("search/lower bound factor", lowerBoundFactor);
 	terminalObserver->observeVariable("search duration", formatedAvgSearchDuration);
 	observers.push_back(terminalObserver);
 
@@ -171,12 +174,15 @@ int main (int argc, char** argv) {
 			avgSearchDuration = chrono::high_resolution_clock::now() - beginSearch;
 			avgInitialConstructionPenalty = graph->totalPenalty(constructedSolution);
 			avgLocalSearchPenalty = graph->totalPenalty(searchedSolution);
+			avgLowerBound = graph->lowerBound();
 		} else {
 			avgSearchDuration = (avgSearchDuration + chrono::high_resolution_clock::now() - beginSearch)/2;
 			avgInitialConstructionPenalty = (avgInitialConstructionPenalty + graph->totalPenalty(constructedSolution))/2;
 			avgLocalSearchPenalty = (avgLocalSearchPenalty + graph->totalPenalty(searchedSolution))/2;
+			avgLowerBound = (avgLowerBound+graph->lowerBound())/2;
 		}
 		penaltyFactor = avgLocalSearchPenalty/avgInitialConstructionPenalty;
+		lowerBoundFactor = avgLocalSearchPenalty/avgLowerBound;
 		formatedAvgSearchDuration = format_chrono_duration(avgSearchDuration);
 
 		for (auto o : observers) {
