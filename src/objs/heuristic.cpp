@@ -113,7 +113,7 @@ struct Perturbation {
 
 Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, unsigned numberOfPerturbations, size_t perturbationHistorySize, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
 	Solution bestSolution(initialSolution), solution(initialSolution);
-	TimeUnit bestPenalty;
+	TimeUnit bestPenalty, currentPenalty;
 	unordered_set<Vertex> perturbationHistory, perturbationHistoryCompliment;
 	queue<decltype(perturbationHistory)::const_iterator> perturbationHistoryRemovalQueue;
 	decltype(perturbationHistory)::const_iterator perturbationIterator;
@@ -158,6 +158,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 		perturbationIterator = perturbationHistory.emplace(vertex).first;
 		perturbationHistoryRemovalQueue.push(perturbationIterator);
 
+		currentPenalty = graph.vertexPenalty(vertex, solution);
 		bestPenalty = graph.vertexPenalty(vertex, bestSolution);
 		perturbations[0].timing = bestSolution.getTiming(vertex);
 		perturbations[0].penalty = bestPenalty;
@@ -168,10 +169,13 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 			perturbations[i].penalty = graph.vertexPenalty(vertex, solution);
 			rouletteMax += perturbations[i].penalty;
 
+			if (perturbations[i].penalty < currentPenalty) {
+				iterationHadNoImprovement = false;
+			}
+
 			if (perturbations[i].penalty < bestPenalty) {
 				bestSolution.setTiming(vertex, perturbations[i].timing);
 				bestPenalty = perturbations[i].penalty;
-				iterationHadNoImprovement = false;
 			}
 		}
 
@@ -196,6 +200,8 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 		metrics.numberOfIterations++;
 		if (iterationHadNoImprovement) {
 			metrics.numberOfIterationsWithoutImprovement++;
+		} else {
+			metrics.numberOfIterationsWithoutImprovement = 0;
 		}
 	}
 

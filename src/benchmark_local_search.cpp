@@ -120,7 +120,7 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 				}
 				stopCriteriaNotMet = stop_criteria::numberOfIterationsWithoutImprovement(numberOfIterations);
 
-			} else if (strcmp(argv[i], "--iterations")) {
+			} else if (strcmp(argv[i], "--iterations") == 0) {
 
 				unsigned numberOfIterations;
 
@@ -135,6 +135,9 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 				stopCriteriaNotMet = stop_criteria::numberOfIterations(numberOfIterations);
+			} else {
+				cout << "unknown argument " << argv[i] << endl;
+				exit(WRONG_ARGUMENTS_EXIT_CODE);
 			}
 
 			i++;
