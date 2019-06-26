@@ -38,23 +38,22 @@ Solution traffic::constructHeuristicSolution (const Graph& graph, unsigned char 
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<Vertex> edgePicker;
 	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
-	TimeUnit maxPenaltyPossible = numeric_limits<TimeUnit>::max();
+	TimeUnit infinite = numeric_limits<TimeUnit>::max();
 	size_t i;
 	TimeUnit candidateTimingVertex1, candidateTimingVertex2, penalty;
 	Solution solution(graph.getNumberOfVertices());
 
 	for (Vertex i = 0; i < graph.getNumberOfVertices(); i++) {
-		solution.setTiming(i, 0);
 		unvisitedVertices.push_back(i);
 	}
 	shuffle(unvisitedVertices.begin(), unvisitedVertices.end(), randomEngine);
 
-	randomEngine = mt19937(seeder());
 	while (unvisitedVertices.size() > 0) {
 
 		vertex1 = unvisitedVertices.back();
 		unvisitedVertices.pop_back();
 
+		//pegar vizinho aleatorio
 		neighborhood = &graph.neighborsOf(vertex1);
 		edgePicker = uniform_int_distribution<Vertex>(0, neighborhood->size()-1);
 		neighborhoodIterator = neighborhood->cbegin();
@@ -65,7 +64,7 @@ Solution traffic::constructHeuristicSolution (const Graph& graph, unsigned char 
 			candidateTimings[i] = timingPicker(randomEngine);
 		}
 
-		bestPenalty = maxPenaltyPossible;
+		bestPenalty = infinite;
 		for (i = 0; i < numberOfTuplesToTestPerIteration; i++) {
 			candidateTimingVertex1 = candidateTimings[i*2];
 			candidateTimingVertex2 = candidateTimings[i*2+1];
