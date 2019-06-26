@@ -136,6 +136,7 @@ int main (int argc, char** argv) {
 	terminalObserver->observeVariable("Heuristic construction time", formatedAvgHeuristicTime);
 	terminalObserver->observeVariable("Heuristic/Lower bound factor", lowerBoundHeuristicFactor);
 	terminalObserver->observeVariable("Heuristic/Random variety factor", varietyFactor);
+	terminalObserver->observeVariable("Heuristic/Random penaltyFactor", penaltyFactor);
 	observers.push_back(terminalObserver);
 
 	avgLowerBound = 0;
