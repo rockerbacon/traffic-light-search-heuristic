@@ -33,7 +33,7 @@ This programs benchmarks a purely random construction vs the proposed constructi
 benchmark_initial_solution [--vertices number] [--runs number]
 ```
 - _vertices_: number of vertices the random generated graph should have (default 500)
-- _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 1000)
+- _runs_: number of times the benchmark should generate a new graph and generate new solutions (default 100)
 - _minVertexDegree_: minimum degree a vertex is allowed to have (default 4)
 - _maxVertexDegree_: maximum degree a vertex is allowed to have (default 10)
 - _cycle_: cycle for the random generated graphs (default 24)

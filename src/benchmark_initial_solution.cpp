@@ -6,7 +6,7 @@
 #include "benchmark.h"
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
-#define DEFAULT_NUMBER_OF_RUNS 1000
+#define DEFAULT_NUMBER_OF_RUNS 100
 #define DEFAULT_CYCLE 24
 #define DEFAULT_MIN_VERTEX_DEGREE 4
 #define DEFAULT_MAX_VERTEX_DEGREE 10
@@ -108,6 +108,7 @@ int main (int argc, char** argv) {
 	TerminalObserver *terminalObserver;
 	size_t numberOfVertices, minVertexDegree, maxVertexDegree;
 	unsigned numberOfRuns;
+	TimeUnit variety;
 	double avgRandomVariety, avgHeuristicVariety;
 	double avgRandomPenalty, avgHeuristicPenalty;
 	double avgLowerBound;
@@ -120,6 +121,7 @@ int main (int argc, char** argv) {
 	string formatedAvgRandomTime, formatedAvgHeuristicTime;
 	double lowerBoundRandomFactor, lowerBoundHeuristicFactor;
 	Solution solution;
+	unsigned i, j;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle);
 
@@ -136,10 +138,15 @@ int main (int argc, char** argv) {
 	terminalObserver->observeVariable("Heuristic/Random variety factor", varietyFactor);
 	observers.push_back(terminalObserver);
 
+	avgLowerBound = 0;
 	avgRandomVariety = 0;
+	avgRandomPenalty = 0;
+	avgRandomTime = chrono::high_resolution_clock::duration(0);
 	avgHeuristicVariety = 0;
+	avgHeuristicPenalty = 0;
+	avgHeuristicTime = chrono::high_resolution_clock::duration(0);
 	for (auto o : observers) o->notifyBenchmarkBegun();
-	for (unsigned i = 0; i < numberOfRuns; i++) {
+	for (i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
 		graph = graphBuilder->buildAsAdjacencyList();
@@ -148,55 +155,40 @@ int main (int argc, char** argv) {
 
 		beginTime = chrono::high_resolution_clock::now();
 		solution = constructRandomSolution(*graph);
-		if (i == 0) {
-			avgRandomTime = chrono::high_resolution_clock::now() - beginTime;
-			avgRandomPenalty = graph->totalPenalty(solution);
-			avgLowerBound = graph->lowerBound();
-		} else {
-			avgRandomTime = (avgRandomTime + chrono::high_resolution_clock::now() - beginTime)/2;
-			avgRandomPenalty = (avgRandomPenalty+graph->totalPenalty(solution))/2;
-			avgLowerBound = (avgLowerBound+graph->lowerBound())/2;
 
-			it = randomSolutions.begin();
-			if (avgRandomVariety == 0) {
-				avgRandomVariety = distance(*graph, *it, solution);
-			} else {
-				avgRandomVariety = (avgRandomVariety+distance(*graph, *it, solution))/2;
-			}
-			for (it++; it != randomSolutions.end(); it++) {
-				avgRandomVariety = (avgRandomVariety+distance(*graph, *it, solution))/2;
-			}
+		avgRandomTime = (avgRandomTime*i + chrono::high_resolution_clock::now() - beginTime)/(i+1);
+		avgRandomPenalty = (avgRandomPenalty*i +graph->totalPenalty(solution))/(i+1);
+		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
 
+		if (i > 0) {
+			variety = 0;
+			for (j = 0, it = randomSolutions.begin(); it != randomSolutions.end(); it++, j++) {
+				variety = (variety*j + distance(*graph, *it, solution))/(j+1);
+			}
+			avgRandomVariety = (avgRandomVariety*i + variety)/(i+1);
 		}
+		randomSolutions.push_back(solution);
+
 		formatedAvgRandomTime = format_chrono_duration(avgRandomTime);
 		lowerBoundRandomFactor = avgRandomPenalty/avgLowerBound;
 
-		randomSolutions.push_back(solution);
-
 		beginTime = chrono::high_resolution_clock::now();
 		solution = constructHeuristicSolution(*graph);
-		if (i == 0) {
-			avgHeuristicTime = chrono::high_resolution_clock::now() - beginTime;
-			avgHeuristicPenalty = graph->totalPenalty(solution);
-		} else {
-			avgHeuristicTime = (avgHeuristicTime + chrono::high_resolution_clock::now() - beginTime)/2;
-			avgHeuristicPenalty = (avgHeuristicPenalty + graph->totalPenalty(solution))/2;
 
-			it = heuristicSolutions.begin();
-			if (avgHeuristicVariety == 0) {
-				avgHeuristicVariety = distance(*graph, *it, solution);
-			} else {
-				avgHeuristicVariety = avgHeuristicVariety+distance(*graph, *it, solution);
-			}
-			for (it++; it != heuristicSolutions.end(); it++) {
-				avgHeuristicVariety = (avgHeuristicVariety+distance(*graph, *it, solution))/2;
-			}
+		avgHeuristicTime = (avgHeuristicTime*i + chrono::high_resolution_clock::now() - beginTime)/(i+1);
+		avgHeuristicPenalty = (avgHeuristicPenalty*i + graph->totalPenalty(solution))/(i+1);
 
+		if (i > 0) {
+			variety = 0;
+			for (j = 0, it = heuristicSolutions.begin(); it != heuristicSolutions.end(); it++, j++) {
+				variety = (variety*j + distance(*graph, *it, solution))/(j+1);
+			}
+			avgHeuristicVariety = (avgHeuristicVariety*i + variety)/(i+1);
 		}
+		heuristicSolutions.push_back(solution);
+
 		formatedAvgHeuristicTime = format_chrono_duration(avgHeuristicTime);
 		lowerBoundHeuristicFactor = avgHeuristicPenalty/avgLowerBound;
-
-		heuristicSolutions.push_back(solution);
 
 		varietyFactor = avgHeuristicVariety/avgRandomVariety;
 		penaltyFactor = avgHeuristicPenalty/avgRandomPenalty;

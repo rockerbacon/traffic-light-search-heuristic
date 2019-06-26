@@ -177,8 +177,10 @@ int main (int argc, char** argv) {
 	terminalObserver->observeVariable("search duration", formatedAvgSearchDuration);
 	observers.push_back(terminalObserver);
 
+	avgLowerBound = 0;
 	avgInitialConstructionPenalty = 0;
 	avgLocalSearchPenalty = 0;
+	avgSearchDuration = chrono::high_resolution_clock::duration(0);
 	for (auto o : observers) o->notifyBenchmarkBegun();
 	for (unsigned i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
@@ -198,17 +200,11 @@ int main (int argc, char** argv) {
 		constructedSolution = constructHeuristicSolution(*graph);
 		searchedSolution = localSearchHeuristic(*graph, constructedSolution, stopCriteriaNotMet);
 
-		if (i == 0) {
-			avgSearchDuration = chrono::high_resolution_clock::now() - beginSearch;
-			avgInitialConstructionPenalty = graph->totalPenalty(constructedSolution);
-			avgLocalSearchPenalty = graph->totalPenalty(searchedSolution);
-			avgLowerBound = graph->lowerBound();
-		} else {
-			avgSearchDuration = (avgSearchDuration + chrono::high_resolution_clock::now() - beginSearch)/2;
-			avgInitialConstructionPenalty = (avgInitialConstructionPenalty + graph->totalPenalty(constructedSolution))/2;
-			avgLocalSearchPenalty = (avgLocalSearchPenalty + graph->totalPenalty(searchedSolution))/2;
-			avgLowerBound = (avgLowerBound+graph->lowerBound())/2;
-		}
+		avgSearchDuration = (avgSearchDuration*i + chrono::high_resolution_clock::now() - beginSearch)/(i+1);
+		avgInitialConstructionPenalty = (avgInitialConstructionPenalty*i + graph->totalPenalty(constructedSolution))/(i+1);
+		avgLocalSearchPenalty = (avgLocalSearchPenalty*i + graph->totalPenalty(searchedSolution))/(i+1);
+		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
+
 		penaltyFactor = avgLocalSearchPenalty/avgInitialConstructionPenalty;
 		lowerBoundFactor = avgLocalSearchPenalty/avgLowerBound;
 		formatedAvgSearchDuration = format_chrono_duration(avgSearchDuration);
