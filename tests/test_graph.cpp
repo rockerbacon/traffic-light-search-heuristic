@@ -23,13 +23,17 @@ Graph::Edge	edge1 = EDGE1,
 
 class MockGraphImplementation : public Graph {
 	private:
+		unordered_map<Vertex, Weight> neighborsOf2;
+		unordered_map<Vertex, Weight> neighborsOf4;
 		unordered_map<Vertex, Weight> neighborsOf5;
+		unordered_map<Vertex, Weight> neighborsOf7;
 		unordered_map<Vertex, Weight> emptyMap;
 	public:
 		MockGraphImplementation() : Graph(NUMBER_OF_VERTICES, CYCLE) {
-			this->neighborsOf5[edge1.vertex1] = EDGE1_WEIGHT;
-			this->neighborsOf5[edge2.vertex2] = EDGE2_WEIGHT;
-			this->neighborsOf5[edge3.vertex2] = EDGE3_WEIGHT;
+			this->neighborsOf2 = { {5, 10} };
+			this->neighborsOf4 = { {5, 4} };
+			this->neighborsOf5 = { {2, 10}, {4, 4}, {7, 6} };
+			this->neighborsOf7 = { {5, 6} };
 		}
 
 		virtual Weight weight(const Graph::Edge& edge) const {
@@ -46,10 +50,21 @@ class MockGraphImplementation : public Graph {
 		}
 
 		virtual const unordered_map<Vertex, Weight>& neighborsOf (Vertex vertex) const {
-			if (vertex == 5) {
-				return this->neighborsOf5;
-			} else {
-				return this->emptyMap;
+			switch(vertex) {
+				case 2:
+					return this->neighborsOf2;
+					break;
+				case 4:
+					return this->neighborsOf4;
+					break;
+				case 5:
+					return this->neighborsOf5;
+					break;
+				case 7:
+					return this->neighborsOf7;
+					break;
+				default:
+					return this->emptyMap;
 			}
 		}
 };
@@ -59,6 +74,7 @@ int main (void) {
 	Graph::Edge edge1 = EDGE1,
 				edge2 = EDGE2,
 				edge3 = EDGE3;
+	Solution solution(8);
 
 	test_case("constructor raises no error") {
 		graph = new MockGraphImplementation();
@@ -73,18 +89,25 @@ int main (void) {
 		assert_equal(graph->getCycle(), CYCLE);
 	} end_test_case;
 
-	test_case("set vertices timings") {
-		graph->setTiming(7, TIMING_7);
-		graph->setTiming(5, TIMING_5);
-		graph->setTiming(2, TIMING_2);
-		graph->setTiming(4, TIMING_4);
-		assert_equal(graph->getTiming(edge1.vertex1), TIMING_7);
-		assert_equal(graph->getTiming(edge1.vertex2), TIMING_5);
+	test_case("set vertices timings in solution") {
+		solution.setTiming(7, TIMING_7);
+		solution.setTiming(5, TIMING_5);
+		solution.setTiming(2, TIMING_2);
+		solution.setTiming(4, TIMING_4);
+		assert_equal(solution.getTiming(edge1.vertex1), TIMING_7);
+		assert_equal(solution.getTiming(edge1.vertex2), TIMING_5);
+	} end_test_case;
+
+	test_case("edge (u,v) equals edge (v,u)") {
+		Graph::Edge a, b;
+		a = {1, 2};
+		b = {2, 1};
+		assert_true(a == b);
 	} end_test_case;
 
 	test_case("penalty between two vertices with edge between them") {
-		TimeUnit penalty_uv = graph->penalty(edge1.vertex1, edge1.vertex2);
-		TimeUnit penalty_vu = graph->penalty(edge1.vertex2, edge1.vertex1);
+		TimeUnit penalty_uv = graph->penalty(edge1.vertex1, edge1.vertex2, solution);
+		TimeUnit penalty_vu = graph->penalty(edge1.vertex2, edge1.vertex1, solution);
 		assert_equal(penalty_uv, 6);
 		assert_equal(penalty_vu, 2);
 	} end_test_case;
@@ -98,7 +121,7 @@ int main (void) {
 				if (edge == edge1 || edge == edge2 || edge == edge3) {
 					continue;
 				}
-				penalty = graph->penalty(i, j);
+				penalty = graph->penalty(i, j, solution);
 				assert_equal(penalty, 0);
 			}
 		}
@@ -107,16 +130,29 @@ int main (void) {
 	test_case ("total penalty for a vertex") {
 		TimeUnit penalty;
 		TimeUnit expectedPenalty = 2+6+5 + 6+6+3;
-		penalty = graph->vertexPenalty(5);
+		penalty = graph->vertexPenalty(5, solution);
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;
 
-	test_case ("total penalty for a vertex ignoring neighbors penalties") {
+	test_case ("total penalty for a vertex ignoring neighbors' penalties") {
 		TimeUnit penalty;
 		TimeUnit expectedPenalty = 2+6+5;
-		penalty = graph->vertexPenaltyOnewayOnly(5);
+		penalty = graph->vertexPenaltyOnewayOnly(5, solution);
 		assert_equal(penalty, expectedPenalty);
 	} end_test_case;
 
-	delete graph;
+	test_case ("total penalty for the graph") {
+		TimeUnit penalty;
+		TimeUnit expectedPenalty = 28;
+		penalty = graph->totalPenalty(solution);
+		assert_equal(penalty, expectedPenalty);
+	} end_test_case;
+
+	test_case("lower bound is correctly calculated") {
+		assert_equal(graph->lowerBound(), 16);
+	} end_test_case;
+
+	test_case("destroying graph raises no errors") {
+		delete graph;
+	} end_test_case;
 }

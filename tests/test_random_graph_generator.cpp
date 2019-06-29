@@ -1,11 +1,11 @@
 #include "traffic_graph.h"
 #include "assert.h"
-#include <stack>
+#include <queue>
 #include <iostream>
 
-#define NUMBER_OF_VERTICES 30000
-//#define MIN_VERTEX_DEGREE 2
-#define MAX_VERTEX_DEGREE 20
+#define NUMBER_OF_VERTICES 30
+#define MIN_VERTEX_DEGREE 5
+#define MAX_VERTEX_DEGREE 10
 #define MIN_EDGE_WEIGHT 2
 #define MAX_EDGE_WEIGHT 13
 #define CYCLE 20
@@ -18,8 +18,7 @@ int main (void) {
 	Graph* graph;
 
 	test_case("build random adjacency list") {
-		graphBuilder = new GraphBuilder();
-		graphBuilder->generateRandomGraph(NUMBER_OF_VERTICES, MAX_VERTEX_DEGREE, MIN_EDGE_WEIGHT, MAX_EDGE_WEIGHT);
+		graphBuilder = new GraphBuilder(NUMBER_OF_VERTICES, MIN_VERTEX_DEGREE, MAX_VERTEX_DEGREE, MIN_EDGE_WEIGHT, MAX_EDGE_WEIGHT);
 		graphBuilder->withCycle(CYCLE);
 		graph = graphBuilder->buildAsAdjacencyList();
 		assert_true(graph != NULL);
@@ -30,9 +29,8 @@ int main (void) {
 		assert_equal(graph->getNumberOfVertices(), NUMBER_OF_VERTICES);
 	} end_test_case;
 
-	test_case("max degree")
+	test_case("no vertex has degree higher than the maximum degree")
 	{
-		int maxDegree = -1;
 		int vDegree;
 
 		unordered_map<Vertex, Weight> vNeighbors;
@@ -42,47 +40,67 @@ int main (void) {
 			vNeighbors = graph->neighborsOf(v);
 			vDegree = vNeighbors.size();
 
-			if(vDegree > maxDegree)
-			{
-				maxDegree = vDegree;
-			}
+			assert_less_than_or_equal(vDegree, MAX_VERTEX_DEGREE);
 		}
-		assert_less_than_or_equal(maxDegree, MAX_VERTEX_DEGREE);
 	} end_test_case;
 
-	test_case("graph connectivity")
+	test_case("no edge has weight greater than the maximum weight") {
+		for (Vertex u = 0; u < NUMBER_OF_VERTICES; u++) {
+			for (auto v : graph->neighborsOf(u)) {
+				assert_less_than_or_equal(v.second, MAX_EDGE_WEIGHT);
+			}
+		}
+	} end_test_case;
+
+	test_case("no edge has weight less than the minimum weight") {
+		for (Vertex u = 0; u < NUMBER_OF_VERTICES; u++) {
+			for (auto v : graph->neighborsOf(u)) {
+				assert_greater_than_or_equal(v.second, MIN_EDGE_WEIGHT);
+			}
+		}
+	} end_test_case;
+
+	test_case("graph is connected")
 	{
-		int verticesCount = 0; //counting the first vertex (0) already
-		int visited[NUMBER_OF_VERTICES];
-		stack<Vertex> s;
+		int verticesCount;
+		bool counted[NUMBER_OF_VERTICES];
+		queue<Vertex> s;
 		Vertex v;
 		unordered_map<Vertex, Weight> vNeighbors;
 
-		for(int i = 0; i < NUMBER_OF_VERTICES; i++)
+		for(int i = 1; i < NUMBER_OF_VERTICES; i++)
 		{
-			visited[i] = 0;
+			counted[i] = false;
 		}
 
 		s.push(0);
+		counted[0] = true;
+		verticesCount = 1;
 
 		while(!s.empty())
 		{
-			v = s.top();
+			v = s.front();
 			s.pop();
-			visited[v] = 1;
-			verticesCount++;
 			vNeighbors = graph->neighborsOf(v);
 
 			for(auto u : vNeighbors)
 			{
-				if(!visited[u.first])
+				if(!counted[u.first])
 				{
 					s.push(u.first);
+					counted[u.first] = true;
+					verticesCount++;
 				}
-			}			
+			}
 		}
 
 		assert_equal(verticesCount, NUMBER_OF_VERTICES);
+	} end_test_case;
+
+	test_case("no vertex has degree less than the minimum degree") {
+		for (Vertex v = 0; v < graph->getNumberOfVertices(); v++) {
+			assert_greater_than_or_equal(graph->neighborsOf(v).size(), MIN_VERTEX_DEGREE)
+		}
 	} end_test_case;
 
 	test_case ("destroy GraphBuilder") {

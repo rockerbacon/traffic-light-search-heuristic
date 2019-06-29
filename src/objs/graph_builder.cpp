@@ -1,5 +1,9 @@
 #include "traffic_graph.h"
 
+#include <vector>
+#include <random>
+#include <algorithm>
+
 using namespace traffic;
 using namespace std;
 GraphBuilder::GraphBuilder () {
@@ -12,7 +16,7 @@ GraphBuilder::~GraphBuilder (void) {
 	}
 }
 
-void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
+bool GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	decltype(GraphBuilder::adjacencyListMap)::iterator vertex1Index;
 	unordered_map<Vertex, Weight>* vertex1Map;
 	unordered_map<Vertex, Weight>::iterator vertex2Index;
@@ -28,13 +32,12 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 		i = edge.vertex1;
 		j = edge.vertex2;
 	} else {
-		return;
+		return false;
 	}
 
 	if (highestVertexIndexInEdge > this->highestVertexIndex) {
 		this->highestVertexIndex = highestVertexIndexInEdge;
 	}
-
 
 	vertex1Index = this->adjacencyListMap.find(i);
 	if (vertex1Index == this->adjacencyListMap.end()) {
@@ -48,87 +51,103 @@ void GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 
 	if (vertex2Index == vertex1Map->end()) {
 		(*vertex1Map)[j] = weight;
+		return true;
+	} else {
+		return false;
 	}
+
 }
 
-bool GraphBuilder::generateRandomGraph(size_t nVertices, unsigned maxDegree, int minWeight, int maxWeight)
+GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDegree, int minWeight, int maxWeight) : GraphBuilder()
 {
 	if(nVertices < 2)
 	{
-		return false;
+		throw invalid_argument("nVertices must be greater than 1");
 	}
 
-	unsigned minEdges = nVertices - 1;
-
-	//https://math.stackexchange.com/questions/237103/proof-related-to-minimum-and-maximum-degree-of-vertices-of-an-undirected-graph
-	if(maxDegree < (2 * minEdges)/nVertices)
+	if(maxDegree < (2 * (nVertices - 1))/nVertices)
 	{
-		return false;
+		throw invalid_argument("maxDegree cannot be less than 2*(nVertices-1)/nVertices");
 	}
 
-	if(maxDegree > nVertices - 1)
-	{
-		return false;
+	if (minDegree > maxDegree) {
+		throw invalid_argument("minDegree cannot be greater than maxDegree");
+	} else if (minDegree < 1) {
+		throw invalid_argument("minDegree cannot be smaller than 1");
 	}
 
-	srand(time(NULL));
-	unsigned dst[nVertices], dstEnd = nVertices;
-	unsigned src[nVertices], srcEnd = 0;
-	unsigned spareDegrees[nVertices];
-	unsigned a, b, weight;
-	size_t r;
+	vector<Vertex> verticesToConnect;
+	vector<Vertex> connectedVertices;
+	unsigned *degree;
+	Vertex randomConnectedVertex, nextVertexToConnect;
+	Vertex randomIndex;
+	Weight weight;
+	random_device seeder;
+	mt19937 randomEngine(seeder());
+	uniform_int_distribution<Vertex> vertexPicker;
+	uniform_int_distribution<Weight> weightPicker(minWeight, maxWeight);
 
-	for(size_t i = 0; i < nVertices; i++)
-	{
-		dst[i] = i;
-		spareDegrees[i] = maxDegree;
+	for (auto mapIterator = this->adjacencyListMap.begin(); mapIterator != this->adjacencyListMap.end(); mapIterator++) {
+		delete(mapIterator->second);
 	}
 
-	random_shuffle(dst, dst + nVertices);
+	verticesToConnect.reserve(nVertices);
+	connectedVertices.reserve(nVertices);
+	degree = new unsigned[nVertices];
 
-	src[srcEnd++] = dst[--dstEnd];
-
-	while(dstEnd != 0)
+	for(Vertex i = 0; i < nVertices; i++)
 	{
-		r = rand() % srcEnd;
-		a = src[r];
+		verticesToConnect.push_back(i);
+	}
 
-		if(!spareDegrees[a])
+	shuffle(verticesToConnect.begin(), verticesToConnect.end(), randomEngine);
+
+	connectedVertices.push_back(verticesToConnect.back());
+	verticesToConnect.pop_back();
+	degree[connectedVertices.back()] = 0;
+
+	while(!verticesToConnect.empty())
+	{
+		vertexPicker = uniform_int_distribution<Vertex>(0, connectedVertices.size()-1);
+		randomIndex = vertexPicker(randomEngine);
+		randomConnectedVertex = connectedVertices[randomIndex];
+
+		if(degree[randomConnectedVertex] < maxDegree)
 		{
-			continue;
+			nextVertexToConnect = verticesToConnect.back();
+			verticesToConnect.pop_back();
+
+			weight = weightPicker(randomEngine);
+
+			this->addEdge({randomConnectedVertex, nextVertexToConnect}, weight);
+
+			degree[randomConnectedVertex]++;
+			degree[nextVertexToConnect] = 1;
+
+			connectedVertices.push_back(nextVertexToConnect);
 		}
 
-		b = dst[--dstEnd];
-
-		spareDegrees[a]--;
-		spareDegrees[b]--;
-
-		weight = rand() % (maxWeight - minWeight + 1) + minWeight;
-
-		this->addEdge({a, b}, weight);
-		this->addEdge({b, a}, weight);
-
-		src[srcEnd++] = b;
 	}
 
-	for(size_t i = 0; i < nVertices; i++)
+	vertexPicker = decltype(vertexPicker)(0, nVertices-1);
+	for(Vertex i = 0; i < nVertices; i++)
 	{
-		if(spareDegrees[dst[i]])
+		while (degree[i] < minDegree)
 		{
-			r = rand() % (spareDegrees[dst[i]] + 1);
+			randomConnectedVertex = vertexPicker(randomEngine);
+			weight = weightPicker(randomEngine);
 
-			for(size_t j = i + 1; j < nVertices && r > 0; j++, r--)
-			{
-				if(spareDegrees[dst[j]])
-				{
-					spareDegrees[dst[i]]--;
-					spareDegrees[dst[j]]--;
+			if (degree[randomConnectedVertex] < maxDegree) {
+				if (this->addEdge({i, randomConnectedVertex}, weight)) {
+					degree[i]++;
+					degree[randomConnectedVertex]++;
 				}
 			}
+
 		}
 	}
 
-	return true;
+	delete [] degree;
 }
 
 AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
