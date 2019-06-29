@@ -110,13 +110,13 @@ struct Perturbation {
 	TimeUnit penalty;
 };
 
-Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
+Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
 	Solution solution(initialSolution);
 	TimeUnit currentTiming, currentPenalty;
 	TimeUnit perturbationTiming, perturbationPenalty;
 	Vertex vertex;
 	bool iterationHadNoImprovement;
-	LocalSearchMetrics metrics;
+	HeuristicMetrics metrics;
 
 	random_device seeder;
 	mt19937 randomEngine(seeder());
@@ -154,14 +154,60 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 	return solution;
 }
 
-function<bool(const LocalSearchMetrics&)> stop_criteria::numberOfIterations(unsigned numberOfIterationsToStop) {
-	return [=](const LocalSearchMetrics& metrics) -> bool {
+void fillWithMostDiverseCandidates (vector<Solution>& output, const vector<Solution>& candidates, size_t sizeToFill) {
+	sizeToFill -= output.size();
+	while (sizeToFill > 0) {
+		sizeToFill--;
+	}
+}
+
+Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
+	vector<Solution> initialPopulation, refinedPopulation, elitePopulation, referenceSet, candidateSet;
+	size_t i, totalPopulationSize;
+	Solution constructedSolution;
+	HeuristicMetrics metrics;
+
+	totalPopulationSize = elitePopulationSize+diversePopulationSize;
+	initialPopulation.reserve(totalPopulationSize);
+	refinedPopulation.reserve(totalPopulationSize);
+	elitePopulation.reserve(elitePopulationSize);
+	referenceSet.reserve(totalPopulationSize);
+	candidateSet.reserve(totalPopulationSize/2);
+
+	while (initialPopulation.size() < totalPopulationSize) {
+		constructedSolution = constructHeuristicSolution(graph);
+		initialPopulation.push_back(constructedSolution);
+		refinedPopulation.push_back(localSearchHeuristic(graph, constructedSolution, stop_criteria::numberOfIterations(1000)));
+	}
+
+	sort(refinedPopulation.begin(), refinedPopulation.end(), [&](const Solution& a, const Solution& b) -> bool {
+		return graph.totalPenalty(a) < graph.totalPenalty(b);
+	});
+
+	for (i = 0; i < elitePopulationSize; i++) {
+		elitePopulation.push_back(refinedPopulation[i]);
+		referenceSet.push_back(refinedPopulation[i]);
+	}
+
+	fillWithMostDiverseCandidates (referenceSet, initialPopulation, totalPopulationSize);
+
+	metrics.numberOfIterations = 0;
+	metrics.numberOfIterationsWithoutImprovement = 0;
+	while (stopCriteriaNotMet(metrics)) {
+		metrics.numberOfIterations++;
+	}
+
+	return elitePopulation[0];
+}
+
+function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterations(unsigned numberOfIterationsToStop) {
+	return [=](const HeuristicMetrics& metrics) -> bool {
 		return metrics.numberOfIterations < numberOfIterationsToStop;
 	};
 }
 
-function<bool(const LocalSearchMetrics&)> stop_criteria::numberOfIterationsWithoutImprovement(unsigned numberOfIterationsToStop) {
-	return [=](const LocalSearchMetrics& metrics) -> bool {
+function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterationsWithoutImprovement(unsigned numberOfIterationsToStop) {
+	return [=](const HeuristicMetrics& metrics) -> bool {
 		return metrics.numberOfIterationsWithoutImprovement < numberOfIterationsToStop;
 	};
 }

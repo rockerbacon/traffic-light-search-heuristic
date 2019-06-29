@@ -10,15 +10,16 @@ namespace traffic {
 
 	TimeUnit distance(const Graph& graph, const Solution& a, const Solution& b);
 
-	struct LocalSearchMetrics {
+	struct HeuristicMetrics {
 		unsigned numberOfIterations;
 		unsigned numberOfIterationsWithoutImprovement;
 	};
 
 	namespace stop_criteria {
-		std::function<bool(const LocalSearchMetrics&)> numberOfIterations (unsigned numberOfIterationsToStop);
-		std::function<bool(const LocalSearchMetrics&)> numberOfIterationsWithoutImprovement (unsigned numberOfIterationsToStop);
+		std::function<bool(const HeuristicMetrics&)> numberOfIterations (unsigned numberOfIterationsToStop);
+		std::function<bool(const HeuristicMetrics&)> numberOfIterationsWithoutImprovement (unsigned numberOfIterationsToStop);
 	};
 
-	Solution localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet);
+	Solution localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet);
+	Solution populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const std::function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet);
 };
