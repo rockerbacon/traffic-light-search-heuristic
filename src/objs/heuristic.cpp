@@ -154,10 +154,32 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 	return solution;
 }
 
-void fillWithMostDiverseCandidates (vector<Solution>& output, const vector<Solution>& candidates, size_t sizeToFill) {
+void fillWithMostDiverseCandidates (const Graph& graph, vector<Solution>& output, const vector<Solution>& candidates, size_t sizeToFill) {
+	TimeUnit greatestDistance, smallestDistance, distance;
+	TimeUnit	infinite = numeric_limits<TimeUnit>::max(),
+				minusInfinite = numeric_limits<TimeUnit>::min();
+	size_t chosenSolutionIndex;
+
 	sizeToFill -= output.size();
+
+	greatestDistance = minusInfinite;
 	for (size_t i = 0; i < sizeToFill; i++) {
-		output.push_back(candidates[i]);
+		for (size_t j = 0; j < candidates.size(); j++) {
+			smallestDistance = infinite;
+
+			for (auto referenceSolution : output) {
+				distance = traffic::distance(graph, candidates[j], referenceSolution);
+				if (distance < smallestDistance) {
+					smallestDistance = distance;
+				}
+			}
+
+			if (smallestDistance > greatestDistance) {
+				greatestDistance = smallestDistance;
+				chosenSolutionIndex = j;
+			}
+		}
+		output.push_back(candidates[chosenSolutionIndex]);
 	}
 }
 
@@ -206,7 +228,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 		referenceSet.push_back(refinedPopulation[i]);
 	}
 
-	fillWithMostDiverseCandidates (referenceSet, initialPopulation, totalPopulationSize);
+	fillWithMostDiverseCandidates (graph, referenceSet, initialPopulation, totalPopulationSize);
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
@@ -241,8 +263,8 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 			elitePopulation.push_back(referenceSet[i]);
 		}
 
-		fillWithMostDiverseCandidates(candidateSet, initialPopulation, totalPopulationSize);
-		fillWithMostDiverseCandidates(referenceSet, candidateSet, totalPopulationSize);
+		fillWithMostDiverseCandidates(graph, candidateSet, initialPopulation, totalPopulationSize);
+		fillWithMostDiverseCandidates(graph, referenceSet, candidateSet, totalPopulationSize);
 		candidateSet.clear();
 
 		metrics.numberOfIterations++;
