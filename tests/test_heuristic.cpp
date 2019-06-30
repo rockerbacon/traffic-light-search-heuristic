@@ -184,9 +184,16 @@ int main (void) {
 		}
 	} end_test_case;
 
+	test_case("populational solution throws error when total size of the population is not even") {
+		try {
+			solution = populationalHeuristic(mockGraph, 3, 4, stop_criteria::numberOfIterations(1));
+		} catch(invalid_argument &e) {
+		}
+	} end_test_case;
+
 	test_case("populational heuristc raises no errors") {
-		size_t elitePopulationSize = 3;
-		size_t diversePopulationSize = 7;
+		size_t elitePopulationSize = 4;
+		size_t diversePopulationSize = 8;
 		solution = populationalHeuristic(mockGraph, elitePopulationSize, diversePopulationSize, stop_criteria::numberOfIterations(3));
 	} end_test_case;
 

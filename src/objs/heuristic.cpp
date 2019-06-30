@@ -156,18 +156,35 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 
 void fillWithMostDiverseCandidates (vector<Solution>& output, const vector<Solution>& candidates, size_t sizeToFill) {
 	sizeToFill -= output.size();
-	while (sizeToFill > 0) {
-		sizeToFill--;
+	for (size_t i = 0; i < sizeToFill; i++) {
+		output.push_back(candidates[i]);
 	}
+}
+
+Solution combine (const Graph& graph, const Solution *a, const Solution *b) {
+	Solution r(graph.getNumberOfVertices());
+	for (Vertex i = 0; i < graph.getNumberOfVertices()/2; i++) {
+		r.setTiming(i, a->getTiming(i));
+	}
+	for (Vertex i = graph.getNumberOfVertices()/2; i < graph.getNumberOfVertices(); i++) {
+		r.setTiming(i, b->getTiming(i));
+	}
+	return r;
 }
 
 Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
 	vector<Solution> initialPopulation, refinedPopulation, elitePopulation, referenceSet, candidateSet;
-	size_t i, totalPopulationSize;
+	size_t i, j, totalPopulationSize;
 	Solution constructedSolution;
 	HeuristicMetrics metrics;
+	random_device seeder;
+	mt19937 randomEngine(seeder());
+	Solution *solution1, *solution2, newCandidate;
 
 	totalPopulationSize = elitePopulationSize+diversePopulationSize;
+	if (totalPopulationSize&2) {
+		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
+	}
 	initialPopulation.reserve(totalPopulationSize);
 	refinedPopulation.reserve(totalPopulationSize);
 	elitePopulation.reserve(elitePopulationSize);
@@ -177,7 +194,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	while (initialPopulation.size() < totalPopulationSize) {
 		constructedSolution = constructHeuristicSolution(graph);
 		initialPopulation.push_back(constructedSolution);
-		refinedPopulation.push_back(localSearchHeuristic(graph, constructedSolution, stop_criteria::numberOfIterations(1000)));
+		refinedPopulation.push_back(localSearchHeuristic(graph, constructedSolution, stop_criteria::numberOfIterations(500)));
 	}
 
 	sort(refinedPopulation.begin(), refinedPopulation.end(), [&](const Solution& a, const Solution& b) -> bool {
@@ -194,6 +211,40 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopCriteriaNotMet(metrics)) {
+		shuffle(referenceSet.begin(), referenceSet.end(), randomEngine);
+		for (i = 0; i < totalPopulationSize/2; i++) {
+			solution1 = &referenceSet[i*2];
+			solution2 = &referenceSet[i*2+1];
+			newCandidate = combine(graph, solution1, solution2);
+			newCandidate = localSearchHeuristic(graph, newCandidate, stop_criteria::numberOfIterations(500));
+			candidateSet.push_back(newCandidate);
+		}
+		sort(candidateSet.begin(), candidateSet.end(), [&](const Solution& a, const Solution& b) -> bool {
+			return graph.totalPenalty(a) < graph.totalPenalty(b);
+		});
+
+		referenceSet.clear();
+		i = 0;
+		j = 0;
+		while(i+j < elitePopulationSize) {
+			if (graph.totalPenalty(elitePopulation[i]) < graph.totalPenalty(candidateSet[j])) {
+				referenceSet.push_back(elitePopulation[i]);
+				i++;
+			} else {
+				referenceSet.push_back(candidateSet[j]);
+				j++;
+			}
+		}
+
+		elitePopulation.clear();
+		for (i = 0; i < elitePopulationSize; i++) {
+			elitePopulation.push_back(referenceSet[i]);
+		}
+
+		fillWithMostDiverseCandidates(candidateSet, initialPopulation, totalPopulationSize);
+		fillWithMostDiverseCandidates(referenceSet, candidateSet, totalPopulationSize);
+		candidateSet.clear();
+
 		metrics.numberOfIterations++;
 	}
 
