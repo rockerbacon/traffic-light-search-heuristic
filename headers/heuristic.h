@@ -21,7 +21,4 @@ namespace traffic {
 	};
 
 	Solution localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet);
-	
-	Solution combine(const Graph& graph, const Solution& s1, const Solution& s2);
-	Solution crossover(const Graph& graph, const Solution& s1, const Solution& s2);
 };
