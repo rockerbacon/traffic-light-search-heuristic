@@ -222,4 +222,54 @@ int main (void) {
 			assert_less_than(timing, testCycle);
 		}
 	} end_test_case;
+
+	test_case("combineNELSONKKKKKKing two solutions yields an equal solution")
+	{
+		Solution s = combineNELSONKKKKKK(mockGraph, solution, solution);
+
+		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
+		{
+			assert_equal(solution.getTiming(v), s.getTiming(v));
+		}
+
+	}end_test_case;
+
+	//if the number of vertices is odd, then the first solution in the arguments will contribute with 1 timing more than the second solution
+	test_case("combineNELSONKKKKKKing a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings")
+	{
+		size_t nVertices = mockGraph.getNumberOfVertices();
+		bool isOdd =  nVertices % 2;
+		unsigned expectedZeroes = nVertices / 2, expectedOnes = nVertices / 2;
+		unsigned zeroesCount = 0, onesCount = 0;
+
+		if(isOdd)
+		{
+			expectedZeroes += 1;
+		}
+
+		Solution zeroesSol(nVertices), onesSol(nVertices), s;
+
+		for(Vertex v = 0; v < nVertices; v++)
+		{
+			onesSol.setTiming(v, 1);
+		}
+
+		s = combineNELSONKKKKKK(mockGraph, zeroesSol, onesSol);
+
+		for(Vertex v = 0; v < nVertices; v++)
+		{
+			if(s.getTiming(v) == 0)
+			{
+				zeroesCount++;
+			}
+			else
+			if(s.getTiming(v) == 1)
+			{
+				onesCount++;
+			}
+		}
+
+		assert_equal(zeroesCount, expectedZeroes);
+		assert_equal(onesCount, expectedOnes);
+	}end_test_case;
 }
