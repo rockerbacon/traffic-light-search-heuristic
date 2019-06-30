@@ -184,4 +184,42 @@ int main (void) {
 		}
 	} end_test_case;
 
+	test_case("populational solution throws error when total size of the population is not even") {
+		try {
+			solution = populationalHeuristic(mockGraph, 3, 4, stop_criteria::numberOfIterations(1));
+		} catch(invalid_argument &e) {
+		}
+	} end_test_case;
+
+	test_case("populational heuristc raises no errors") {
+		size_t elitePopulationSize = 4;
+		size_t diversePopulationSize = 8;
+		solution = populationalHeuristic(mockGraph, elitePopulationSize, diversePopulationSize, stop_criteria::numberOfIterations(3));
+	} end_test_case;
+
+
+	test_case("populational solution is different from random solution") {
+		bool found = false;
+		initialSolution = constructRandomSolution(mockGraph);
+		for (Vertex v = 0; v < mockGraph.getNumberOfVertices() && !found; v++) {
+			if (solution.getTiming(v) != initialSolution.getTiming(v)) {
+				found = true;
+			}
+		}
+		assert_true(found);
+	} end_test_case;
+
+	test_case("populational solution is better than solution with 0 timings") {
+		initialSolution = Solution(mockGraph.getNumberOfVertices());
+		assert_less_than(mockGraph.totalPenalty(solution), mockGraph.totalPenalty(initialSolution));
+	} end_test_case;
+
+	test_case("populational solution has all timings in the interval [0, cycle)") {
+		TimeUnit timing;
+		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++) {
+			timing = solution.getTiming(v);
+			assert_greater_than_or_equal(timing, 0);
+			assert_less_than(timing, testCycle);
+		}
+	} end_test_case;
 }
