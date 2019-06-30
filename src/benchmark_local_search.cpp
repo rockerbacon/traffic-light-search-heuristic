@@ -21,7 +21,7 @@ enum GraphModel {
 	ADJACENCY_MATRIX
 };
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const LocalSearchMetrics&)>& stopCriteriaNotMet) {
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	minVertexDegree = DEFAULT_MIN_VERTEX_DEGREE;
 	maxVertexDegree = DEFAULT_MAX_VERTEX_DEGREE;
@@ -157,7 +157,7 @@ int main (int argc, char** argv) {
 	unsigned numberOfRuns;
 	TimeUnit cycle;
 	GraphModel graphModel;
-	function<bool(const LocalSearchMetrics&)> stopCriteriaNotMet;
+	function<bool(const HeuristicMetrics&)> stopCriteriaNotMet;
 	TerminalObserver *terminalObserver;
 	list<Observer*> observers;
 	double avgInitialConstructionPenalty, avgLocalSearchPenalty, avgLowerBound;
