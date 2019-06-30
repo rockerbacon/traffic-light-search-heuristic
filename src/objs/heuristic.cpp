@@ -165,3 +165,42 @@ function<bool(const LocalSearchMetrics&)> stop_criteria::numberOfIterationsWitho
 		return metrics.numberOfIterationsWithoutImprovement < numberOfIterationsToStop;
 	};
 }
+
+Solution traffic::combine(const Graph& graph, const Solution& s1, const Solution& s2)
+{	
+	Vertex v = 0;
+	unsigned i = 0;
+	size_t nVertices = graph.getNumberOfVertices();
+	Vertex visited[nVertices] = {};
+	Solution solution(nVertices);
+	Solution s[2] = {s1, s2};
+	queue<Vertex> q;
+	q.push(v);
+
+	while(!q.empty())
+	{
+		v = q.front();
+		q.pop();
+
+		visited[v] = 1;
+
+		for(auto u : graph.neighborsOf(v))
+		{
+			if(!visited[u.first])
+			{
+				q.push(u.first);
+			}
+		}
+
+		solution.setTiming(v, s[i].getTiming(v));
+
+		i = (i + 1) % 2;
+	}
+
+	return solution;
+}
+
+Solution traffic::crossover(const Graph& graph, const Solution& s1, const Solution& s2)
+{
+
+}
