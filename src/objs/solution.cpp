@@ -1,7 +1,5 @@
 #include "traffic_graph.h"
 
-#include <iostream>
-
 using namespace traffic;
 using namespace std;
 
