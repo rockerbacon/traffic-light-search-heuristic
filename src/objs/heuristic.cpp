@@ -187,7 +187,7 @@ class VectorSlice {
 		}
 };
 
-void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>& referenceSet, const VectorSlice<Solution>& diverseSet, size_t sizeToFill) {
+void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>& referenceSet, const VectorSlice<pair<Solution, TimeUnit>>& diverseSet, size_t sizeToFill) {
 	TimeUnit greatestDistance, smallestDistance, distance;
 	TimeUnit	infinite = numeric_limits<TimeUnit>::max(),
 				minusInfinite = numeric_limits<TimeUnit>::min();
@@ -201,7 +201,7 @@ void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>&
 			smallestDistance = infinite;
 
 			for (auto referenceSolution : referenceSet) {
-				distance = traffic::distance(graph, diverseSet[j], *referenceSolution);
+				distance = traffic::distance(graph, diverseSet[j].first, *referenceSolution);
 				if (distance < smallestDistance) {
 					smallestDistance = distance;
 				}
@@ -212,7 +212,7 @@ void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>&
 				chosenSolutionIndex = j;
 			}
 		}
-		referenceSet.push_back(&diverseSet[chosenSolutionIndex]);
+		referenceSet.push_back(&diverseSet[chosenSolutionIndex].first);
 	}
 }
 
@@ -229,9 +229,9 @@ Solution combine (const Graph& graph, const Solution *a, const Solution *b) {
 }
 
 Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
-	vector<Solution> population;
+	vector<pair<Solution, TimeUnit>> population;
 	vector<const Solution*> referenceSet;
-	VectorSlice<Solution> eliteSet, diverseSet, candidateSet;
+	VectorSlice<pair<Solution, TimeUnit>> eliteSet, diverseSet, candidateSet;
 	size_t	livePopulationSize = elitePopulationSize+diversePopulationSize,
 			totalPopulationSize = livePopulationSize + livePopulationSize/2;
 	const Solution *solution1, *solution2;
@@ -250,15 +250,15 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 
 	while (population.size() < livePopulationSize) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), stop_criteria::numberOfIterations(500));
-		population.push_back(constructedSolution);
-		referenceSet.push_back(&population.back());
+		population.push_back({constructedSolution, graph.totalPenalty(constructedSolution)});
+		referenceSet.push_back(&population.back().first);
 	}
-	eliteSet = VectorSlice<Solution>(population, 0, elitePopulationSize);
-	candidateSet = VectorSlice<Solution>(population, livePopulationSize, totalPopulationSize);
-	diverseSet = VectorSlice<Solution>(population, elitePopulationSize, totalPopulationSize);
+	eliteSet = VectorSlice<pair<Solution, TimeUnit>>(population, 0, elitePopulationSize);
+	candidateSet = VectorSlice<pair<Solution, TimeUnit>>(population, livePopulationSize, totalPopulationSize);
+	diverseSet = VectorSlice<pair<Solution, TimeUnit>>(population, elitePopulationSize, totalPopulationSize);
 
-	sort(population.begin(), population.end(), [&](const Solution& a, const Solution& b) -> bool {
-		return graph.totalPenalty(a) < graph.totalPenalty(b);
+	sort(population.begin(), population.begin()+livePopulationSize, [&](const pair<Solution, TimeUnit>& a, const pair<Solution, TimeUnit>& b) -> bool {
+		return a.second < b.second;
 	});
 
 	metrics.numberOfIterations = 0;
@@ -270,23 +270,24 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 			solution1 = referenceSet[i*2];
 			solution2 = referenceSet[i*2+1];
 
-			candidateSet[i] = combine(graph, solution1, solution2);
-			candidateSet[i] = localSearchHeuristic(graph, candidateSet[i], stop_criteria::numberOfIterations(500));
+			candidateSet[i].first = combine(graph, solution1, solution2);
+			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, stop_criteria::numberOfIterations(500));
+			candidateSet[i].second = graph.totalPenalty(candidateSet[i].first);
 		}
 
-		sort(population.begin(), population.end(), [&](const Solution& a, const Solution &b) -> bool {
-			return graph.totalPenalty(a) < graph.totalPenalty(b);
+		sort(population.begin(), population.begin()+totalPopulationSize, [&](const pair<Solution, TimeUnit>& a, const pair<Solution, TimeUnit>& b) -> bool {
+			return a.second < b.second;
 		});
 
 		referenceSet.clear();
-		for (i = 0; i < elitePopulationSize; i++) {
-			referenceSet.push_back(&eliteSet[i]);
+		for (i = 0; i < eliteSet.size(); i++) {
+			referenceSet.push_back(&eliteSet[i].first);
 		}
 		fillWithMostDiverseCandidates(graph, referenceSet, diverseSet, totalPopulationSize);
 
 		metrics.numberOfIterations++;
 	}
-	return population[0];
+	return population[0].first;
 }
 
 function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterations(unsigned numberOfIterationsToStop) {
