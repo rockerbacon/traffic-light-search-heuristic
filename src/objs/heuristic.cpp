@@ -239,7 +239,6 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	HeuristicMetrics metrics;
 	random_device seeder;
 	mt19937 randomEngine(seeder());
-	uniform_int_distribution<size_t> solutionPicker(0, livePopulationSize-1);
 
 	if (livePopulationSize&2) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
@@ -284,6 +283,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 			referenceSet.push_back(&eliteSet[i].first);
 		}
 		fillWithMostDiverseCandidates(graph, referenceSet, diverseSet, totalPopulationSize);
+		shuffle(referenceSet.begin(), referenceSet.end(), randomEngine);
 
 		metrics.numberOfIterations++;
 	}
