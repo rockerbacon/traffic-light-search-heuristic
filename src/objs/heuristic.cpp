@@ -1,14 +1,8 @@
 #include "heuristic.h"
 
-#include <vector>
 #include <random>
-#include <chrono>
-#include <limits>
 #include <algorithm>
 #include <queue>
-#include <cmath>
-
-#include <iostream>
 
 using namespace traffic;
 using namespace std;
@@ -264,24 +258,23 @@ function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterationsWithout
 	};
 }
 
-//JÁ EXISTE UMA FUNÇÃO CHAMADA COMBINE, DEPOIS MUDA O NOME
-Solution traffic::combineNELSONKKKKKK(const Graph& graph, const Solution& s1, const Solution& s2)
+Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2)
 {	
 	Vertex v = 0;
-	unsigned i = 0;
+	unsigned i = 0, middle;
 	size_t nVertices = graph.getNumberOfVertices();
-	Vertex visited[nVertices] = {};
+	bool *visited = new bool[nVertices]{false};
 	Solution solution(nVertices);
-	Solution s[2] = {s1, s2};
 	queue<Vertex> q;
 	q.push(v);
+
+	middle = nVertices % 2? (nVertices / 2) + 1 : nVertices / 2;
 
 	while(!q.empty())
 	{
 		v = q.front();
 		q.pop();
-
-		visited[v] = 1;
+		visited[v] = true;
 
 		for(auto u : graph.neighborsOf(v))
 		{
@@ -291,9 +284,16 @@ Solution traffic::combineNELSONKKKKKK(const Graph& graph, const Solution& s1, co
 			}
 		}
 
-		solution.setTiming(v, s[i].getTiming(v));
+		if(i < middle)
+		{
+			solution.setTiming(v, s1->getTiming(v));
+		}
+		else
+		{
+			solution.setTiming(v, s2->getTiming(v));
+		}
 
-		i = (i + 1) % 2;
+		i++;
 	}
 
 	return solution;
@@ -308,7 +308,7 @@ gene ci = bi . The mutation is done by randomly changing genes on the offspring 
 OBS.: 0.0 <= mutationProb <= 1.0
 	  range do p não está fixo em -2 a 2, mas em -pRange a pRange
 */
-Solution traffic::crossover(const Graph& graph, const Solution& a, const Solution& b, int pRange, double mutationProb)
+Solution traffic::crossover(const Graph& graph, const Solution *a, const Solution *b, int pRange, double mutationProb)
 {
 	if(mutationProb > 1.0)
 	{
@@ -336,11 +336,8 @@ Solution traffic::crossover(const Graph& graph, const Solution& a, const Solutio
 
 	for(Vertex v = 0; v < nVertices; v++)
 	{
-		solution.setTiming(v, v <= k ? a.getTiming(v) : b.getTiming(v));
-	}
-
-	for(Vertex v = 0; v < nVertices; v++)
-	{
+		solution.setTiming(v, v <= k ? a->getTiming(v) : b->getTiming(v));
+		
 		if(mutPicker(randomEngine) <= mutationProb)
 		{
 			solution.setTiming(v, timingPicker(randomEngine));

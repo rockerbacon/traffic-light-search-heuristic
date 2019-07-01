@@ -223,9 +223,9 @@ int main (void) {
 		}
 	} end_test_case;
 
-	test_case("combineNELSONKKKKKKing two equal solutions yields the same solution")
+	test_case("combineByBfs: two equal solutions yields the same solution")
 	{
-		Solution s = combineNELSONKKKKKK(mockGraph, solution, solution);
+		Solution s = combineByBfs(mockGraph, &solution, &solution);
 
 		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
 		{
@@ -235,7 +235,7 @@ int main (void) {
 	}end_test_case;
 
 	//if the number of vertices is odd, then the first solution in the arguments will contribute with 1 timing more than the second solution
-	test_case("combineNELSONKKKKKKing a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings")
+	test_case("combineByBfs: a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings")
 	{
 		size_t nVertices = mockGraph.getNumberOfVertices();
 		bool isOdd =  nVertices % 2;
@@ -254,7 +254,7 @@ int main (void) {
 			onesSol.setTiming(v, 1);
 		}
 
-		s = combineNELSONKKKKKK(mockGraph, zeroesSol, onesSol);
+		s = combineByBfs(mockGraph, &zeroesSol, &onesSol);
 
 		for(Vertex v = 0; v < nVertices; v++)
 		{
@@ -275,7 +275,7 @@ int main (void) {
 
 	test_case("crossovering two equal solutions yields the same solution (with mutationProb = 0)")
 	{
-		Solution s = crossover(mockGraph, solution, solution, 2, 0);
+		Solution s = crossover(mockGraph, &solution, &solution, 2, 0);
 
 		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
 		{
@@ -304,7 +304,7 @@ int main (void) {
 			onesSol.setTiming(v, 1);
 		}
 
-		s = crossover(mockGraph, zeroesSol, onesSol, 0, 0);
+		s = crossover(mockGraph, &zeroesSol, &onesSol, 0, 0);
 
 		for(Vertex v = 0; v < nVertices; v++)
 		{
