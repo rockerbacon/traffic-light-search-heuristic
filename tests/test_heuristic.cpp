@@ -222,4 +222,105 @@ int main (void) {
 			assert_less_than(timing, testCycle);
 		}
 	} end_test_case;
+
+	test_case("combineByBfs: two equal solutions yields the same solution")
+	{
+		Solution s = combineByBfs(mockGraph, &solution, &solution);
+
+		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
+		{
+			assert_equal(solution.getTiming(v), s.getTiming(v));
+		}
+
+	}end_test_case;
+
+	//if the number of vertices is odd, then the first solution in the arguments will contribute with 1 timing more than the second solution
+	test_case("combineByBfs: a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings")
+	{
+		size_t nVertices = mockGraph.getNumberOfVertices();
+		bool isOdd =  nVertices % 2;
+		unsigned expectedZeroes = nVertices / 2, expectedOnes = nVertices / 2;
+		unsigned zeroesCount = 0, onesCount = 0;
+
+		if(isOdd)
+		{
+			expectedZeroes += 1;
+		}
+
+		Solution zeroesSol(nVertices), onesSol(nVertices), s;
+
+		for(Vertex v = 0; v < nVertices; v++)
+		{
+			onesSol.setTiming(v, 1);
+		}
+
+		s = combineByBfs(mockGraph, &zeroesSol, &onesSol);
+
+		for(Vertex v = 0; v < nVertices; v++)
+		{
+			if(s.getTiming(v) == 0)
+			{
+				zeroesCount++;
+			}
+			else
+			if(s.getTiming(v) == 1)
+			{
+				onesCount++;
+			}
+		}
+
+		assert_equal(zeroesCount, expectedZeroes);
+		assert_equal(onesCount, expectedOnes);
+	}end_test_case;
+
+	test_case("crossovering two equal solutions yields the same solution (with mutationProb = 0)")
+	{
+		Solution s = crossover(mockGraph, &solution, &solution, 2, 0);
+
+		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
+		{
+			assert_equal(solution.getTiming(v), s.getTiming(v));
+		}
+
+	}end_test_case;
+
+	//if the number of vertices is odd and pRange = 0 and mutationProb = 0, then the first solution in the arguments will contribute with 1 timing more than the second solution
+	test_case("crossovering a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings (with pRange = 0 and mutationProb = 0)")
+	{
+		size_t nVertices = mockGraph.getNumberOfVertices();
+		bool isOdd =  nVertices % 2;
+		unsigned expectedZeroes = nVertices / 2, expectedOnes = nVertices / 2;
+		unsigned zeroesCount = 0, onesCount = 0;
+
+		if(isOdd)
+		{
+			expectedZeroes += 1;
+		}
+
+		Solution zeroesSol(nVertices), onesSol(nVertices), s;
+
+		for(Vertex v = 0; v < nVertices; v++)
+		{
+			onesSol.setTiming(v, 1);
+		}
+
+		s = crossover(mockGraph, &zeroesSol, &onesSol, 0, 0);
+
+		for(Vertex v = 0; v < nVertices; v++)
+		{
+			if(s.getTiming(v) == 0)
+			{
+				zeroesCount++;
+			}
+			else
+			if(s.getTiming(v) == 1)
+			{
+				onesCount++;
+			}
+		}
+
+		assert_equal(zeroesCount, expectedZeroes);
+		assert_equal(onesCount, expectedOnes);
+	}end_test_case;
+
 }

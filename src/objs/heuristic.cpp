@@ -1,13 +1,8 @@
 #include "heuristic.h"
 
-#include <vector>
 #include <random>
-#include <chrono>
-#include <limits>
 #include <algorithm>
 #include <queue>
-
-#include <iostream>
 
 using namespace traffic;
 using namespace std;
@@ -300,4 +295,93 @@ function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterationsWithout
 	return [=](const HeuristicMetrics& metrics) -> bool {
 		return metrics.numberOfIterationsWithoutImprovement < numberOfIterationsToStop;
 	};
+}
+
+Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2)
+{	
+	Vertex v = 0;
+	unsigned i = 0, middle;
+	size_t nVertices = graph.getNumberOfVertices();
+	bool *visited = new bool[nVertices]{false};
+	Solution solution(nVertices);
+	queue<Vertex> q;
+	q.push(v);
+
+	middle = nVertices % 2? (nVertices / 2) + 1 : nVertices / 2;
+
+	while(!q.empty())
+	{
+		v = q.front();
+		q.pop();
+		visited[v] = true;
+
+		for(auto u : graph.neighborsOf(v))
+		{
+			if(!visited[u.first])
+			{
+				q.push(u.first);
+			}
+		}
+
+		if(i < middle)
+		{
+			solution.setTiming(v, s1->getTiming(v));
+		}
+		else
+		{
+			solution.setTiming(v, s2->getTiming(v));
+		}
+
+		i++;
+	}
+
+	return solution;
+}
+
+/*
+In our genetic algorithm, a chromosome represents a solution of traffic light setting on the traffic graph. The fitness of each chromosome is measured by the total penalty of vehicles on this traffic
+light setting. The crossover is done by randomly selecting two chromosomes A = a1a2 · · · aN and B = b1b2 · · · bN from the population. Then, via exchanging information, A and B produce a new offspring 
+C = c1c2 · · · cN . We choose a value k, where k is the half length of chromosome plus a random value p. In our method, p falls within the range from −2 to 2. If index i ≤ k, gene ci = ai. Otherwise, 
+gene ci = bi . The mutation is done by randomly changing genes on the offspring C, with the mutation probability.
+
+OBS.: 0.0 <= mutationProb <= 1.0
+	  range do p não está fixo em -2 a 2, mas em -pRange a pRange
+*/
+Solution traffic::crossover(const Graph& graph, const Solution *a, const Solution *b, int pRange, double mutationProb)
+{
+	if(mutationProb > 1.0)
+	{
+		mutationProb = 1.0;
+	}
+
+	size_t nVertices = graph.getNumberOfVertices();
+	pRange = abs(pRange);
+
+	if(pRange > nVertices / 2)
+	{
+		pRange = nVertices / 2;
+	}
+
+	random_device seeder;
+	mt19937 randomEngine(seeder());
+	uniform_int_distribution<int> pPicker(-pRange, pRange);
+	uniform_real_distribution<double> mutPicker(0.0, 1.0);
+	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
+
+	Solution solution(nVertices);
+
+	int p = pPicker(randomEngine);
+	int k = nVertices / 2 + p;
+
+	for(Vertex v = 0; v < nVertices; v++)
+	{
+		solution.setTiming(v, v <= k ? a->getTiming(v) : b->getTiming(v));
+		
+		if(mutPicker(randomEngine) <= mutationProb)
+		{
+			solution.setTiming(v, timingPicker(randomEngine));
+		}
+	}
+
+	return solution;
 }
