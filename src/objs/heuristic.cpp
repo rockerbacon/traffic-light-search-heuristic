@@ -234,6 +234,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	HeuristicMetrics metrics;
 	random_device seeder;
 	mt19937 randomEngine(seeder());
+	TimeUnit infinite = numeric_limits<TimeUnit>::max();
 
 	int crossoverPRange = graph.getNumberOfVertices() * 0.1; //uma solução-pai poderá contribuir com no máximo 60% e no mínimo 40% (50 +/- 10)
 	double crossoverMutProb = 0.01; //1% de chances de mutação em cada timing da solução
@@ -249,6 +250,9 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), stop_criteria::numberOfIterations(500));
 		population.push_back({constructedSolution, graph.totalPenalty(constructedSolution)});
 		referenceSet.push_back(&population.back().first);
+	}
+	while (population.size() < totalPopulationSize) {
+		population.push_back({Solution(), infinite});
 	}
 	eliteSet = VectorSlice<pair<Solution, TimeUnit>>(population, 0, elitePopulationSize);
 	candidateSet = VectorSlice<pair<Solution, TimeUnit>>(population, livePopulationSize, totalPopulationSize);
@@ -307,7 +311,7 @@ Solution traffic::combineByBfs_aux(const Graph& graph, const Solution *s1, const
 }
 
 Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2)
-{	
+{
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
@@ -320,7 +324,7 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 	q.push(v);
 
 	middle = nVertices % 2 ? (nVertices / 2) + 1 : nVertices / 2;
-	
+
 	visited[v] = true;
 
 	while(!q.empty())
@@ -335,7 +339,7 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 				visited[u.first] = true;
 				q.push(u.first);
 			}
-		}			
+		}
 
 		if(i < middle)
 		{
@@ -355,8 +359,8 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 
 /*
 In our genetic algorithm, a chromosome represents a solution of traffic light setting on the traffic graph. The fitness of each chromosome is measured by the total penalty of vehicles on this traffic
-light setting. The crossover is done by randomly selecting two chromosomes A = a1a2 · · · aN and B = b1b2 · · · bN from the population. Then, via exchanging information, A and B produce a new offspring 
-C = c1c2 · · · cN . We choose a value k, where k is the half length of chromosome plus a random value p. In our method, p falls within the range from −2 to 2. If index i ≤ k, gene ci = ai. Otherwise, 
+light setting. The crossover is done by randomly selecting two chromosomes A = a1a2 · · · aN and B = b1b2 · · · bN from the population. Then, via exchanging information, A and B produce a new offspring
+C = c1c2 · · · cN . We choose a value k, where k is the half length of chromosome plus a random value p. In our method, p falls within the range from −2 to 2. If index i ≤ k, gene ci = ai. Otherwise,
 gene ci = bi . The mutation is done by randomly changing genes on the offspring C, with the mutation probability.
 
 OBS.: 0.0 <= mutationProb <= 1.0
@@ -391,7 +395,7 @@ Solution traffic::crossover(const Graph& graph, const Solution *a, const Solutio
 	for(Vertex v = 0; v < nVertices; v++)
 	{
 		solution.setTiming(v, v <= k ? a->getTiming(v) : b->getTiming(v));
-		
+
 		if(mutPicker(randomEngine) <= mutationProb)
 		{
 			solution.setTiming(v, timingPicker(randomEngine));
