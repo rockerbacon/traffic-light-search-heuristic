@@ -3,12 +3,18 @@
 #include <cstring>
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
-#define DEFAULT_NUMBER_OF_RUNS 100
+#define DEFAULT_NUMBER_OF_RUNS 10
 #define DEFAULT_MAX_VERTEX_DEGREE 10
 #define DEFAULT_MIN_VERTEX_DEGREE 4
 #define DEFAULT_CYCLE 24
 #define DEFAULT_GRAPH_MODEL GraphModel::ADJACENCY_LIST
-#define DEFAULT_STOP_CRITERIA stop_criteria::numberOfIterations(10000)
+#define DEFAULT_STOP_CRITERIA_PH stop_criteria::numberOfIterations(100) //populational heuristics
+//#define DEFAULT_STOP_CRITERIA_LS stop_criteria::numberOfIterations(1000)//local search
+#define DEFAULT_COMBINE_METHOD CombineMethod::COMBINE_BY_BFS
+#define DEFAULT_ELITE_SIZE 3 //I have no idea
+#define DEFAULT_DIVERSE_SIZE 7 //Still, no idea
+
+
 
 #define WRONG_ARGUMENTS_EXIT_CODE 1
 
@@ -21,14 +27,30 @@ enum GraphModel {
 	ADJACENCY_MATRIX
 };
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
+enum CombineMethod
+{
+	CROSSOVER,
+	COMBINE_BY_BFS
+};
+
+//impacta muito no desempenho? será? vamos ver!
+Solution combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb)
+{
+	return combineByBfs(graph, s1, s2);
+}
+
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetPH/*, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetLS*/, CombineMethod &combineMethod, size_t &elitePopulationSize, size_t &diversePopulationSize) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	minVertexDegree = DEFAULT_MIN_VERTEX_DEGREE;
 	maxVertexDegree = DEFAULT_MAX_VERTEX_DEGREE;
 	numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
 	cycle = DEFAULT_CYCLE;
 	graphModel = DEFAULT_GRAPH_MODEL;
-	stopCriteriaNotMet = DEFAULT_STOP_CRITERIA;
+	stopCriteriaNotMetPH = DEFAULT_STOP_CRITERIA_PH;
+//	stopCriteriaNotMetLS = DEFAULT_STOP_CRITERIA_LS; //local search
+	combineMethod = DEFAULT_COMBINE_METHOD;
+	elitePopulationSize = DEFAULT_ELITE_SIZE;
+	diversePopulationSize = DEFAULT_DIVERSE_SIZE;
 
 	if (argc > 1) {
 		int i = 1;
@@ -107,9 +129,25 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					cout << "--iterationsWithoutImprovement argument requires a number greater than 0" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
-				stopCriteriaNotMet = stop_criteria::numberOfIterationsWithoutImprovement(numberOfIterations);
+				stopCriteriaNotMetPH = stop_criteria::numberOfIterationsWithoutImprovement(numberOfIterations);
 
-			} else if (strcmp(argv[i], "--iterations") == 0) {
+			}/*else if (strcmp(argv[i], "--iterationsWithoutImprovementLS") == 0) {
+
+				unsigned numberOfIterations;
+
+				i++;
+				if (i >= argc) {
+					cout << "--iterationsWithoutImprovementLS argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				numberOfIterations = atoi(argv[i]);
+				if (numberOfIterations == 0) {
+					cout << "--iterationsWithoutImprovementLS argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				stopCriteriaNotMetLS = stop_criteria::numberOfIterationsWithoutImprovement(numberOfIterations);
+
+			}*/ else if (strcmp(argv[i], "--iterations") == 0) {
 
 				unsigned numberOfIterations;
 
@@ -123,9 +161,25 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					cout << "--iterations argument requires a number greater than 0" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
-				stopCriteriaNotMet = stop_criteria::numberOfIterations(numberOfIterations);
+				stopCriteriaNotMetPH = stop_criteria::numberOfIterations(numberOfIterations);
 
-			} else if (strcmp(argv[i], "--cycle") == 0) {
+			}/* else if (strcmp(argv[i], "--iterationsLS") == 0) {
+
+				unsigned numberOfIterations;
+
+				i++;
+				if (i >= argc) {
+					cout << "--iterationsLS argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				numberOfIterations = atoi(argv[i]);
+				if (numberOfIterations == 0) {
+					cout << "--iterationsLS argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+				stopCriteriaNotMetLS = stop_criteria::numberOfIterations(numberOfIterations);
+
+			}*/ else if (strcmp(argv[i], "--cycle") == 0) {
 
 				i++;
 				if (i >= argc) {
@@ -138,7 +192,60 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 
-			} else {
+			}
+			else
+			if (strcmp(argv[i], "--useCrossover") == 0)
+			{
+
+				combineMethod = CombineMethod::CROSSOVER;
+
+			}
+			else
+			if (strcmp(argv[i], "--useCombineByBfs") == 0)
+			{
+
+				combineMethod = CombineMethod::COMBINE_BY_BFS;
+
+			}
+			else
+			if(strcmp(argv[i], "--diverseSize") == 0)
+			{
+				i++;
+
+				if (i >= argc)
+				{
+					cout << "--diverseSize argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				diversePopulationSize = atoi(argv[i]);
+
+				if(diversePopulationSize == 0)
+				{
+					cout << "--diverseSize argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+			}
+			else
+			if(strcmp(argv[i], "--eliteSize") == 0)
+			{
+				i++;
+
+				if (i >= argc)
+				{
+					cout << "--eliteSize argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				elitePopulationSize = atoi(argv[i]);
+
+				if(elitePopulationSize == 0)
+				{
+					cout << "--eliteSize argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+			}
+			else{
 				cout << "unknown argument " << argv[i] << endl;
 				exit(WRONG_ARGUMENTS_EXIT_CODE);
 			}
@@ -152,35 +259,35 @@ int main (int argc, char** argv) {
 
 	GraphBuilder *graphBuilder = nullptr;
 	Graph *graph = nullptr;
-	Solution constructedSolution, searchedSolution;
-	size_t numberOfVertices, maxVertexDegree, minVertexDegree;
+	Solution populationalHeuristicSolution;
+	size_t numberOfVertices, maxVertexDegree, minVertexDegree, elitePopulationSize, diversePopulationSize;
 	unsigned numberOfRuns;
 	TimeUnit cycle;
 	GraphModel graphModel;
-	function<bool(const HeuristicMetrics&)> stopCriteriaNotMet;
+	function<bool(const HeuristicMetrics&)> stopCriteriaNotMetPH;
+//	function<bool(const HeuristicMetrics&)> stopCriteriaNotMetLS; //local search
+	Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double);
 	TerminalObserver *terminalObserver;
 	list<Observer*> observers;
-	double avgInitialConstructionPenalty, avgLocalSearchPenalty, avgLowerBound;
+	double avgInitialConstructionPenalty, avgLocalSearchPenalty, avgPHPenalty, avgLowerBound;
 	double penaltyFactor, lowerBoundFactor;
-	chrono::high_resolution_clock::time_point beginSearch;
-	chrono::high_resolution_clock::duration avgSearchDuration;
-	string formatedAvgSearchDuration;
+	CombineMethod combineMethod;
+	chrono::high_resolution_clock::time_point beginPopulationalHeuristic;
+	chrono::high_resolution_clock::duration avgPHDuration;
+	string formatedAvgPHDuration;
 
-	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMet);
+	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMetPH, /*stopCriteriaNotMetLS,*/ combineMethod, elitePopulationSize, diversePopulationSize);
 
-	terminalObserver = new TerminalObserver("local search heuristic", numberOfRuns);
+	terminalObserver = new TerminalObserver("populational heuristic", numberOfRuns);
 	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
-	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
-	terminalObserver->observeVariable("local search penalty", avgLocalSearchPenalty);
-	terminalObserver->observeVariable("search/initial penalty factor", penaltyFactor);
-	terminalObserver->observeVariable("search/lower bound factor", lowerBoundFactor);
-	terminalObserver->observeVariable("search duration", formatedAvgSearchDuration);
+	terminalObserver->observeVariable("populational heuristics penalty", avgPHPenalty);
+	terminalObserver->observeVariable("populational heuristic/lower bound factor", lowerBoundFactor);
+	terminalObserver->observeVariable("populational heuristic duration", formatedAvgPHDuration);
 	observers.push_back(terminalObserver);
 
 	avgLowerBound = 0;
-	avgInitialConstructionPenalty = 0;
-	avgLocalSearchPenalty = 0;
-	avgSearchDuration = chrono::high_resolution_clock::duration(0);
+
+	avgPHDuration = chrono::high_resolution_clock::duration(0);
 	for (auto o : observers) o->notifyBenchmarkBegun();
 	for (unsigned i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
@@ -194,20 +301,28 @@ int main (int argc, char** argv) {
 				break;
 		}
 
+		switch(combineMethod)
+		{
+			case CombineMethod::CROSSOVER:
+				combineMethodFunction = &crossover;
+				break;
+			case CombineMethod::COMBINE_BY_BFS:
+				combineMethodFunction = &combineByBfs_aux;
+				break;
+		}
+
 		for (auto o : observers) o->notifyRunBegun();
 
-		beginSearch = chrono::high_resolution_clock::now();
-		constructedSolution = constructHeuristicSolution(*graph);
-		searchedSolution = localSearchHeuristic(*graph, constructedSolution, stopCriteriaNotMet);
+		beginPopulationalHeuristic = chrono::high_resolution_clock::now();
+		//cout << elitePopulationSize + diversePopulationSize << endl;
+		populationalHeuristicSolution = populationalHeuristic(*graph, elitePopulationSize, diversePopulationSize, stopCriteriaNotMetPH, combineMethodFunction);
 
-		avgSearchDuration = (avgSearchDuration*i + chrono::high_resolution_clock::now() - beginSearch)/(i+1);
-		avgInitialConstructionPenalty = (avgInitialConstructionPenalty*i + graph->totalPenalty(constructedSolution))/(i+1);
-		avgLocalSearchPenalty = (avgLocalSearchPenalty*i + graph->totalPenalty(searchedSolution))/(i+1);
+		avgPHDuration = (avgPHDuration*i + chrono::high_resolution_clock::now() - beginPopulationalHeuristic)/(i+1);
+		avgPHPenalty = (avgPHPenalty*i + graph->totalPenalty(populationalHeuristicSolution))/(i+1);
 		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
 
-		penaltyFactor = avgLocalSearchPenalty/avgInitialConstructionPenalty;
-		lowerBoundFactor = avgLocalSearchPenalty/avgLowerBound;
-		formatedAvgSearchDuration = format_chrono_duration(avgSearchDuration);
+		lowerBoundFactor = avgPHPenalty/avgLowerBound;
+		formatedAvgPHDuration = format_chrono_duration(avgPHDuration);
 
 		for (auto o : observers) {
 			o->notifyRunUpdate();
