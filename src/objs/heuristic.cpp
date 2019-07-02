@@ -344,6 +344,7 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 		i++;
 	}
 
+	delete [] visited;
 	return solution;
 }
 
