@@ -301,9 +301,17 @@ function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterationsWithout
 	};
 }
 
+Solution traffic::combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb)
+{
+	return combineByBfs(graph, s1, s2);
+}
+
 Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2)
 {	
-	Vertex v = 0;
+	random_device seeder;
+	mt19937 randomEngine(seeder());
+	uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
+	Vertex v = vertexPicker(randomEngine);
 	unsigned i = 0, middle;
 	size_t nVertices = graph.getNumberOfVertices();
 	bool *visited = new bool[nVertices]{false};
@@ -311,21 +319,23 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 	queue<Vertex> q;
 	q.push(v);
 
-	middle = nVertices % 2? (nVertices / 2) + 1 : nVertices / 2;
+	middle = nVertices % 2 ? (nVertices / 2) + 1 : nVertices / 2;
+	
+	visited[v] = true;
 
 	while(!q.empty())
 	{
 		v = q.front();
 		q.pop();
-		visited[v] = true;
 
 		for(auto u : graph.neighborsOf(v))
 		{
 			if(!visited[u.first])
 			{
+				visited[u.first] = true;
 				q.push(u.first);
 			}
-		}
+		}			
 
 		if(i < middle)
 		{
@@ -339,6 +349,7 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 		i++;
 	}
 
+	delete [] visited;
 	return solution;
 }
 

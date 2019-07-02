@@ -23,5 +23,6 @@ namespace traffic {
 	Solution localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet);
 	Solution populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const std::function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double));
 	Solution combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2);
+	Solution combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb);//apenas chama combineByBfs
 	Solution crossover(const Graph& graph, const Solution *a, const Solution *b, int pRange, double mutationProb);
 };

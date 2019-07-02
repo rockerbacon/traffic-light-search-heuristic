@@ -33,12 +33,6 @@ enum CombineMethod
 	COMBINE_BY_BFS
 };
 
-//impacta muito no desempenho? será? vamos ver!
-Solution combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb)
-{
-	return combineByBfs(graph, s1, s2);
-}
-
 void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetPH/*, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetLS*/, CombineMethod &combineMethod, size_t &elitePopulationSize, size_t &diversePopulationSize) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	minVertexDegree = DEFAULT_MIN_VERTEX_DEGREE;
@@ -289,6 +283,17 @@ int main (int argc, char** argv) {
 
 	avgPHDuration = chrono::high_resolution_clock::duration(0);
 	for (auto o : observers) o->notifyBenchmarkBegun();
+
+	switch(combineMethod)
+	{
+		case CombineMethod::CROSSOVER:
+			combineMethodFunction = &crossover;
+			break;
+		case CombineMethod::COMBINE_BY_BFS:
+			combineMethodFunction = &combineByBfs_aux;
+			break;
+	}
+
 	for (unsigned i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
@@ -298,16 +303,6 @@ int main (int argc, char** argv) {
 				break;
 			case GraphModel::ADJACENCY_MATRIX:
 				graph = graphBuilder->buildAsAdjacencyMatrix();
-				break;
-		}
-
-		switch(combineMethod)
-		{
-			case CombineMethod::CROSSOVER:
-				combineMethodFunction = &crossover;
-				break;
-			case CombineMethod::COMBINE_BY_BFS:
-				combineMethodFunction = &combineByBfs_aux;
 				break;
 		}
 
