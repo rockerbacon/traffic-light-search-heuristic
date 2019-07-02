@@ -13,6 +13,7 @@
 #define DEFAULT_COMBINE_METHOD CombineMethod::COMBINE_BY_BFS
 #define DEFAULT_ELITE_SIZE 3 //I have no idea
 #define DEFAULT_DIVERSE_SIZE 7 //Still, no idea
+#define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
 
 
 
@@ -33,7 +34,7 @@ enum CombineMethod
 	COMBINE_BY_BFS
 };
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetPH/*, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetLS*/, CombineMethod &combineMethod, size_t &elitePopulationSize, size_t &diversePopulationSize) {
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetPH/*, function<bool(const HeuristicMetrics&)>& stopCriteriaNotMetLS*/, CombineMethod &combineMethod, size_t &elitePopulationSize, size_t &diversePopulationSize, size_t &localSearchIterations) {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	minVertexDegree = DEFAULT_MIN_VERTEX_DEGREE;
 	maxVertexDegree = DEFAULT_MAX_VERTEX_DEGREE;
@@ -45,6 +46,7 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 	combineMethod = DEFAULT_COMBINE_METHOD;
 	elitePopulationSize = DEFAULT_ELITE_SIZE;
 	diversePopulationSize = DEFAULT_DIVERSE_SIZE;
+	localSearchIterations = DEFAULT_LOCAL_SEARCH_ITERATIONS;
 
 	if (argc > 1) {
 		int i = 1;
@@ -157,23 +159,20 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 				}
 				stopCriteriaNotMetPH = stop_criteria::numberOfIterations(numberOfIterations);
 
-			}/* else if (strcmp(argv[i], "--iterationsLS") == 0) {
-
-				unsigned numberOfIterations;
+			} else if (strcmp(argv[i], "--localSearchIterations") == 0) {
 
 				i++;
 				if (i >= argc) {
-					cout << "--iterationsLS argument requires a number greater than 0" << endl;
+					cout << "--localSearchIterations argument requires a number greater than 0" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
-				numberOfIterations = atoi(argv[i]);
-				if (numberOfIterations == 0) {
-					cout << "--iterationsLS argument requires a number greater than 0" << endl;
+				localSearchIterations = atoi(argv[i]);
+				if (localSearchIterations == 0) {
+					cout << "--localSearchIterations argument requires a number greater than 0" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
-				stopCriteriaNotMetLS = stop_criteria::numberOfIterations(numberOfIterations);
 
-			}*/ else if (strcmp(argv[i], "--cycle") == 0) {
+			} else if (strcmp(argv[i], "--cycle") == 0) {
 
 				i++;
 				if (i >= argc) {
@@ -269,8 +268,9 @@ int main (int argc, char** argv) {
 	chrono::high_resolution_clock::time_point beginPopulationalHeuristic;
 	chrono::high_resolution_clock::duration avgPHDuration;
 	string formatedAvgPHDuration;
+	size_t localSearchIterations;
 
-	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMetPH, /*stopCriteriaNotMetLS,*/ combineMethod, elitePopulationSize, diversePopulationSize);
+	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMetPH, combineMethod, elitePopulationSize, diversePopulationSize, localSearchIterations);
 
 	terminalObserver = new TerminalObserver("populational heuristic", numberOfRuns);
 	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
@@ -310,7 +310,7 @@ int main (int argc, char** argv) {
 
 		beginPopulationalHeuristic = chrono::high_resolution_clock::now();
 		//cout << elitePopulationSize + diversePopulationSize << endl;
-		populationalHeuristicSolution = populationalHeuristic(*graph, elitePopulationSize, diversePopulationSize, stopCriteriaNotMetPH, combineMethodFunction);
+		populationalHeuristicSolution = populationalHeuristic(*graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopCriteriaNotMetPH, combineMethodFunction);
 
 		avgPHDuration = (avgPHDuration*i + chrono::high_resolution_clock::now() - beginPopulationalHeuristic)/(i+1);
 		avgPHPenalty = (avgPHPenalty*i + graph->totalPenalty(populationalHeuristicSolution))/(i+1);

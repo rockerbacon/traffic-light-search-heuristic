@@ -223,7 +223,7 @@ Solution combine (const Graph& graph, const Solution *a, const Solution *b) {
 	return r;
 }
 
-Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double)) {
+Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double)) {
 	vector<pair<Solution, TimeUnit>> population;
 	vector<const Solution*> referenceSet;
 	VectorSlice<pair<Solution, TimeUnit>> eliteSet, diverseSet, candidateSet;
@@ -247,7 +247,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	referenceSet.reserve(livePopulationSize);
 
 	while (population.size() < livePopulationSize) {
-		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), stop_criteria::numberOfIterations(500));
+		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), stop_criteria::numberOfIterations(localSearchIterations));
 		population.push_back({constructedSolution, graph.totalPenalty(constructedSolution)});
 		referenceSet.push_back(&population.back().first);
 	}
@@ -273,7 +273,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 
 			//candidateSet[i].first = combine(graph, solution1, solution2);
 			candidateSet[i].first = (*combineMethodFunction)(graph, solution1, solution2, crossoverPRange, crossoverMutProb);
-			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, stop_criteria::numberOfIterations(500));
+			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, stop_criteria::numberOfIterations(localSearchIterations));
 			candidateSet[i].second = graph.totalPenalty(candidateSet[i].first);
 		}
 
