@@ -223,7 +223,7 @@ Solution combine (const Graph& graph, const Solution *a, const Solution *b) {
 	return r;
 }
 
-Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
+Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double)) {
 	vector<pair<Solution, TimeUnit>> population;
 	vector<const Solution*> referenceSet;
 	VectorSlice<pair<Solution, TimeUnit>> eliteSet, diverseSet, candidateSet;
@@ -235,7 +235,10 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 
-	if (livePopulationSize&2) {
+	int crossoverPRange = graph.getNumberOfVertices() * 0.1; //uma solução-pai poderá contribuir com no máximo 60% e no mínimo 40% (50 +/- 10)
+	double crossoverMutProb = 0.01; //1% de chances de mutação em cada timing da solução
+
+	if (livePopulationSize&1) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
 	}
 
@@ -264,7 +267,8 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 			solution1 = referenceSet[i*2];
 			solution2 = referenceSet[i*2+1];
 
-			candidateSet[i].first = combine(graph, solution1, solution2);
+			//candidateSet[i].first = combine(graph, solution1, solution2);
+			candidateSet[i].first = (*combineMethodFunction)(graph, solution1, solution2, crossoverPRange, crossoverMutProb);
 			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, stop_criteria::numberOfIterations(500));
 			candidateSet[i].second = graph.totalPenalty(candidateSet[i].first);
 		}
