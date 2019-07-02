@@ -301,6 +301,11 @@ function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterationsWithout
 	};
 }
 
+Solution traffic::combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb)
+{
+	return combineByBfs(graph, s1, s2);
+}
+
 Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2)
 {	
 	Vertex v = 0;
