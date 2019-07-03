@@ -404,3 +404,94 @@ Solution traffic::crossover(const Graph& graph, const Solution *a, const Solutio
 
 	return solution;
 }
+
+Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb)
+{
+	if(populationSize < 2)
+	{
+		throw invalid_argument("populationSize must be >= 2");
+	}
+
+	Solution bestSolution(graph.getNumberOfVertices()), aux;
+	TimeUnit lowestPenalty = numeric_limits<TimeUnit>::max();
+	random_device seeder;
+	mt19937 randomEngine(seeder());
+	uniform_int_distribution<size_t> tournamentPicker;
+	vector<pair<Solution, TimeUnit>> population, parents;
+	pair<Solution, TimeUnit> tournamentWinner, tournamentIndividual;
+	unsigned replaceSize = populationSize * 1.0, tournamentSize = 0.4 * populationSize;
+
+	if(tournamentSize < 2)
+	{
+		tournamentSize = 2;
+	}
+
+	if(replaceSize < 2)
+	{
+		replaceSize = 2;
+	}
+
+	population.reserve(populationSize + replaceSize);
+	parents.reserve(replaceSize);
+	tournamentPicker.param(std::uniform_int_distribution<size_t>::param_type(0, populationSize - 1));
+
+	for(size_t i = 0; i < populationSize; i++)
+	{
+		aux = constructHeuristicSolution(graph);
+		population.push_back(make_pair(aux, graph.totalPenalty(aux)));
+
+		if(population[i].second < lowestPenalty)
+		{
+			bestSolution = population[i].first;
+			lowestPenalty = population[i].second;
+		}
+	}
+
+	for(unsigned i = 0; i < nGenerations; i++)
+	{		
+		for(int selectedParents = 0; selectedParents < replaceSize; selectedParents++)
+		{
+			size_t random = tournamentPicker(randomEngine);
+			tournamentWinner = population[random];
+
+			for(int j = 0; j < tournamentSize - 1; j++)
+			{
+				random = tournamentPicker(randomEngine);
+				tournamentIndividual = population[random];
+
+				if(tournamentIndividual.second < tournamentWinner.second)
+				{
+					tournamentWinner = tournamentIndividual;
+				}
+			}
+
+			parents.push_back(tournamentWinner);
+		}
+		
+		std::sort(parents.begin(), parents.end(), [](auto &a, auto &b) {
+    		return a.second < b.second;
+		});		
+
+		for(size_t j = 0; j < replaceSize; j++)
+		{
+			aux = crossover(graph, &parents[j].first, &parents[(j+1) % replaceSize].first, 0.4 * double(graph.getNumberOfVertices()), mutationProb);
+			population.push_back(make_pair(aux, graph.totalPenalty(aux)));
+		}
+
+		std::sort(population.begin(), population.end(), [](auto &a, auto &b) {
+    		return a.second < b.second;
+		});
+
+		population.erase(population.end() - 1 - replaceSize, population.end() - 1);
+
+		if(population[0].second < lowestPenalty)
+		{
+			lowestPenalty = population[0].second;
+			bestSolution = population[0].first;
+		}
+
+		parents.clear();
+	}
+
+	return bestSolution;
+}
