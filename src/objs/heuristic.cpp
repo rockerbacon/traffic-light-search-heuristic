@@ -407,9 +407,9 @@ Solution traffic::crossover(const Graph& graph, const Solution *a, const Solutio
 
 Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb)
 {
-	if(populationSize < 4)
+	if(populationSize < 2)
 	{
-		throw invalid_argument("populationSize must be >= 4");
+		throw invalid_argument("populationSize must be >= 2");
 	}
 
 	Solution bestSolution(graph.getNumberOfVertices()), aux;
@@ -419,7 +419,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 	uniform_int_distribution<size_t> tournamentPicker;
 	vector<pair<Solution, TimeUnit>> population, parents;
 	pair<Solution, TimeUnit> tournamentWinner, tournamentIndividual;
-	unsigned replaceSize = populationSize * 1, tournamentSize = 0.2 * populationSize;
+	unsigned replaceSize = populationSize * 1.0, tournamentSize = 0.4 * populationSize;
 
 	if(tournamentSize < 2)
 	{
@@ -467,14 +467,14 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 
 			parents.push_back(tournamentWinner);
 		}
-
+		
 		std::sort(parents.begin(), parents.end(), [](auto &a, auto &b) {
     		return a.second < b.second;
 		});		
 
 		for(size_t j = 0; j < replaceSize; j++)
 		{
-			aux = crossover(graph, &parents[j].first, &parents[(j+1) % replaceSize].first, 0.1 * graph.getNumberOfVertices(), mutationProb);
+			aux = crossover(graph, &parents[j].first, &parents[(j+1) % replaceSize].first, 0.4 * double(graph.getNumberOfVertices()), mutationProb);
 			population.push_back(make_pair(aux, graph.totalPenalty(aux)));
 		}
 
@@ -482,7 +482,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
     		return a.second < b.second;
 		});
 
-		population.erase(population.end() - 4 - replaceSize, population.end() - 4); //
+		population.erase(population.end() - 1 - replaceSize, population.end() - 1);
 
 		if(population[0].second < lowestPenalty)
 		{

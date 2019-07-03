@@ -8,9 +8,9 @@
 #define DEFAULT_MIN_VERTEX_DEGREE 4
 #define DEFAULT_CYCLE 24
 #define DEFAULT_GRAPH_MODEL GraphModel::ADJACENCY_LIST
-#define DEFAULT_ITERARIONS 2000
+#define DEFAULT_ITERARIONS 330
 #define DEFAULT_POP_SIZE 14
-#define DEFAULT_MUT_PROB 0.00225
+#define DEFAULT_MUT_PROB 0.003
 
 #define WRONG_ARGUMENTS_EXIT_CODE 1
 
@@ -133,15 +133,15 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 				i++;
 				if (i >= argc)
 				{
-					cout << "--populationSize argument requires a number greater than 3" << endl;
+					cout << "--populationSize argument requires a number >= 2" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 
 				populationSize = atoi(argv[i]);
 
-				if (populationSize < 4)
+				if (populationSize < 2)
 				{
-					cout << "--populationSize argument requires a number greater than 3" << endl;
+					cout << "--populationSize argument requires a number >= 2" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 
