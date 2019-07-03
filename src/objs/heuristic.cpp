@@ -405,7 +405,7 @@ Solution traffic::crossover(const Graph& graph, const Solution *a, const Solutio
 	return solution;
 }
 
-Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb)
+Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb, Solution (*combinationFunction)(const Graph&, const Solution*, const Solution*, int, double))
 {
 	if(populationSize < 2)
 	{
@@ -474,7 +474,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 
 		for(size_t j = 0; j < replaceSize; j++)
 		{
-			aux = crossover(graph, &parents[j].first, &parents[(j+1) % replaceSize].first, 0.4 * double(graph.getNumberOfVertices()), mutationProb);
+			aux = (*combinationFunction)(graph, &parents[j].first, &parents[(j+1) % replaceSize].first, 0.4 * double(graph.getNumberOfVertices()), mutationProb);
 			population.push_back(make_pair(aux, graph.totalPenalty(aux)));
 		}
 

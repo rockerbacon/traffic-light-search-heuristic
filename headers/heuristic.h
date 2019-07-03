@@ -25,6 +25,6 @@ namespace traffic {
 	Solution combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2);
 	Solution combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb);//apenas chama combineByBfs
 	Solution crossover(const Graph& graph, const Solution *a, const Solution *b, int pRange, double mutationProb);
-	Solution geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb);
+	Solution geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb, Solution (*combinationFunction)(const Graph&, const Solution*, const Solution*, int, double));
 
 };
