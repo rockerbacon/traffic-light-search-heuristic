@@ -166,6 +166,60 @@ void setupExecutionParameters(int argc, char** argv, Vertex &numberOfVertices, V
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
 
+			} else if (strcmp(argv[i], "--seconds") == 0) {
+
+				int seconds;
+
+				i++;
+				if (i >= argc) {
+					cout << "--seconds argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				seconds = atoi(argv[i]);
+				if (seconds <= 0) {
+					cout << "--seconds argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				stopCriteriaNotMet = stop_criteria::executionTime(chrono::seconds(seconds));
+
+			} else if (strcmp(argv[i], "--minutes") == 0) {
+
+				int minutes;
+
+				i++;
+				if (i >= argc) {
+					cout << "--minutes argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				minutes = atoi(argv[i]);
+				if (minutes <= 0) {
+					cout << "--minutes argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				stopCriteriaNotMet = stop_criteria::executionTime(chrono::minutes(minutes));
+
+			} else if (strcmp(argv[i], "--hours") == 0) {
+
+				int hours;
+
+				i++;
+				if (i >= argc) {
+					cout << "--hours argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				hours = atoi(argv[i]);
+				if (hours <= 0) {
+					cout << "--hours argument requires a number greater than 0" << endl;
+					exit(WRONG_ARGUMENTS_EXIT_CODE);
+				}
+
+				stopCriteriaNotMet = stop_criteria::executionTime(chrono::hours(hours));
+
 			} else if (strcmp(argv[i], "--output") == 0) {
 
 				i++;
