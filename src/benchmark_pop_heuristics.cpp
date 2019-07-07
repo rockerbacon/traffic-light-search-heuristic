@@ -8,11 +8,10 @@
 #define DEFAULT_MIN_VERTEX_DEGREE 4
 #define DEFAULT_CYCLE 24
 #define DEFAULT_GRAPH_MODEL GraphModel::ADJACENCY_LIST
-#define DEFAULT_STOP_CRITERIA_PH stop_criteria::numberOfIterations(100) //populational heuristics
-//#define DEFAULT_STOP_CRITERIA_LS stop_criteria::numberOfIterations(1000)//local search
+#define DEFAULT_STOP_CRITERIA_PH stop_criteria::numberOfIterations(100)
 #define DEFAULT_COMBINE_METHOD CombineMethod::COMBINE_BY_BFS
-#define DEFAULT_ELITE_SIZE 3 //I have no idea
-#define DEFAULT_DIVERSE_SIZE 7 //Still, no idea
+#define DEFAULT_ELITE_SIZE 1
+#define DEFAULT_DIVERSE_SIZE 9
 #define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
 
 
@@ -42,7 +41,6 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 	cycle = DEFAULT_CYCLE;
 	graphModel = DEFAULT_GRAPH_MODEL;
 	stopCriteriaNotMetPH = DEFAULT_STOP_CRITERIA_PH;
-//	stopCriteriaNotMetLS = DEFAULT_STOP_CRITERIA_LS; //local search
 	combineMethod = DEFAULT_COMBINE_METHOD;
 	elitePopulationSize = DEFAULT_ELITE_SIZE;
 	diversePopulationSize = DEFAULT_DIVERSE_SIZE;
@@ -127,23 +125,7 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 				}
 				stopCriteriaNotMetPH = stop_criteria::numberOfIterationsWithoutImprovement(numberOfIterations);
 
-			}/*else if (strcmp(argv[i], "--iterationsWithoutImprovementLS") == 0) {
-
-				unsigned numberOfIterations;
-
-				i++;
-				if (i >= argc) {
-					cout << "--iterationsWithoutImprovementLS argument requires a number greater than 0" << endl;
-					exit(WRONG_ARGUMENTS_EXIT_CODE);
-				}
-				numberOfIterations = atoi(argv[i]);
-				if (numberOfIterations == 0) {
-					cout << "--iterationsWithoutImprovementLS argument requires a number greater than 0" << endl;
-					exit(WRONG_ARGUMENTS_EXIT_CODE);
-				}
-				stopCriteriaNotMetLS = stop_criteria::numberOfIterationsWithoutImprovement(numberOfIterations);
-
-			}*/ else if (strcmp(argv[i], "--iterations") == 0) {
+			} else if (strcmp(argv[i], "--iterations") == 0) {
 
 				unsigned numberOfIterations;
 
@@ -258,7 +240,6 @@ int main (int argc, char** argv) {
 	TimeUnit cycle;
 	GraphModel graphModel;
 	function<bool(const HeuristicMetrics&)> stopCriteriaNotMetPH;
-//	function<bool(const HeuristicMetrics&)> stopCriteriaNotMetLS; //local search
 	Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double);
 	TerminalObserver *terminalObserver;
 	list<Observer*> observers;
@@ -272,7 +253,7 @@ int main (int argc, char** argv) {
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMetPH, combineMethod, elitePopulationSize, diversePopulationSize, localSearchIterations);
 
-	terminalObserver = new TerminalObserver("populational heuristic", numberOfRuns);
+	terminalObserver = new TerminalObserver();
 	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
 	terminalObserver->observeVariable("populational heuristics penalty", avgPHPenalty);
 	terminalObserver->observeVariable("populational heuristic/lower bound factor", lowerBoundFactor);
@@ -282,7 +263,7 @@ int main (int argc, char** argv) {
 	avgLowerBound = 0;
 
 	avgPHDuration = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun();
+	for (auto o : observers) o->notifyBenchmarkBegun("populational heuristic", numberOfRuns);
 
 	switch(combineMethod)
 	{
@@ -309,7 +290,6 @@ int main (int argc, char** argv) {
 		for (auto o : observers) o->notifyRunBegun();
 
 		beginPopulationalHeuristic = chrono::high_resolution_clock::now();
-		//cout << elitePopulationSize + diversePopulationSize << endl;
 		populationalHeuristicSolution = populationalHeuristic(*graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopCriteriaNotMetPH, combineMethodFunction);
 
 		avgPHDuration = (avgPHDuration*i + chrono::high_resolution_clock::now() - beginPopulationalHeuristic)/(i+1);
@@ -319,10 +299,7 @@ int main (int argc, char** argv) {
 		lowerBoundFactor = avgPHPenalty/avgLowerBound;
 		formatedAvgPHDuration = format_chrono_duration(avgPHDuration);
 
-		for (auto o : observers) {
-			o->notifyRunUpdate();
-			o->notifyRunEnded();
-		}
+		for (auto o : observers) o->notifyRunEnded();
 
 		delete graphBuilder;
 		delete graph;

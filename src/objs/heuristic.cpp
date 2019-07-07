@@ -405,7 +405,7 @@ Solution traffic::crossover(const Graph& graph, const Solution *a, const Solutio
 	return solution;
 }
 
-Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, unsigned nGenerations, double mutationProb, Solution (*combinationFunction)(const Graph&, const Solution*, const Solution*, int, double))
+Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, double mutationProb, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combinationFunction)(const Graph&, const Solution*, const Solution*, int, double))
 {
 	if(populationSize < 2)
 	{
@@ -420,6 +420,9 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 	vector<pair<Solution, TimeUnit>> population, parents;
 	pair<Solution, TimeUnit> tournamentWinner, tournamentIndividual;
 	unsigned replaceSize = populationSize * 1.0, tournamentSize = 0.4 * populationSize;
+
+	HeuristicMetrics metrics;
+	bool iterationHadNoImprovement;
 
 	if(tournamentSize < 2)
 	{
@@ -447,8 +450,11 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 		}
 	}
 
-	for(unsigned i = 0; i < nGenerations; i++)
-	{		
+	metrics.numberOfIterations = 0;
+	metrics.numberOfIterationsWithoutImprovement = 0;
+	while(stopCriteriaNotMet(metrics))
+	{
+		iterationHadNoImprovement = true;
 		for(int selectedParents = 0; selectedParents < replaceSize; selectedParents++)
 		{
 			size_t random = tournamentPicker(randomEngine);
@@ -467,10 +473,10 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 
 			parents.push_back(tournamentWinner);
 		}
-		
+
 		std::sort(parents.begin(), parents.end(), [](auto &a, auto &b) {
     		return a.second < b.second;
-		});		
+		});
 
 		for(size_t j = 0; j < replaceSize; j++)
 		{
@@ -488,9 +494,17 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, un
 		{
 			lowestPenalty = population[0].second;
 			bestSolution = population[0].first;
+			iterationHadNoImprovement = false;
 		}
 
 		parents.clear();
+
+		metrics.numberOfIterations++;
+		if (iterationHadNoImprovement) {
+			metrics.numberOfIterationsWithoutImprovement++;
+		} else {
+			metrics.numberOfIterationsWithoutImprovement = 0;
+		}
 	}
 
 	return bestSolution;

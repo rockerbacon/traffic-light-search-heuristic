@@ -168,7 +168,7 @@ int main (int argc, char** argv) {
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMet);
 
-	terminalObserver = new TerminalObserver("local search heuristic", numberOfRuns);
+	terminalObserver = new TerminalObserver();
 	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
 	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
 	terminalObserver->observeVariable("local search penalty", avgLocalSearchPenalty);
@@ -181,7 +181,7 @@ int main (int argc, char** argv) {
 	avgInitialConstructionPenalty = 0;
 	avgLocalSearchPenalty = 0;
 	avgSearchDuration = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun();
+	for (auto o : observers) o->notifyBenchmarkBegun("local search heuristic", numberOfRuns);
 	for (unsigned i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
@@ -209,10 +209,7 @@ int main (int argc, char** argv) {
 		lowerBoundFactor = avgLocalSearchPenalty/avgLowerBound;
 		formatedAvgSearchDuration = format_chrono_duration(avgSearchDuration);
 
-		for (auto o : observers) {
-			o->notifyRunUpdate();
-			o->notifyRunEnded();
-		}
+		for (auto o : observers) o->notifyRunEnded();
 
 		delete graphBuilder;
 		delete graph;

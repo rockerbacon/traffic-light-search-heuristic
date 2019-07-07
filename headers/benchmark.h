@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <sstream>
 #include <list>
+#include <iostream>
+#include <fstream>
 
 namespace benchmark {
 	class Stopwatch {
@@ -48,9 +50,8 @@ namespace benchmark {
 	class Observer {
 		public:
 			virtual ~Observer (void);
-			virtual void notifyBenchmarkBegun (void) = 0;
+			virtual void notifyBenchmarkBegun (const std::string& benchmarkTitle, unsigned numberOfRuns) = 0;
 			virtual void notifyRunBegun (void) = 0;
-			virtual void notifyRunUpdate (void) = 0;
 			virtual void notifyRunEnded (void) = 0;
 			virtual void notifyBenchmarkEnded (void) = 0;
 	};
@@ -58,11 +59,10 @@ namespace benchmark {
 	class TerminalObserver : public Observer {
 		private:
 			Stopwatch stopwatch;
-			unsigned int numberOfRuns;
 			std::list<ObservableVariable*> variablesToObserve;
-			std::string benchmarkTitle;
+			unsigned numberOfRuns;
 		public:
-			TerminalObserver (const std::string& benchmarkTitle, unsigned int numberOfRuns);
+			TerminalObserver (void) = default;
 			~TerminalObserver (void);
 
 			template<typename T>
@@ -71,11 +71,32 @@ namespace benchmark {
 				this->variablesToObserve.push_back(observableVariable);
 			}
 
-			void notifyBenchmarkBegun (void);
+			void notifyBenchmarkBegun (const std::string& benchmarkTitle, unsigned numberOfRuns);
 			void notifyRunBegun (void);
-			void notifyRunUpdate (void);
 			void notifyRunEnded (void);
 			void notifyBenchmarkEnded (void);
+	};
+
+	class TextFileObserver : public Observer {
+		private:
+			std::ofstream outputFile;
+			std::list<ObservableVariable*> variablesToObserve;
+			unsigned numberOfRuns;
+		public:
+			TextFileObserver (const std::string& outputFilePath);
+			~TextFileObserver (void);
+
+			template<typename T>
+			void observeVariable (const std::string& variableLabel, const T& variable) {
+				ObservableVariableTemplate<T> *observableVariable = new ObservableVariableTemplate<T>(variableLabel, variable);
+				this->variablesToObserve.push_back(observableVariable);
+			}
+
+			void notifyBenchmarkBegun (const std::string &benchmarkTitle, unsigned numberOfRuns);
+			void notifyRunBegun (void);
+			void notifyRunEnded (void);
+			void notifyBenchmarkEnded (void);
+
 	};
 
 	template<typename Rep, typename Period=std::ratio<1>>

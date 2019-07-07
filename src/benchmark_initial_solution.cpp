@@ -125,7 +125,7 @@ int main (int argc, char** argv) {
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle);
 
-	terminalObserver = new TerminalObserver("initial solution construction", numberOfRuns);
+	terminalObserver = new TerminalObserver();
 	terminalObserver->observeVariable("Lower bound", avgLowerBound);
 	terminalObserver->observeVariable("Random construction variety", avgRandomVariety);
 	terminalObserver->observeVariable("Random construction penalty", avgRandomPenalty);
@@ -146,7 +146,7 @@ int main (int argc, char** argv) {
 	avgHeuristicVariety = 0;
 	avgHeuristicPenalty = 0;
 	avgHeuristicTime = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun();
+	for (auto o : observers) o->notifyBenchmarkBegun("initial solution construction", numberOfRuns);
 	for (i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
@@ -194,10 +194,7 @@ int main (int argc, char** argv) {
 		varietyFactor = avgHeuristicVariety/avgRandomVariety;
 		penaltyFactor = avgHeuristicPenalty/avgRandomPenalty;
 
-		for (auto o : observers) {
-			o->notifyRunUpdate();
-			o->notifyRunEnded();
-		}
+		for (auto o : observers) o->notifyRunEnded();
 
 		delete graph;
 		delete graphBuilder;

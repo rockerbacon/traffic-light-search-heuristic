@@ -8,7 +8,7 @@
 #define DEFAULT_MIN_VERTEX_DEGREE 4
 #define DEFAULT_CYCLE 24
 #define DEFAULT_GRAPH_MODEL GraphModel::ADJACENCY_LIST
-#define DEFAULT_ITERARIONS 330
+#define DEFAULT_STOP_CRITERIA stop_criteria::numberOfIterations(330)
 #define DEFAULT_POP_SIZE 14
 #define DEFAULT_MUT_PROB 0.003
 #define DEFAULT_COMBINATION_METHOD CombineMethod::CROSSOVER
@@ -30,7 +30,7 @@ enum CombineMethod
 	COMBINE_BY_BFS
 };
 
-void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, int &nIterations, int &populationSize, double &mutProb, CombineMethod &combinationMethod)
+void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, size_t &minVertexDegree, size_t &maxVertexDegree, unsigned &numberOfRuns, TimeUnit &cycle, GraphModel &graphModel, int &populationSize, double &mutProb, CombineMethod &combinationMethod, function<bool(const HeuristicMetrics&)> &stopCriteriaNotMet)
 {
 	numberOfVertices = DEFAULT_NUMBER_OF_VERTICES;
 	minVertexDegree = DEFAULT_MIN_VERTEX_DEGREE;
@@ -38,10 +38,10 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 	numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
 	cycle = DEFAULT_CYCLE;
 	graphModel = DEFAULT_GRAPH_MODEL;
-	nIterations = DEFAULT_ITERARIONS;
 	populationSize = DEFAULT_POP_SIZE;
 	mutProb = DEFAULT_MUT_PROB;
 	combinationMethod = DEFAULT_COMBINATION_METHOD;
+	stopCriteriaNotMet = DEFAULT_STOP_CRITERIA;
 
 	if (argc > 1) {
 		int i = 1;
@@ -120,7 +120,7 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 					cout << "--iterations argument requires a number greater than 0" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
 				}
-				nIterations = numberOfIterations;
+				stopCriteriaNotMet = stop_criteria::numberOfIterations(numberOfIterations);
 
 			} else if (strcmp(argv[i], "--cycle") == 0) {
 
@@ -157,7 +157,7 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 			else if (strcmp(argv[i], "--mutProb") == 0)
 			{
 				i++;
-				if (i >= argc) 
+				if (i >= argc)
 				{
 					cout << "--mutProb argument requires a number greater than 0" << endl;
 					exit(WRONG_ARGUMENTS_EXIT_CODE);
@@ -194,9 +194,11 @@ int main (int argc, char** argv) {
 	unsigned numberOfRuns;
 	TimeUnit cycle;
 	GraphModel graphModel;
-	int nIterations, populationSize;
+	int populationSize;
 	Solution (*combinationFunction)(const Graph&, const Solution*, const Solution*, int, double);
 	CombineMethod combinationMethod;
+	function<bool(const HeuristicMetrics&)> stopCriteriaNotMet;
+
 	TerminalObserver *terminalObserver;
 	list<Observer*> observers;
 	double avgGAPenalty, avgLowerBound, mutProb;
@@ -205,9 +207,9 @@ int main (int argc, char** argv) {
 	chrono::high_resolution_clock::duration avgGADuration;
 	string formatedAvgGADuration;
 
-	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, nIterations, populationSize, mutProb, combinationMethod);
+	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, populationSize, mutProb, combinationMethod, stopCriteriaNotMet);
 
-	terminalObserver = new TerminalObserver("genetic algorithm", numberOfRuns);
+	terminalObserver = new TerminalObserver();
 	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
 	terminalObserver->observeVariable("genetic algorithm penalty", avgGAPenalty);
 	terminalObserver->observeVariable("genetic algorithm/lower bound factor", lowerBoundFactor);
@@ -226,7 +228,7 @@ int main (int argc, char** argv) {
 	avgLowerBound = 0;
 
 	avgGADuration = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun();
+	for (auto o : observers) o->notifyBenchmarkBegun("genetic algorithm", numberOfRuns);
 
 	for (unsigned i = 0; i < numberOfRuns; i++) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
@@ -243,7 +245,7 @@ int main (int argc, char** argv) {
 		for (auto o : observers) o->notifyRunBegun();
 
 		beginGeneticAlgorithm = chrono::high_resolution_clock::now();
-		geneticAlgorithmSolution = geneticAlgorithm(*graph, populationSize, nIterations, mutProb, combinationFunction);
+		geneticAlgorithmSolution = geneticAlgorithm(*graph, populationSize, mutProb, stopCriteriaNotMet, combinationFunction);
 
 		avgGADuration = (avgGADuration*i + chrono::high_resolution_clock::now() - beginGeneticAlgorithm)/(i+1);
 		avgGAPenalty = (avgGAPenalty*i + graph->totalPenalty(geneticAlgorithmSolution))/(i+1);
@@ -252,10 +254,7 @@ int main (int argc, char** argv) {
 		lowerBoundFactor = avgGAPenalty/avgLowerBound;
 		formatedAvgGADuration = format_chrono_duration(avgGADuration);
 
-		for (auto o : observers) {
-			o->notifyRunUpdate();
-			o->notifyRunEnded();
-		}
+		for (auto o : observers) o->notifyRunEnded();
 
 		delete graphBuilder;
 		delete graph;
