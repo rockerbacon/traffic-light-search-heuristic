@@ -14,6 +14,7 @@ namespace traffic {
 	struct HeuristicMetrics {
 		unsigned numberOfIterations;
 		unsigned numberOfIterationsWithoutImprovement;
+		std::chrono::high_resolution_clock::time_point executionBegin;
 	};
 
 	namespace stop_criteria {
@@ -21,8 +22,11 @@ namespace traffic {
 		std::function<bool(const HeuristicMetrics&)> numberOfIterationsWithoutImprovement (unsigned numberOfIterationsToStop);
 		template<typename Rep, typename Period=std::ratio<1>>
 		std::function<bool(const HeuristicMetrics&)> executionTime(const std::chrono::duration<Rep, Period>& time) {
-			// TODO
-			return numberOfIterations(1);
+			std::chrono::high_resolution_clock::duration highResolutionTime = std::chrono::duration_cast<std::chrono::high_resolution_clock::duration>(time);
+
+			return [=](const HeuristicMetrics &metrics) -> bool {
+				return std::chrono::high_resolution_clock::now() - metrics.executionBegin < highResolutionTime;
+			};
 		}
 	};
 

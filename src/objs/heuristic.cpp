@@ -120,6 +120,7 @@ Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initi
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
+	metrics.executionBegin = chrono::high_resolution_clock::now();
 	while (stopCriteriaNotMet(metrics)) {
 		iterationHadNoImprovement = true;
 
@@ -211,18 +212,6 @@ void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>&
 	}
 }
 
-
-Solution combine (const Graph& graph, const Solution *a, const Solution *b) {
-	Solution r(graph.getNumberOfVertices());
-	for (Vertex i = 0; i < graph.getNumberOfVertices()/2; i++) {
-		r.setTiming(i, a->getTiming(i));
-	}
-	for (Vertex i = graph.getNumberOfVertices()/2; i < graph.getNumberOfVertices(); i++) {
-		r.setTiming(i, b->getTiming(i));
-	}
-	return r;
-}
-
 Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double)) {
 	vector<pair<Solution, TimeUnit>> population;
 	vector<const Solution*> referenceSet;
@@ -237,7 +226,7 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	TimeUnit infinite = numeric_limits<TimeUnit>::max();
 
 	int crossoverPRange = graph.getNumberOfVertices() * 0.1; //uma solução-pai poderá contribuir com no máximo 60% e no mínimo 40% (50 +/- 10)
-	double crossoverMutProb = 0.01; //1% de chances de mutação em cada timing da solução
+	double crossoverMutProb = 0.003;
 
 	if (livePopulationSize&1) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
@@ -245,6 +234,8 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 
 	population.reserve(totalPopulationSize);
 	referenceSet.reserve(livePopulationSize);
+
+	metrics.executionBegin = chrono::high_resolution_clock::now();
 
 	while (population.size() < livePopulationSize) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), stop_criteria::numberOfIterations(localSearchIterations));
@@ -271,7 +262,6 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 			solution1 = referenceSet[i*2];
 			solution2 = referenceSet[i*2+1];
 
-			//candidateSet[i].first = combine(graph, solution1, solution2);
 			candidateSet[i].first = (*combineMethodFunction)(graph, solution1, solution2, crossoverPRange, crossoverMutProb);
 			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, stop_criteria::numberOfIterations(localSearchIterations));
 			candidateSet[i].second = graph.totalPenalty(candidateSet[i].first);
@@ -357,15 +347,6 @@ Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Sol
 	return solution;
 }
 
-/*
-In our genetic algorithm, a chromosome represents a solution of traffic light setting on the traffic graph. The fitness of each chromosome is measured by the total penalty of vehicles on this traffic
-light setting. The crossover is done by randomly selecting two chromosomes A = a1a2 · · · aN and B = b1b2 · · · bN from the population. Then, via exchanging information, A and B produce a new offspring
-C = c1c2 · · · cN . We choose a value k, where k is the half length of chromosome plus a random value p. In our method, p falls within the range from −2 to 2. If index i ≤ k, gene ci = ai. Otherwise,
-gene ci = bi . The mutation is done by randomly changing genes on the offspring C, with the mutation probability.
-
-OBS.: 0.0 <= mutationProb <= 1.0
-	  range do p não está fixo em -2 a 2, mas em -pRange a pRange
-*/
 Solution traffic::crossover(const Graph& graph, const Solution *a, const Solution *b, int pRange, double mutationProb)
 {
 	if(mutationProb > 1.0)
@@ -438,6 +419,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, do
 	parents.reserve(replaceSize);
 	tournamentPicker.param(std::uniform_int_distribution<size_t>::param_type(0, populationSize - 1));
 
+	metrics.executionBegin = chrono::high_resolution_clock::now();
 	for(size_t i = 0; i < populationSize; i++)
 	{
 		aux = constructHeuristicSolution(graph);
