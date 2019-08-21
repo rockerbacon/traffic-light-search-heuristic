@@ -1,5 +1,5 @@
-#include "assert.h"
-#include "traffic_graph.h"
+#include "assertions/assert.h"
+#include "traffic_graph/traffic_graph.h"
 
 #define NUMBER_OF_VERTICES 8
 #define EDGE1 {7, 5}

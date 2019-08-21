@@ -4,22 +4,22 @@ Implementations of constructive heuristic, local search heuristic and population
 ## Running tests
 Assertions is being used as the framework for the tests. For further information check [Assertions' GitHub repo](https://github.com/rockerbacon/assertions).
 ```
-./test.sh all
+./test.sh
 ```
 
 ## Building the programs
-All .cpp files in the first depth of the folder _src_ will be built as executable programs inside _release_.
+All .cpp files in the folder _src/main_ will be built as executable programs inside _build_.
 
 ### All programs
 ```
-make
+./build.sh
 ```
 
 ### Individual programs
 ```
-make release/[program source name]
+build.sh [program source name]
 ```
-Where _[program source name]_ is the name of the .cpp file in the first depth of _src_, without its extension
+Where _[program source name]_ is the name of the .cpp file inside _src/main_, without its extension
 
 ## Available Programs
 ### Benchmark constructive heuristic

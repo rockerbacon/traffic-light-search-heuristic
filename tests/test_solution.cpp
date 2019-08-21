@@ -1,5 +1,5 @@
-#include "assert.h"
-#include "traffic_graph.h"
+#include "assertions/assert.h"
+#include "traffic_graph/traffic_graph.h"
 
 using namespace traffic;
 using namespace std;

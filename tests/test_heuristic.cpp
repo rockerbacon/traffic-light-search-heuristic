@@ -1,6 +1,6 @@
-#include "assert.h"
-#include "traffic_graph.h"
-#include "heuristic.h"
+#include "assertions/assert.h"
+#include "traffic_graph/traffic_graph.h"
+#include "heuristic/heuristic.h"
 
 using namespace traffic;
 using namespace std;

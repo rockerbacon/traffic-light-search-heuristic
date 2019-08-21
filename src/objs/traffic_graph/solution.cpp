@@ -1,4 +1,4 @@
-#include "traffic_graph.h"
+#include "traffic_graph/traffic_graph.h"
 
 using namespace traffic;
 using namespace std;

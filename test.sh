@@ -10,8 +10,9 @@ reset_color=`tput setaf $default_text_color`
 up_line=`tput cuu 1`
 clear_line=`tput el 1`
 
-TESTS_DIR=$(cat makefile | grep -e 'TESTS_DIR\s*=' | sed 's/TESTS_DIR[][:space:]]*=[][:space:]]*//')
-TEST_BUILD_DIR=$(cat makefile | grep -e 'TEST_BUILD_DIR\s*=' | sed 's/TEST_BUILD_DIR[[:space:]]*=[[:space:]]*//')
+SCRIPT_PATH=$(realpath $(dirname $0))
+TESTS_DIR="$SCRIPT_PATH/tests"
+TEST_BUILD_DIR="$SCRIPT_PATH/build"
 
 determine_current_test_full_name () {
 	ESCAPED_TESTS_DIR=$(echo $TESTS_DIR | sed 's/\//\\\//g; s/\./\\\./g')
@@ -28,74 +29,78 @@ determine_current_test_binary_file () {
 	TEST_BINARY_FILE="${TEST_BUILD_DIR}/${TEST_FULL_NAME}"
 }
 
-if [ $# -gt 0 ]; then
-	if [ "$1" != "all" ]; then
-		TESTS=$1
-		shift
-		until [ -z "$1" ]
-		do
-			TESTS="${TESTS}\n${1}"
-			shift
-		done
-	else
-		TESTS="${TESTS_DIR}/*.cpp"
-	fi
-
-	FAILED_TESTS=0
-	SUCCESSFUL_TESTS=0
-	IGNORED_TESTS=0
-
-	echo	# line feed
-	echo "-------------------INDIVIDUAL TESTS-------------------"
-	for CURRENT_TEST in $TESTS
+if [ "$#" -gt 0 ] && [ "$1" != "all" ]; then
+	TESTS=$1
+	shift
+	until [ -z "$1" ]
 	do
+		TESTS="${TESTS} ${1}"
+		shift
+	done
+else
+	TESTS="${TESTS_DIR}/*.cpp"
+fi
 
-		determine_current_test_full_name
-		echo "Testing ${TEST_NAME}..."
-		if [ -d "${TESTS_DIR}/${CURRENT_TEST}" ]; then
-			echo "Executing tests from specific folder not yet supported"
-		else
-			determine_current_test_source_file
-			determine_current_test_binary_file
-			if [ -f "$TEST_SOURCE_FILE" ]; then
-				make -s $TEST_BINARY_FILE
-				BUILD_STATUS=$?
-				if [ $BUILD_STATUS -eq 0 ]; then
-					TEST_OUTPUT=$($TEST_BINARY_FILE)
-					TEST_SUCCESSES=$(echo $TEST_OUTPUT | grep -o "' OK" | wc -l)
-					TEST_FAILURES=$(echo $TEST_OUTPUT | grep -o "' failed:" | wc -l)
-					SUCCESSFUL_TESTS=`expr $SUCCESSFUL_TESTS + $TEST_SUCCESSES`
-					FAILED_TESTS=`expr $FAILED_TESTS + $TEST_FAILURES`
-					echo "	${TEST_OUTPUT}" | tr '\n' '\032' | sed -e $(echo -e 's/\032/\\n\\t/g')
-				else
-					echo "	${red_color}build failed for ${TEST_SOURCE_FILE}${reset_color}"
-					FAILED_TESTS=`expr $FAILED_TESTS + 1`
-				fi
+if [ ! -d "$TEST_BUILD_DIR" ]; then
+	mkdir -p "$TEST_BUILD_DIR"
+	cd "$TEST_BUILD_DIR"
+	cmake "$SCRIPT_PATH" 
+fi
+
+FAILED_TESTS=0
+SUCCESSFUL_TESTS=0
+IGNORED_TESTS=0
+
+echo	# line feed
+echo "-------------------INDIVIDUAL TESTS-------------------"
+for CURRENT_TEST in $TESTS
+do
+
+	determine_current_test_full_name
+	echo "Testing ${TEST_NAME}..."
+	if [ -d "${TESTS_DIR}/${CURRENT_TEST}" ]; then
+		echo "Executing tests from specific folder not yet supported"
+	else
+		determine_current_test_source_file
+		determine_current_test_binary_file
+		if [ -f "$TEST_SOURCE_FILE" ]; then
+
+			$SCRIPT_PATH/build.sh $TEST_FULL_NAME
+
+			BUILD_STATUS=$?
+			if [ $BUILD_STATUS -eq 0 ]; then
+				TEST_OUTPUT=$($TEST_BINARY_FILE)
+				TEST_SUCCESSES=$(echo $TEST_OUTPUT | grep -o "' OK" | wc -l)
+				TEST_FAILURES=$(echo $TEST_OUTPUT | grep -o "' failed:" | wc -l)
+				SUCCESSFUL_TESTS=`expr $SUCCESSFUL_TESTS + $TEST_SUCCESSES`
+				FAILED_TESTS=`expr $FAILED_TESTS + $TEST_FAILURES`
+				echo "	${TEST_OUTPUT}" | tr '\n' '\032' | sed -e $(echo -e 's/\032/\\n\\t/g')
 			else
-				echo "${red_color}no source file ${TEST_SOURCE_FILE}${reset_color}"
+				echo "	${red_color}build failed for ${TEST_SOURCE_FILE}${reset_color}"
+				FAILED_TESTS=`expr $FAILED_TESTS + 1`
 			fi
-
+		else
+			echo "${red_color}no source file ${TEST_SOURCE_FILE}${reset_color}"
 		fi
 
-		echo	# line feed
-
-	done
-	echo "-------------------INDIVIDUAL TESTS-------------------"
+	fi
 
 	echo	# line feed
-	echo "-------------------TESTS SUMMARY-------------------"
-	if [ $SUCCESSFUL_TESTS -gt 0 ]; then
-		echo "${green_color}$SUCCESSFUL_TESTS passed${reset_color}"
-	else
-		echo "$SUCCESSFUL_TESTS passed${reset_color}"
-	fi
-	if [ $FAILED_TESTS -gt 0 ]; then
-		echo "${red_color}$FAILED_TESTS failed${reset_color}"
-	else
-		echo "$FAILED_TESTS failed${reset_color}"
-	fi
-	echo "-------------------TESTS SUMMARY-------------------"
 
+done
+echo "-------------------INDIVIDUAL TESTS-------------------"
+
+echo	# line feed
+echo "-------------------TESTS SUMMARY-------------------"
+if [ $SUCCESSFUL_TESTS -gt 0 ]; then
+	echo "${green_color}$SUCCESSFUL_TESTS passed${reset_color}"
 else
-	echo "Specify tests to be run"
+	echo "$SUCCESSFUL_TESTS passed${reset_color}"
 fi
+if [ $FAILED_TESTS -gt 0 ]; then
+	echo "${red_color}$FAILED_TESTS failed${reset_color}"
+else
+	echo "$FAILED_TESTS failed${reset_color}"
+fi
+echo "-------------------TESTS SUMMARY-------------------"
+

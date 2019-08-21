@@ -1,5 +1,4 @@
 *~
-/test_build/
-/objs/
-/release/
+*.swp
 /comparison_results.txt
+/build
