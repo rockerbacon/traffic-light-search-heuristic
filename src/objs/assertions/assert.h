@@ -5,37 +5,25 @@
 #include <iostream>
 #include <chrono>
 
-#define EXCEPTION_FOR_NEXT_TEST_CASE
-
 #define skip_test_case() throw assert::test_case_interruption()
 #define fail_test_case(reason) throw assert::assertion_failed(reason)
-
-/*
-#define EXPECT_EXCEPTION_ON_NEXT_TEST(exception_type) #define EXCEPTION_FOR_NEXT_TEST_CASE\
-	} catch (const exception_type& e) {\
-		assert::expected_excetion_raised(e);
-*/
 
 #define test_case(str) assert::test_case_title = str;\
 	assert::test_case_succeeded = true;\
 	assert::run_first_setup_if_needed();\
-	assert::observer.notify_test_case_begun();\
+	assert::signal_test_case_begun();\
 	try
 
 #define end_test_case catch (const assert::assertion_failed &e) {\
 		assert::test_case_succeeded = false;\
-		assert::observer.notify_test_case_failed(e, assert::test_case_title);\
+		assert::signal_test_case_failed(e, assert::test_case_title);\
 	} catch (const assert::test_case_interruption& e) {\
-	/* }\
-	 EXCEPTION_FOR_NEXT_TEST_CASE\ */\
 	} catch (const std::exception &e) {\
 		assert::test_case_succeeded = false;\
-		assert::observer.notify_test_case_failed(e, assert::test_case_title);\
+		assert::signal_test_case_failed(e, assert::test_case_title);\
 	}\
-	/*	#undef EXCEPTION_FOR_NEXT_TEST_CASE\
-		#define EXCEPTION_FOR_NEXT_TEST_CASE\ */\
 	if (assert::test_case_succeeded) {\
-		assert::observer.notify_test_case_succeeded(assert::test_case_title);\
+		assert::signal_test_case_succeeded(assert::test_case_title);\
 	}
 
 #define assert_true(condition) if (!(condition)) {\
@@ -82,6 +70,7 @@ namespace assert {
 	extern std::stringstream expected_value_str;
 	extern bool test_case_succeeded;
 	extern bool first_setup_done;
+	extern std::chrono::high_resolution_clock::time_point test_case_start;
 
 	void run_first_setup_if_needed(void);
 
@@ -102,22 +91,8 @@ namespace assert {
 
 	class test_case_interruption : public std::exception {};
 
-	class Observer {
-		public:
-			virtual void notify_test_case_failed(const std::exception& e, const std::string& test_case_title) const = 0;
-			virtual void notify_test_case_succeeded (const std::string& test_case_title) const = 0;
-			virtual void notify_test_case_begun (void) = 0;
-	};
-
-	class TerminalObserver : public Observer {
-		private:
-			std::chrono::time_point<std::chrono::high_resolution_clock> test_case_start;
-		public:
-			virtual void notify_test_case_failed(const std::exception& e, const std::string& test_case_title) const;
-			virtual void notify_test_case_succeeded (const std::string& test_case_title) const;
-			virtual void notify_test_case_begun (void);
-	};
-
-	extern Observer& observer;
+	void signal_test_case_begun(void);
+	void signal_test_case_failed(const std::exception &e, const std::string &test_case_title);
+	void signal_test_case_succeeded(const std::string &test_case_title);
 
 };

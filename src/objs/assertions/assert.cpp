@@ -12,8 +12,7 @@ std::string assert::test_case_title;
 std::stringstream assert::actual_value_str;
 std::stringstream assert::expected_value_str;
 
-assert::TerminalObserver concreteObserver;
-assert::Observer& assert::observer = concreteObserver;
+std::chrono::high_resolution_clock::time_point assert::test_case_start;
 
 bool assert::test_case_succeeded;
 bool assert::first_setup_done = false;
@@ -24,7 +23,7 @@ using namespace std;
 using namespace assert;
 
 void when_segfault_is_signalled (int signal, siginfo_t *si, void *arg) {
-	assert::observer.notify_test_case_failed(segmentation_fault_signalled(), assert::test_case_title);
+	assert::signal_test_case_failed(segmentation_fault_signalled(), assert::test_case_title);
 	exit(0);
 }
 
@@ -111,16 +110,16 @@ string format_chrono_duration (chrono::duration<Rep, Period> duration) {
 	return str_builder.str();
 }
 
-void TerminalObserver::notify_test_case_failed (const exception& e, const string& test_case_title) const {
-	auto elapsed_time = chrono::high_resolution_clock::now() - this->test_case_start;
+void assert::signal_test_case_failed (const exception& e, const string& test_case_title) {
+	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
 	cout << ERROR_TEXT_COLOR << "Test case '" << test_case_title << "' failed: " << e.what() << DEFAULT_TEXT_COLOR << " (" << format_chrono_duration(elapsed_time) << ")" << endl;
 }
 
-void TerminalObserver::notify_test_case_succeeded (const string& test_case_title) const {
-	auto elapsed_time = chrono::high_resolution_clock::now() - this->test_case_start;
+void assert::signal_test_case_succeeded (const string& test_case_title) {
+	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
 	cout << SUCCESS_TEXT_COLOR << "Test case '" << test_case_title << "' OK" << DEFAULT_TEXT_COLOR << " (" << format_chrono_duration(elapsed_time) << ")" << endl;
 }
 
-void TerminalObserver::notify_test_case_begun (void) {
-	this->test_case_start = chrono::high_resolution_clock::now();
+void assert::signal_test_case_begun (void) {
+	assert::test_case_start = chrono::high_resolution_clock::now();
 }
