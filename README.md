@@ -1,25 +1,8 @@
 # Search Heuristic for the Simplified Traffic Light Problem
 Implementations of constructive heuristic, local search heuristic and populational heuristic for the NP-Complete Simplified Traffic Light Problem as described in [this publication](https://www.researchgate.net/publication/244404904_The_Model_and_Properties_of_the_Traffic_Light_Problem)
 
-## Running tests
-Assertions is being used as the framework for the tests. For further information check [Assertions' GitHub repo](https://github.com/rockerbacon/assertions).
-```
-./test.sh
-```
-
-## Building the programs
-All .cpp files in the folder _src/main_ will be built as executable programs inside _build_.
-
-### All programs
-```
-./build.sh
-```
-
-### Individual programs
-```
-build.sh [program source name]
-```
-Where _[program source name]_ is the name of the .cpp file inside _src/main_, without its extension
+## Running tests and building
+Assertions is being used as the framework for the tests and benchmarks. For information on how to run builds and tests check [Assertions' GitHub repo](https://github.com/rockerbacon/assertions).
 
 ## Available Programs
 ### Benchmark constructive heuristic
