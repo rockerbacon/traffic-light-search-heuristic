@@ -5,11 +5,13 @@ enable_testing()
 
 set(tests_src_dir "tests")
 set(objs_src_dir "src/objs")
+set(programs_src_dir "src/main")
 
 # set(warnings "-Wall -Wextra -Werror")
 set(cpp_version "c++14")
 
 set(CMAKE_CXX_FLAGS "${warnings} -std=${cpp_version}")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(${objs_src_dir})
 file(GLOB_RECURSE objs_src_files "${objs_src_dir}/*.cpp")
@@ -24,6 +26,6 @@ endforeach()
 
 file(GLOB programs_src_files "${programs_src_dir}/*.cpp")
 foreach(program_src_file ${programs_src_files})
-	string(REGEX REPLACE "(${programs_src_dir}/)|(.cpp)" "" program_binary ${program_src_file})
+	string(REGEX REPLACE "(^(.*/)*${programs_src_dir}/)|(.cpp)" "" program_binary ${program_src_file})
 	add_executable(${program_binary} ${program_src_file} ${objs_src_files})
 endforeach()

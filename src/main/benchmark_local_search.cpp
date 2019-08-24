@@ -1,5 +1,5 @@
-#include "heuristic.h"
-#include "benchmark.h"
+#include "heuristic/heuristic.h"
+#include "assertions/benchmark.h"
 #include <cstring>
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
@@ -158,31 +158,23 @@ int main (int argc, char** argv) {
 	TimeUnit cycle;
 	GraphModel graphModel;
 	function<bool(const HeuristicMetrics&)> stopCriteriaNotMet;
-	TerminalObserver *terminalObserver;
-	list<Observer*> observers;
-	double avgInitialConstructionPenalty, avgLocalSearchPenalty, avgLowerBound;
+	double initialConstructionPenalty, localSearchPenalty, lowerBound;
 	double penaltyFactor, lowerBoundFactor;
 	chrono::high_resolution_clock::time_point beginSearch;
-	chrono::high_resolution_clock::duration avgSearchDuration;
-	string formatedAvgSearchDuration;
+	chrono::high_resolution_clock::duration searchDuration;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMet);
 
-	terminalObserver = new TerminalObserver();
-	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
-	terminalObserver->observeVariable("initial solution penalty", avgInitialConstructionPenalty);
-	terminalObserver->observeVariable("local search penalty", avgLocalSearchPenalty);
-	terminalObserver->observeVariable("search/initial penalty factor", penaltyFactor);
-	terminalObserver->observeVariable("search/lower bound factor", lowerBoundFactor);
-	terminalObserver->observeVariable("search duration", formatedAvgSearchDuration);
-	observers.push_back(terminalObserver);
+	register_observer(new TerminalObserver());
 
-	avgLowerBound = 0;
-	avgInitialConstructionPenalty = 0;
-	avgLocalSearchPenalty = 0;
-	avgSearchDuration = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun("local search heuristic", numberOfRuns);
-	for (unsigned i = 0; i < numberOfRuns; i++) {
+	observe_variable("graph lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
+	observe_variable("initial solution penalty", initialConstructionPenalty, observation_mode::AVERAGE_VALUE);
+	observe_variable("local search penalty", localSearchPenalty, observation_mode::AVERAGE_VALUE);
+	observe_variable("search/initial penalty factor", penaltyFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("search/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("search duration", searchDuration, observation_mode::AVERAGE_VALUE);
+
+	benchmark("local search heuristic", numberOfRuns) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
 		switch (graphModel) {
@@ -194,30 +186,23 @@ int main (int argc, char** argv) {
 				break;
 		}
 
-		for (auto o : observers) o->notifyRunBegun();
-
 		beginSearch = chrono::high_resolution_clock::now();
 		constructedSolution = constructHeuristicSolution(*graph);
 		searchedSolution = localSearchHeuristic(*graph, constructedSolution, stopCriteriaNotMet);
 
-		avgSearchDuration = (avgSearchDuration*i + chrono::high_resolution_clock::now() - beginSearch)/(i+1);
-		avgInitialConstructionPenalty = (avgInitialConstructionPenalty*i + graph->totalPenalty(constructedSolution))/(i+1);
-		avgLocalSearchPenalty = (avgLocalSearchPenalty*i + graph->totalPenalty(searchedSolution))/(i+1);
-		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
+		searchDuration = chrono::high_resolution_clock::now() - beginSearch;
+		initialConstructionPenalty = graph->totalPenalty(constructedSolution);
+		localSearchPenalty = graph->totalPenalty(searchedSolution);
+		lowerBound = graph->lowerBound();
 
-		penaltyFactor = avgLocalSearchPenalty/avgInitialConstructionPenalty;
-		lowerBoundFactor = avgLocalSearchPenalty/avgLowerBound;
-		formatedAvgSearchDuration = format_chrono_duration(avgSearchDuration);
-
-		for (auto o : observers) o->notifyRunEnded();
+		penaltyFactor = localSearchPenalty/initialConstructionPenalty;
+		lowerBoundFactor = localSearchPenalty/lowerBound;
 
 		delete graphBuilder;
 		delete graph;
-	}
+	} end_benchmark;
 
-	for (auto o : observers) o->notifyBenchmarkEnded();
-
-	delete terminalObserver;
+	delete_observers();
 
 	return 0;
 }

@@ -1,5 +1,5 @@
-#include "heuristic.h"
-#include "benchmark.h"
+#include "heuristic/heuristic.h"
+#include "assertions/benchmark.h"
 #include <cstring>
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
@@ -189,7 +189,7 @@ int main (int argc, char** argv) {
 
 	GraphBuilder *graphBuilder = nullptr;
 	Graph *graph = nullptr;
-	Solution geneticAlgorithmSolution;
+	Solution solution;
 	size_t numberOfVertices, maxVertexDegree, minVertexDegree;
 	unsigned numberOfRuns;
 	TimeUnit cycle;
@@ -199,22 +199,19 @@ int main (int argc, char** argv) {
 	CombineMethod combinationMethod;
 	function<bool(const HeuristicMetrics&)> stopCriteriaNotMet;
 
-	TerminalObserver *terminalObserver;
-	list<Observer*> observers;
-	double avgGAPenalty, avgLowerBound, mutProb;
+	double penalty, lowerBound, mutProb;
 	double penaltyFactor, lowerBoundFactor;
-	chrono::high_resolution_clock::time_point beginGeneticAlgorithm;
-	chrono::high_resolution_clock::duration avgGADuration;
-	string formatedAvgGADuration;
+	chrono::high_resolution_clock::time_point begin;
+	chrono::high_resolution_clock::duration duration;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, populationSize, mutProb, combinationMethod, stopCriteriaNotMet);
 
-	terminalObserver = new TerminalObserver();
-	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
-	terminalObserver->observeVariable("genetic algorithm penalty", avgGAPenalty);
-	terminalObserver->observeVariable("genetic algorithm/lower bound factor", lowerBoundFactor);
-	terminalObserver->observeVariable("genetic algorithm duration", formatedAvgGADuration);
-	observers.push_back(terminalObserver);
+	register_observer(new TerminalObserver());
+
+	observe_variable("graph lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
+	observe_variable("genetic algorithm penalty", penalty, observation_mode::AVERAGE_VALUE);
+	observe_variable("genetic algorithm/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("genetic algorithm duration", duration, observation_mode::AVERAGE_VALUE);
 
 	switch(combinationMethod) {
 		case CombineMethod::CROSSOVER:
@@ -225,12 +222,7 @@ int main (int argc, char** argv) {
 			break;
 	}
 
-	avgLowerBound = 0;
-
-	avgGADuration = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun("genetic algorithm", numberOfRuns);
-
-	for (unsigned i = 0; i < numberOfRuns; i++) {
+	benchmark("genetic algorithm", numberOfRuns) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
 		switch (graphModel) {
@@ -242,27 +234,22 @@ int main (int argc, char** argv) {
 				break;
 		}
 
-		for (auto o : observers) o->notifyRunBegun();
+		begin = chrono::high_resolution_clock::now();
+		solution = geneticAlgorithm(*graph, populationSize, mutProb, stopCriteriaNotMet, combinationFunction);
 
-		beginGeneticAlgorithm = chrono::high_resolution_clock::now();
-		geneticAlgorithmSolution = geneticAlgorithm(*graph, populationSize, mutProb, stopCriteriaNotMet, combinationFunction);
+		duration = chrono::high_resolution_clock::now() - begin;
+		penalty = graph->totalPenalty(solution);
+		lowerBound = graph->lowerBound();
 
-		avgGADuration = (avgGADuration*i + chrono::high_resolution_clock::now() - beginGeneticAlgorithm)/(i+1);
-		avgGAPenalty = (avgGAPenalty*i + graph->totalPenalty(geneticAlgorithmSolution))/(i+1);
-		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
-
-		lowerBoundFactor = avgGAPenalty/avgLowerBound;
-		formatedAvgGADuration = format_chrono_duration(avgGADuration);
-
-		for (auto o : observers) o->notifyRunEnded();
+		lowerBoundFactor = penalty/lowerBound;
 
 		delete graphBuilder;
 		delete graph;
-	}
+	} end_benchmark;
 
 	for (auto o : observers) o->notifyBenchmarkEnded();
 
-	delete terminalObserver;
+	delete_observers();
 
 	return 0;
 }

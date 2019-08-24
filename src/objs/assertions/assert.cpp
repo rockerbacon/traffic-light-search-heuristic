@@ -1,8 +1,9 @@
-#include "assert.h"
+#include "assertions/assert.h"
 #include <iostream>
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include "assertions/stopwatch.h"
 
 #define ERROR_TEXT_COLOR "\033[91m"
 #define SUCCESS_TEXT_COLOR "\033[92m"
@@ -21,6 +22,7 @@ struct sigaction signal_action;
 
 using namespace std;
 using namespace assert;
+using namespace benchmark;
 
 void when_segfault_is_signalled (int signal, siginfo_t *si, void *arg) {
 	assert::signal_test_case_failed(segmentation_fault_signalled(), assert::test_case_title);
@@ -59,65 +61,14 @@ const char* segmentation_fault_signalled::what (void) const noexcept {
 	return "segmentation fault, testing cannot continue";
 }
 
-template<typename Rep, typename Period=std::ratio<1>>
-string format_chrono_duration (chrono::duration<Rep, Period> duration) {
-	ostringstream str_builder;
-	auto hours = chrono::duration_cast<chrono::hours>(duration);
-	duration -= chrono::duration_cast<decltype(duration)>(hours);
-	auto minutes = chrono::duration_cast<chrono::minutes>(duration);
-	duration -= chrono::duration_cast<decltype(duration)>(minutes);
-	auto seconds = chrono::duration_cast<chrono::seconds>(duration);
-	duration -= chrono::duration_cast<decltype(duration)>(seconds);
-	auto milliseconds = chrono::duration_cast<chrono::milliseconds>(duration);
-	duration -= chrono::duration_cast<decltype(duration)>(milliseconds);
-	auto microseconds = chrono::duration_cast<chrono::microseconds>(duration);
-
-	auto hours_count = hours.count();
-	auto minutes_count = minutes.count();
-	auto seconds_count = seconds.count();
-	auto milliseconds_count = milliseconds.count();
-	auto microseconds_count = microseconds.count();
-	if (hours_count > 0) {
-		str_builder << hours_count << 'h';
-	}
-	if (minutes_count > 0) {
-		if (str_builder.tellp() > 0) {
-			str_builder << ' ';
-		}
-		str_builder << minutes_count << 'm';
-	}
-	if (seconds_count > 0) {
-		if (str_builder.tellp() > 0) {
-			str_builder << ' ';
-		}
-		str_builder << seconds_count << 's';
-	}
-	if (milliseconds_count > 0) {
-		if (str_builder.tellp() > 0) {
-			str_builder << ' ';
-		}
-		str_builder << milliseconds_count << "ms";
-	}
-	if (microseconds_count > 0) {
-		if (str_builder.tellp() > 0) {
-			str_builder << ' ';
-		}
-		str_builder << microseconds_count << "us";
-	}
-	if (str_builder.tellp() == 0) {
-		str_builder << "0us";
-	}
-	return str_builder.str();
-}
-
 void assert::signal_test_case_failed (const exception& e, const string& test_case_title) {
 	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
-	cout << ERROR_TEXT_COLOR << "Test case '" << test_case_title << "' failed: " << e.what() << DEFAULT_TEXT_COLOR << " (" << format_chrono_duration(elapsed_time) << ")" << endl;
+	cout << ERROR_TEXT_COLOR << "Test case '" << test_case_title << "' failed: " << e.what() << DEFAULT_TEXT_COLOR << " (" << elapsed_time << ")" << endl;
 }
 
 void assert::signal_test_case_succeeded (const string& test_case_title) {
 	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
-	cout << SUCCESS_TEXT_COLOR << "Test case '" << test_case_title << "' OK" << DEFAULT_TEXT_COLOR << " (" << format_chrono_duration(elapsed_time) << ")" << endl;
+	cout << SUCCESS_TEXT_COLOR << "Test case '" << test_case_title << "' OK" << DEFAULT_TEXT_COLOR << " (" << elapsed_time << ")" << endl;
 }
 
 void assert::signal_test_case_begun (void) {

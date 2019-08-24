@@ -2,8 +2,8 @@
 #include <string>
 #include <cstring>
 
-#include "heuristic.h"
-#include "benchmark.h"
+#include "heuristic/heuristic.h"
+#include "assertions/benchmark.h"
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
 #define DEFAULT_NUMBER_OF_RUNS 100
@@ -100,108 +100,92 @@ void setupExecutionParameters (int argc, char** argv, size_t &numberOfVertices, 
 	}
 }
 
+double iterativeVariety (const Graph &graph, const list<Solution>& previousSolutions, const Solution &newSolution) {
+	double variety;	
+	int j;
+	list<Solution>::const_iterator it;
+
+	variety = 0;
+	for (j = 0, it = previousSolutions.begin(); it != previousSolutions.end(); it++, j++) {
+		variety = (variety*j + distance(graph, *it, newSolution))/(j+1);
+	}
+
+	return variety;
+}
+
 int main (int argc, char** argv) {
 
 	GraphBuilder *graphBuilder;
 	Graph *graph;
-	list<Observer*> observers;
-	TerminalObserver *terminalObserver;
 	size_t numberOfVertices, minVertexDegree, maxVertexDegree;
 	unsigned numberOfRuns;
-	TimeUnit variety;
-	double avgRandomVariety, avgHeuristicVariety;
-	double avgRandomPenalty, avgHeuristicPenalty;
-	double avgLowerBound;
+	double randomVariety, heuristicVariety;
+	double randomPenalty, heuristicPenalty;
+	double lowerBound;
 	TimeUnit cycle;
 	list<Solution> randomSolutions, heuristicSolutions;
 	double varietyFactor, penaltyFactor;
-	decltype(randomSolutions)::iterator it;
-	chrono::nanoseconds avgRandomTime, avgHeuristicTime;
+	chrono::high_resolution_clock::duration randomTime, heuristicTime;
 	chrono::high_resolution_clock::time_point beginTime;
-	string formatedAvgRandomTime, formatedAvgHeuristicTime;
 	double lowerBoundRandomFactor, lowerBoundHeuristicFactor;
 	Solution solution;
 	unsigned i, j;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle);
 
-	terminalObserver = new TerminalObserver();
-	terminalObserver->observeVariable("Lower bound", avgLowerBound);
-	terminalObserver->observeVariable("Random construction variety", avgRandomVariety);
-	terminalObserver->observeVariable("Random construction penalty", avgRandomPenalty);
-	terminalObserver->observeVariable("Random construction time", formatedAvgRandomTime);
-	terminalObserver->observeVariable("Random/Lower bound factor", lowerBoundRandomFactor);
-	terminalObserver->observeVariable("Heuristic construction variety", avgHeuristicVariety);
-	terminalObserver->observeVariable("Heuristic construction penalty", avgHeuristicPenalty);
-	terminalObserver->observeVariable("Heuristic construction time", formatedAvgHeuristicTime);
-	terminalObserver->observeVariable("Heuristic/Lower bound factor", lowerBoundHeuristicFactor);
-	terminalObserver->observeVariable("Heuristic/Random variety factor", varietyFactor);
-	terminalObserver->observeVariable("Heuristic/Random penaltyFactor", penaltyFactor);
-	observers.push_back(terminalObserver);
+	register_observer(new TerminalObserver());
 
-	avgLowerBound = 0;
-	avgRandomVariety = 0;
-	avgRandomPenalty = 0;
-	avgRandomTime = chrono::high_resolution_clock::duration(0);
-	avgHeuristicVariety = 0;
-	avgHeuristicPenalty = 0;
-	avgHeuristicTime = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun("initial solution construction", numberOfRuns);
-	for (i = 0; i < numberOfRuns; i++) {
+	observe_variable("Lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
+	observe_variable("Random construction variety", randomVariety, observation_mode::AVERAGE_VALUE);
+	observe_variable("Random construction penalty", randomPenalty, observation_mode::AVERAGE_VALUE);
+	observe_variable("Random construction time", randomTime, observation_mode::AVERAGE_VALUE);
+	observe_variable("Random/Lower bound factor", lowerBoundRandomFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("Heuristic construction variety", heuristicVariety, observation_mode::AVERAGE_VALUE);
+	observe_variable("Heuristic construction penalty", heuristicPenalty, observation_mode::AVERAGE_VALUE);
+	observe_variable("Heuristic construction time", heuristicTime, observation_mode::AVERAGE_VALUE);
+	observe_variable("Heuristic/Lower bound factor", lowerBoundHeuristicFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("Heuristic/Random variety factor", varietyFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("Heuristic/Random penaltyFactor", penaltyFactor, observation_mode::AVERAGE_VALUE);
+
+	benchmark("initial solution construction", numberOfRuns) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
 		graph = graphBuilder->buildAsAdjacencyList();
 
-		for (auto o : observers) o->notifyRunBegun();
+		lowerBound = graph->lowerBound();
 
 		beginTime = chrono::high_resolution_clock::now();
 		solution = constructRandomSolution(*graph);
 
-		avgRandomTime = (avgRandomTime*i + chrono::high_resolution_clock::now() - beginTime)/(i+1);
-		avgRandomPenalty = (avgRandomPenalty*i +graph->totalPenalty(solution))/(i+1);
-		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
+		randomTime = chrono::high_resolution_clock::now() - beginTime;
+		randomPenalty = graph->totalPenalty(solution);
+		lowerBoundRandomFactor = randomPenalty/lowerBound;
+		randomVariety = iterativeVariety(*graph, randomSolutions, solution);
 
-		if (i > 0) {
-			variety = 0;
-			for (j = 0, it = randomSolutions.begin(); it != randomSolutions.end(); it++, j++) {
-				variety = (variety*j + distance(*graph, *it, solution))/(j+1);
-			}
-			avgRandomVariety = (avgRandomVariety*i + variety)/(i+1);
-		}
 		randomSolutions.push_back(solution);
-
-		formatedAvgRandomTime = format_chrono_duration(avgRandomTime);
-		lowerBoundRandomFactor = avgRandomPenalty/avgLowerBound;
 
 		beginTime = chrono::high_resolution_clock::now();
 		solution = constructHeuristicSolution(*graph);
 
-		avgHeuristicTime = (avgHeuristicTime*i + chrono::high_resolution_clock::now() - beginTime)/(i+1);
-		avgHeuristicPenalty = (avgHeuristicPenalty*i + graph->totalPenalty(solution))/(i+1);
+		heuristicTime = chrono::high_resolution_clock::now() - beginTime;
+		heuristicPenalty = graph->totalPenalty(solution);
+		lowerBoundHeuristicFactor = heuristicPenalty/lowerBound;
+		heuristicVariety = iterativeVariety(*graph, heuristicSolutions, solution);
 
-		if (i > 0) {
-			variety = 0;
-			for (j = 0, it = heuristicSolutions.begin(); it != heuristicSolutions.end(); it++, j++) {
-				variety = (variety*j + distance(*graph, *it, solution))/(j+1);
-			}
-			avgHeuristicVariety = (avgHeuristicVariety*i + variety)/(i+1);
-		}
 		heuristicSolutions.push_back(solution);
 
-		formatedAvgHeuristicTime = format_chrono_duration(avgHeuristicTime);
-		lowerBoundHeuristicFactor = avgHeuristicPenalty/avgLowerBound;
-
-		varietyFactor = avgHeuristicVariety/avgRandomVariety;
-		penaltyFactor = avgHeuristicPenalty/avgRandomPenalty;
-
-		for (auto o : observers) o->notifyRunEnded();
+		if (benchmark::current_run > 1) {
+			varietyFactor = heuristicVariety/randomVariety;
+		} else {
+			varietyFactor = 1;
+		}
+		penaltyFactor = heuristicPenalty/randomPenalty;
 
 		delete graph;
 		delete graphBuilder;
-	}
-	for (auto o : observers) o->notifyBenchmarkEnded();
+	} end_benchmark;
 
-	delete terminalObserver;
+	delete_observers();
 
 	return 0;
 }

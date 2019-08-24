@@ -1,5 +1,5 @@
-#include "heuristic.h"
-#include "benchmark.h"
+#include "heuristic/heuristic.h"
+#include "assertions/benchmark.h"
 #include <cstring>
 
 #define DEFAULT_NUMBER_OF_VERTICES 500
@@ -234,36 +234,28 @@ int main (int argc, char** argv) {
 
 	GraphBuilder *graphBuilder = nullptr;
 	Graph *graph = nullptr;
-	Solution populationalHeuristicSolution;
+	Solution solution;
 	size_t numberOfVertices, maxVertexDegree, minVertexDegree, elitePopulationSize, diversePopulationSize;
 	unsigned numberOfRuns;
 	TimeUnit cycle;
 	GraphModel graphModel;
 	function<bool(const HeuristicMetrics&)> stopCriteriaNotMetPH;
 	Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double);
-	TerminalObserver *terminalObserver;
-	list<Observer*> observers;
-	double avgInitialConstructionPenalty, avgLocalSearchPenalty, avgPHPenalty, avgLowerBound;
-	double penaltyFactor, lowerBoundFactor;
+	double penalty, lowerBound;
+	double lowerBoundFactor;
 	CombineMethod combineMethod;
-	chrono::high_resolution_clock::time_point beginPopulationalHeuristic;
-	chrono::high_resolution_clock::duration avgPHDuration;
-	string formatedAvgPHDuration;
+	chrono::high_resolution_clock::time_point begin;
+	chrono::high_resolution_clock::duration duration;
 	size_t localSearchIterations;
 
 	setupExecutionParameters(argc, argv, numberOfVertices, minVertexDegree, maxVertexDegree, numberOfRuns, cycle, graphModel, stopCriteriaNotMetPH, combineMethod, elitePopulationSize, diversePopulationSize, localSearchIterations);
 
-	terminalObserver = new TerminalObserver();
-	terminalObserver->observeVariable("graph lower bound", avgLowerBound);
-	terminalObserver->observeVariable("populational heuristics penalty", avgPHPenalty);
-	terminalObserver->observeVariable("populational heuristic/lower bound factor", lowerBoundFactor);
-	terminalObserver->observeVariable("populational heuristic duration", formatedAvgPHDuration);
-	observers.push_back(terminalObserver);
+	register_observer(new TerminalObserver());
 
-	avgLowerBound = 0;
-
-	avgPHDuration = chrono::high_resolution_clock::duration(0);
-	for (auto o : observers) o->notifyBenchmarkBegun("populational heuristic", numberOfRuns);
+	observe_variable("graph lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
+	observe_variable("populational heuristics penalty", penalty, observation_mode::AVERAGE_VALUE);
+	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE);
+	observe_variable("populational heuristic duration", duration, observation_mode::AVERAGE_VALUE);
 
 	switch(combineMethod)
 	{
@@ -275,7 +267,7 @@ int main (int argc, char** argv) {
 			break;
 	}
 
-	for (unsigned i = 0; i < numberOfRuns; i++) {
+	benchmark("scatter search heuristic", numberOfRuns) {
 		graphBuilder = new GraphBuilder(numberOfVertices, minVertexDegree, maxVertexDegree, 1, cycle-1);
 		graphBuilder->withCycle(cycle);
 		switch (graphModel) {
@@ -287,27 +279,20 @@ int main (int argc, char** argv) {
 				break;
 		}
 
-		for (auto o : observers) o->notifyRunBegun();
+		begin = chrono::high_resolution_clock::now();
+		solution = populationalHeuristic(*graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopCriteriaNotMetPH, combineMethodFunction);
 
-		beginPopulationalHeuristic = chrono::high_resolution_clock::now();
-		populationalHeuristicSolution = populationalHeuristic(*graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopCriteriaNotMetPH, combineMethodFunction);
+		duration = chrono::high_resolution_clock::now() - begin;
+		penalty = graph->totalPenalty(solution);
+		lowerBound = graph->lowerBound();
 
-		avgPHDuration = (avgPHDuration*i + chrono::high_resolution_clock::now() - beginPopulationalHeuristic)/(i+1);
-		avgPHPenalty = (avgPHPenalty*i + graph->totalPenalty(populationalHeuristicSolution))/(i+1);
-		avgLowerBound = (avgLowerBound*i + graph->lowerBound())/(i+1);
-
-		lowerBoundFactor = avgPHPenalty/avgLowerBound;
-		formatedAvgPHDuration = format_chrono_duration(avgPHDuration);
-
-		for (auto o : observers) o->notifyRunEnded();
+		lowerBoundFactor = penalty/lowerBound;
 
 		delete graphBuilder;
 		delete graph;
-	}
+	} end_benchmark;
 
-	for (auto o : observers) o->notifyBenchmarkEnded();
-
-	delete terminalObserver;
+	delete_observers();
 
 	return 0;
 }
