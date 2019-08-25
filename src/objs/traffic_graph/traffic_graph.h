@@ -104,6 +104,9 @@ namespace traffic {
 			AdjacencyListGraph* buildAsAdjacencyList(void) const;
 
 			void withCycle(TimeUnit cycle);
+
+			void output_to_file(std::ofstream &file_stream) const;
+			void read_from_file(std::ifstream &file_stream);
 	};
 
 };

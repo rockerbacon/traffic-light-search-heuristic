@@ -36,4 +36,26 @@ int main (int argc, char **argv) {
 	file_stream.open(*output_file_path);
 	builder->output_to_file(file_stream);
 	file_stream.close();
+
+	delete builder;
+
+	// debugging
+#ifdef DEBUG
+	GraphBuilder *debug_builder;
+	ifstream debug_stream;
+
+	debug_builder = new GraphBuilder();
+
+	debug_stream.open(*output_file_path);
+	debug_builder->read_from_file(debug_stream);
+	debug_stream.close();
+
+	file_stream.open(*output_file_path+"_debug");
+	debug_builder->output_to_file(file_stream);
+	file_stream.close();
+
+	delete debug_builder;
+#endif
+
+
 }

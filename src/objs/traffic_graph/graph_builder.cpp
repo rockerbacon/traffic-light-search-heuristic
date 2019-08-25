@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <fstream>
 
 using namespace traffic;
 using namespace std;
@@ -214,4 +215,35 @@ AdjacencyListGraph* GraphBuilder::buildAsAdjacencyList(void) const {
 
 void GraphBuilder::withCycle (TimeUnit cycle) {
 	this->cycle = cycle;
+}
+
+void GraphBuilder::output_to_file (ofstream &file_stream) const {
+	file_stream << this->cycle << ' ' << this->highestVertexIndex << '\n';
+	for (auto &it: this->adjacencyListMap) {
+		file_stream << it.first << ' ' << it.second->size();
+		for (auto &jt: *it.second) {
+			file_stream << ' ' << jt.first << ' ' << jt.second;
+		}
+		file_stream << '\n';
+	}
+}
+
+void GraphBuilder::read_from_file(std::ifstream &file_stream) {
+	TimeUnit cycle, weight;
+	Vertex numberOfVertices, numberOfNeighbours, vertex, neighbour;
+
+	file_stream >> cycle >> numberOfVertices;
+	this->withCycle(cycle);
+	for (Vertex i = 0; i < numberOfVertices; i++) {
+		file_stream >> vertex >> numberOfNeighbours;
+		for (Vertex j = 0; j < numberOfNeighbours; j++) {
+			file_stream >> neighbour >> weight;
+			this->addEdge({vertex, neighbour}, weight);
+		}	
+	}
+
+	if (file_stream.fail()) {
+		throw std::invalid_argument("Could not correctly parse file");
+	}
+
 }
