@@ -86,6 +86,7 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<Vertex> vertexPicker;
 	uniform_int_distribution<Weight> weightPicker(minWeight, maxWeight);
+	uniform_int_distribution<unsigned> degreePicker;
 
 	for (auto mapIterator = this->adjacencyListMap.begin(); mapIterator != this->adjacencyListMap.end(); mapIterator++) {
 		delete(mapIterator->second);
@@ -144,6 +145,25 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 				}
 			}
 
+		}
+
+		if (degree[i] < maxDegree) {
+			degreePicker = uniform_int_distribution<unsigned>(0, maxDegree-degree[i]);
+			unsigned increaseDegreeBy = degreePicker(randomEngine);
+
+			while (increaseDegreeBy > 0) {
+				randomConnectedVertex = vertexPicker(randomEngine);
+				weight = weightPicker(randomEngine);
+
+				if (degree[randomConnectedVertex] < maxDegree) {
+					if (this->addEdge({i, randomConnectedVertex}, weight)) {
+						degree[i]++;
+						degree[randomConnectedVertex]++;
+						increaseDegreeBy--;
+					}
+				}
+
+			}
 		}
 	}
 
