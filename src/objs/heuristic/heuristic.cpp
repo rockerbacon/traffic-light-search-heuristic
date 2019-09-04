@@ -5,9 +5,10 @@
 #include <queue>
 
 using namespace traffic;
+using namespace heuristic;
 using namespace std;
 
-Solution traffic::constructRandomSolution (const Graph& graph) {
+Solution heuristic::constructRandomSolution (const Graph& graph) {
 
 	random_device seeder;
 	mt19937 randomEngine(seeder());
@@ -22,7 +23,7 @@ Solution traffic::constructRandomSolution (const Graph& graph) {
 
 }
 
-Solution traffic::constructHeuristicSolution (const Graph& graph, unsigned char numberOfTuplesToTestPerIteration) {
+Solution heuristic::constructHeuristicSolution (const Graph& graph, unsigned char numberOfTuplesToTestPerIteration) {
 	vector<Vertex> unvisitedVertices(graph.getNumberOfVertices());
 	const unordered_map<Vertex, Weight>* neighborhood;
 	unordered_map<Vertex, Weight>::const_iterator neighborhoodIterator;
@@ -85,7 +86,7 @@ Solution traffic::constructHeuristicSolution (const Graph& graph, unsigned char 
 	return solution;
 }
 
-TimeUnit traffic::distance(const Graph& graph, const Solution& a, const Solution& b) {
+TimeUnit heuristic::distance(const Graph& graph, const Solution& a, const Solution& b) {
 	TimeUnit totalDistance, clockwiseVertexDistance, counterClockwiseVertexDistance;
 	totalDistance = 0;
 	for (Vertex v = 0; v < graph.getNumberOfVertices(); v++) {
@@ -105,13 +106,13 @@ struct Perturbation {
 	TimeUnit penalty;
 };
 
-Solution traffic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const std::function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet) {
+Solution heuristic::localSearchHeuristic(const Graph& graph, const Solution& initialSolution, const StopFunction &stopCriteriaNotMet) {
 	Solution solution(initialSolution);
 	TimeUnit currentTiming, currentPenalty;
 	TimeUnit perturbationTiming, perturbationPenalty;
 	Vertex vertex;
 	bool iterationHadNoImprovement;
-	HeuristicMetrics metrics;
+	Metrics metrics;
 
 	random_device seeder;
 	mt19937 randomEngine(seeder());
@@ -197,7 +198,7 @@ void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>&
 			smallestDistance = infinite;
 
 			for (auto referenceSolution : referenceSet) {
-				distance = traffic::distance(graph, diverseSet[j].first, *referenceSolution);
+				distance = heuristic::distance(graph, diverseSet[j].first, *referenceSolution);
 				if (distance < smallestDistance) {
 					smallestDistance = distance;
 				}
@@ -212,7 +213,7 @@ void fillWithMostDiverseCandidates (const Graph& graph, vector<const Solution*>&
 	}
 }
 
-Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combineMethodFunction)(const Graph&, const Solution*, const Solution*, int, double)) {
+Solution heuristic::scatterSearch(const Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod) {
 	vector<pair<Solution, TimeUnit>> population;
 	vector<const Solution*> referenceSet;
 	VectorSlice<pair<Solution, TimeUnit>> eliteSet, diverseSet, candidateSet;
@@ -220,10 +221,11 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 			totalPopulationSize = livePopulationSize + livePopulationSize/2;
 	const Solution *solution1, *solution2;
 	size_t i;
-	HeuristicMetrics metrics;
+	Metrics metrics;
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	TimeUnit infinite = numeric_limits<TimeUnit>::max();
+	StopFunction localSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 
 	int crossoverPRange = graph.getNumberOfVertices() * 0.1; //uma solução-pai poderá contribuir com no máximo 60% e no mínimo 40% (50 +/- 10)
 	double crossoverMutProb = 0.003;
@@ -238,10 +240,11 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
 	while (population.size() < livePopulationSize) {
-		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), stop_criteria::numberOfIterations(localSearchIterations));
+		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), localSearchStopFunction);
 		population.push_back({constructedSolution, graph.totalPenalty(constructedSolution)});
 		referenceSet.push_back(&population.back().first);
 	}
+
 	while (population.size() < totalPopulationSize) {
 		population.push_back({Solution(), infinite});
 	}
@@ -255,15 +258,15 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
-	while (stopCriteriaNotMet(metrics)) {
+	while (stopFunction(metrics)) {
 
 		for (i = 0; i < candidateSet.size(); i++) {
 
 			solution1 = referenceSet[i*2];
 			solution2 = referenceSet[i*2+1];
 
-			candidateSet[i].first = (*combineMethodFunction)(graph, solution1, solution2, crossoverPRange, crossoverMutProb);
-			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, stop_criteria::numberOfIterations(localSearchIterations));
+			candidateSet[i].first = combinationMethod(graph, solution1, solution2);
+			candidateSet[i].first = localSearchHeuristic(graph, candidateSet[i].first, localSearchStopFunction);
 			candidateSet[i].second = graph.totalPenalty(candidateSet[i].first);
 		}
 
@@ -283,111 +286,98 @@ Solution traffic::populationalHeuristic(const Graph& graph, size_t elitePopulati
 	return population[0].first;
 }
 
-function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterations(unsigned numberOfIterationsToStop) {
-	return [=](const HeuristicMetrics& metrics) -> bool {
+StopFunction stop_function_factory::numberOfIterations(unsigned numberOfIterationsToStop) {
+	return [=](const Metrics& metrics) -> bool {
 		return metrics.numberOfIterations < numberOfIterationsToStop;
 	};
 }
 
-function<bool(const HeuristicMetrics&)> stop_criteria::numberOfIterationsWithoutImprovement(unsigned numberOfIterationsToStop) {
-	return [=](const HeuristicMetrics& metrics) -> bool {
+StopFunction stop_function_factory::numberOfIterationsWithoutImprovement(unsigned numberOfIterationsToStop) {
+	return [=](const Metrics& metrics) -> bool {
 		return metrics.numberOfIterationsWithoutImprovement < numberOfIterationsToStop;
 	};
 }
 
-Solution traffic::combineByBfs_aux(const Graph& graph, const Solution *s1, const Solution *s2, int pRange, double mutationProb)
-{
-	return combineByBfs(graph, s1, s2);
+CombinationMethod combination_method_factory::breadthFirstSearch (void) {
+	return [](const Graph& graph, const Solution *s1, const Solution *s2) -> Solution {
+		random_device seeder;
+		mt19937 randomEngine(seeder());
+		uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
+		Vertex v = vertexPicker(randomEngine);
+		unsigned i = 0, middle;
+		size_t nVertices = graph.getNumberOfVertices();
+		bool *visited = new bool[nVertices]{false};
+		Solution solution(nVertices);
+		queue<Vertex> q;
+		q.push(v);
+
+		middle = nVertices % 2 ? (nVertices / 2) + 1 : nVertices / 2;
+
+		visited[v] = true;
+
+		while(!q.empty())
+		{
+			v = q.front();
+			q.pop();
+
+			for(auto u : graph.neighborsOf(v))
+			{
+				if(!visited[u.first])
+				{
+					visited[u.first] = true;
+					q.push(u.first);
+				}
+			}
+
+			if(i < middle)
+			{
+				solution.setTiming(v, s1->getTiming(v));
+			}
+			else
+			{
+				solution.setTiming(v, s2->getTiming(v));
+			}
+
+			i++;
+		}
+
+		delete [] visited;
+		return solution;
+	};
 }
 
-Solution traffic::combineByBfs(const Graph& graph, const Solution *s1, const Solution *s2)
-{
-	random_device seeder;
-	mt19937 randomEngine(seeder());
-	uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
-	Vertex v = vertexPicker(randomEngine);
-	unsigned i = 0, middle;
-	size_t nVertices = graph.getNumberOfVertices();
-	bool *visited = new bool[nVertices]{false};
-	Solution solution(nVertices);
-	queue<Vertex> q;
-	q.push(v);
+CombinationMethod combination_method_factory::crossover (double mutationProbability) {
+	return [=](const Graph& graph, const Solution *a, const Solution *b) -> Solution {
 
-	middle = nVertices % 2 ? (nVertices / 2) + 1 : nVertices / 2;
+		Vertex nVertices = graph.getNumberOfVertices();
+		Vertex pRange = nVertices / 2;
 
-	visited[v] = true;
+		random_device seeder;
+		mt19937 randomEngine(seeder());
+		uniform_int_distribution<int> pPicker(-pRange, pRange);
+		uniform_real_distribution<double> mutPicker(0.0, 1.0);
+		uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
 
-	while(!q.empty())
-	{
-		v = q.front();
-		q.pop();
+		Solution solution(nVertices);
 
-		for(auto u : graph.neighborsOf(v))
+		int p = pPicker(randomEngine);
+		int k = nVertices / 2 + p;
+
+		for(Vertex v = 0; v < nVertices; v++)
 		{
-			if(!visited[u.first])
+			solution.setTiming(v, v <= k ? a->getTiming(v) : b->getTiming(v));
+
+			if(mutPicker(randomEngine) <= mutationProbability)
 			{
-				visited[u.first] = true;
-				q.push(u.first);
+				solution.setTiming(v, timingPicker(randomEngine));
 			}
 		}
 
-		if(i < middle)
-		{
-			solution.setTiming(v, s1->getTiming(v));
-		}
-		else
-		{
-			solution.setTiming(v, s2->getTiming(v));
-		}
-
-		i++;
-	}
-
-	delete [] visited;
-	return solution;
+		return solution;
+	};
 }
 
-Solution traffic::crossover(const Graph& graph, const Solution *a, const Solution *b, int pRange, double mutationProb)
-{
-	if(mutationProb > 1.0)
-	{
-		mutationProb = 1.0;
-	}
-
-	size_t nVertices = graph.getNumberOfVertices();
-	pRange = abs(pRange);
-
-	if(pRange > nVertices / 2)
-	{
-		pRange = nVertices / 2;
-	}
-
-	random_device seeder;
-	mt19937 randomEngine(seeder());
-	uniform_int_distribution<int> pPicker(-pRange, pRange);
-	uniform_real_distribution<double> mutPicker(0.0, 1.0);
-	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
-
-	Solution solution(nVertices);
-
-	int p = pPicker(randomEngine);
-	int k = nVertices / 2 + p;
-
-	for(Vertex v = 0; v < nVertices; v++)
-	{
-		solution.setTiming(v, v <= k ? a->getTiming(v) : b->getTiming(v));
-
-		if(mutPicker(randomEngine) <= mutationProb)
-		{
-			solution.setTiming(v, timingPicker(randomEngine));
-		}
-	}
-
-	return solution;
-}
-
-Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, double mutationProb, const function<bool(const HeuristicMetrics&)>& stopCriteriaNotMet, Solution (*combinationFunction)(const Graph&, const Solution*, const Solution*, int, double))
-{
+Solution heuristic::geneticAlgorithm(const Graph& graph, size_t populationSize, double mutationProb, const StopFunction &stopFunction, const CombinationMethod &combinationMethod) {
 	if(populationSize < 2)
 	{
 		throw invalid_argument("populationSize must be >= 2");
@@ -402,7 +392,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, do
 	pair<Solution, TimeUnit> tournamentWinner, tournamentIndividual;
 	unsigned replaceSize = populationSize * 1.0, tournamentSize = 0.4 * populationSize;
 
-	HeuristicMetrics metrics;
+	Metrics metrics;
 	bool iterationHadNoImprovement;
 
 	if(tournamentSize < 2)
@@ -434,7 +424,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, do
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
-	while(stopCriteriaNotMet(metrics))
+	while(stopFunction(metrics))
 	{
 		iterationHadNoImprovement = true;
 		for(int selectedParents = 0; selectedParents < replaceSize; selectedParents++)
@@ -462,7 +452,7 @@ Solution traffic::geneticAlgorithm(const Graph& graph, size_t populationSize, do
 
 		for(size_t j = 0; j < replaceSize; j++)
 		{
-			aux = (*combinationFunction)(graph, &parents[j].first, &parents[(j+1) % replaceSize].first, 0.4 * double(graph.getNumberOfVertices()), mutationProb);
+			aux = combinationMethod(graph, &parents[j].first, &parents[(j+1) % replaceSize].first);
 			population.push_back(make_pair(aux, graph.totalPenalty(aux)));
 		}
 

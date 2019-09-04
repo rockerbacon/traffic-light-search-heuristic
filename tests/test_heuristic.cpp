@@ -4,6 +4,7 @@
 
 using namespace traffic;
 using namespace std;
+using namespace heuristic;
 
 TimeUnit testCycle = 20;
 size_t numberOfTestVertices = 5;
@@ -158,7 +159,7 @@ int main (void) {
 				initialSolution.setTiming(v, testCycle-1);
 			}
 		}
-		solution = localSearchHeuristic(mockGraph, initialSolution, stop_criteria::numberOfIterations(5));
+		solution = localSearchHeuristic(mockGraph, initialSolution, stop_function_factory::numberOfIterations(25));
 	} end_test_case;
 
 	test_case("searched solution is different from initial solution") {
@@ -184,22 +185,22 @@ int main (void) {
 		}
 	} end_test_case;
 
-	test_case("populational solution throws error when total size of the population is not even") {
+	test_case("scatter search solution throws error when total size of the population is not even") {
 		try {
-			solution = populationalHeuristic(mockGraph, 3, 4, 1, stop_criteria::numberOfIterations(1), &combineByBfs_aux);
+			solution = scatterSearch(mockGraph, 3, 4, 1, stop_function_factory::numberOfIterations(1), combination_method_factory::breadthFirstSearch());
 		} catch(invalid_argument &e) {
 		}
 	} end_test_case;
 
-	test_case("populational heuristc raises no errors") {
+	test_case("scatter search raises no errors") {
 		size_t elitePopulationSize = 4;
 		size_t diversePopulationSize = 8;
 		size_t localSearchIterations = 10;
-		solution = populationalHeuristic(mockGraph, elitePopulationSize, diversePopulationSize, localSearchIterations, stop_criteria::numberOfIterations(3), &combineByBfs_aux);
+		solution = scatterSearch(mockGraph, elitePopulationSize, diversePopulationSize, localSearchIterations, stop_function_factory::numberOfIterations(3), combination_method_factory::breadthFirstSearch());
 	} end_test_case;
 
 
-	test_case("populational solution is different from random solution") {
+	test_case("scatter search solution is different from random solution") {
 		bool found = false;
 		initialSolution = constructRandomSolution(mockGraph);
 		for (Vertex v = 0; v < mockGraph.getNumberOfVertices() && !found; v++) {
@@ -210,12 +211,12 @@ int main (void) {
 		assert_true(found);
 	} end_test_case;
 
-	test_case("populational solution is better than solution with 0 timings") {
+	test_case("scatter search solution is better than solution with 0 timings") {
 		initialSolution = Solution(mockGraph.getNumberOfVertices());
 		assert_less_than(mockGraph.totalPenalty(solution), mockGraph.totalPenalty(initialSolution));
 	} end_test_case;
 
-	test_case("populational solution has all timings in the interval [0, cycle)") {
+	test_case("scatter search solution has all timings in the interval [0, cycle)") {
 		TimeUnit timing;
 		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++) {
 			timing = solution.getTiming(v);
@@ -224,8 +225,8 @@ int main (void) {
 		}
 	} end_test_case;
 
-	test_case("combineByBfs: two equal solutions yields the same solution")
-	{
+	test_case("combining two equal solutions using breadth first search returns the unaltered solution") {
+		CombinationMethod combineByBfs = combination_method_factory::breadthFirstSearch();
 		Solution s = combineByBfs(mockGraph, &solution, &solution);
 
 		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
@@ -233,95 +234,17 @@ int main (void) {
 			assert_equal(solution.getTiming(v), s.getTiming(v));
 		}
 
-	}end_test_case;
+	} end_test_case;
 
-	//if the number of vertices is odd, then the first solution in the arguments will contribute with 1 timing more than the second solution
-	test_case("combineByBfs: a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings")
-	{
-		size_t nVertices = mockGraph.getNumberOfVertices();
-		bool isOdd =  nVertices % 2;
-		unsigned expectedZeroes = nVertices / 2, expectedOnes = nVertices / 2;
-		unsigned zeroesCount = 0, onesCount = 0;
-
-		if(isOdd)
-		{
-			expectedZeroes += 1;
-		}
-
-		Solution zeroesSol(nVertices), onesSol(nVertices), s;
-
-		for(Vertex v = 0; v < nVertices; v++)
-		{
-			onesSol.setTiming(v, 1);
-		}
-
-		s = combineByBfs(mockGraph, &zeroesSol, &onesSol);
-
-		for(Vertex v = 0; v < nVertices; v++)
-		{
-			if(s.getTiming(v) == 0)
-			{
-				zeroesCount++;
-			}
-			else
-			if(s.getTiming(v) == 1)
-			{
-				onesCount++;
-			}
-		}
-
-		assert_equal(zeroesCount, expectedZeroes);
-		assert_equal(onesCount, expectedOnes);
-	}end_test_case;
-
-	test_case("crossovering two equal solutions yields the same solution (with mutationProb = 0)")
-	{
-		Solution s = crossover(mockGraph, &solution, &solution, 2, 0);
+	test_case("crossovering two equal solutions returns unaltered solution when mutation probability is 0") {
+		CombinationMethod crossover = combination_method_factory::crossover(0.0);
+		Solution s = crossover(mockGraph, &solution, &solution);
 
 		for (Vertex v = 0; v < mockGraph.getNumberOfVertices(); v++)
 		{
 			assert_equal(solution.getTiming(v), s.getTiming(v));
 		}
 
-	}end_test_case;
-
-	//if the number of vertices is odd and pRange = 0 and mutationProb = 0, then the first solution in the arguments will contribute with 1 timing more than the second solution
-	test_case("crossovering a 0s-solution and an 1s-solution produces a solution with half 0-timings and half 1-timings (with pRange = 0 and mutationProb = 0)")
-	{
-		size_t nVertices = mockGraph.getNumberOfVertices();
-		bool isOdd =  nVertices % 2;
-		unsigned expectedZeroes = nVertices / 2, expectedOnes = nVertices / 2;
-		unsigned zeroesCount = 0, onesCount = 0;
-
-		if(isOdd)
-		{
-			expectedZeroes += 1;
-		}
-
-		Solution zeroesSol(nVertices), onesSol(nVertices), s;
-
-		for(Vertex v = 0; v < nVertices; v++)
-		{
-			onesSol.setTiming(v, 1);
-		}
-
-		s = crossover(mockGraph, &zeroesSol, &onesSol, 0, 0);
-
-		for(Vertex v = 0; v < nVertices; v++)
-		{
-			if(s.getTiming(v) == 0)
-			{
-				zeroesCount++;
-			}
-			else
-			if(s.getTiming(v) == 1)
-			{
-				onesCount++;
-			}
-		}
-
-		assert_equal(zeroesCount, expectedZeroes);
-		assert_equal(onesCount, expectedOnes);
-	}end_test_case;
+	} end_test_case;
 
 }
