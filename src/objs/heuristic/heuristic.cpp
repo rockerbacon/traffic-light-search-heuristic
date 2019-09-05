@@ -377,7 +377,7 @@ CombinationMethod combination_method_factory::crossover (double mutationProbabil
 	};
 }
 
-Solution heuristic::geneticAlgorithm(const Graph& graph, size_t populationSize, double mutationProb, const StopFunction &stopFunction, const CombinationMethod &combinationMethod) {
+Solution heuristic::geneticAlgorithm(const Graph& graph, size_t populationSize, const StopFunction &stopFunction, const CombinationMethod &combinationMethod) {
 	if(populationSize < 2)
 	{
 		throw invalid_argument("populationSize must be >= 2");

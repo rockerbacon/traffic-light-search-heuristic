@@ -34,10 +34,12 @@ int main (int argc, char** argv) {
 	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
 	cli::FlagArgument useAdjacencyList("useAdjacencyList");
 
-	cli::OptionalArgument<unsigned> stopAfterNumberOfIterations("iterations", 0);
-	cli::OptionalArgument<unsigned> stopAfterIterationsWithoutImprovement("iterationsWithoutImprovement", 0);
-	cli::OptionalArgument<unsigned> stopAfterSeconds("seconds", 0);
-	cli::OptionalArgument<unsigned> stopAfterMinutes("minutes", 0);
+	cli::OptionalArgument<unsigned> numberOfIterationsToStop("iterations", 0);
+	cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop("iterationsWithoutImprovement", 0);
+	cli::OptionalArgument<unsigned> secondsToStop("seconds", 0);
+	cli::OptionalArgument<unsigned> minutesToStop("minutes", 0);
+
+	cli::capture_all_arguments_from(argc, argv);
 
 	fileInputStream.open(*inputFilePath);
 	graphBuilder.read_from_file(fileInputStream);
@@ -48,19 +50,18 @@ int main (int argc, char** argv) {
 		graph = graphBuilder.buildAsAdjacencyList();
 	}
 
-	if (stopAfterNumberOfIterations.is_present()) {
-		stopFunction = stop_function_factory::numberOfIterations(*stopAfterNumberOfIterations);
-	} else if (stopAfterIterationsWithoutImprovement.is_present()) {
-		stopFunction = stop_function_factory::numberOfIterationsWithoutImprovement(*stopAfterIterationsWithoutImprovement);
-	} else if (stopAfterSeconds.ArgumentInterface::is_present()) {
-		stopFunction = stop_function_factory::executionTime(chrono::seconds(*stopAfterSeconds));
-	} else if (stopAfterMinutes.is_present()) {
-		stopFunction = stop_function_factory::executionTime(chrono::minutes(*stopAfterMinutes));
+	if (numberOfIterationsToStop.is_present()) {
+		stopFunction = stop_function_factory::numberOfIterations(*numberOfIterationsToStop);
+	} else if (numberOfIterationsWithoutImprovementToStop.is_present()) {
+		stopFunction = stop_function_factory::numberOfIterationsWithoutImprovement(*numberOfIterationsWithoutImprovementToStop);
+	} else if (secondsToStop.is_present()) {
+		stopFunction = stop_function_factory::executionTime(chrono::seconds(*secondsToStop));
+	} else if (minutesToStop.is_present()) {
+		stopFunction = stop_function_factory::executionTime(chrono::minutes(*minutesToStop));
 	} else {
 		stopFunction = DEFAULT_STOP_FUNCTION;
 	}
 
-	cli::capture_all_arguments_from(argc, argv);
 	/* CLI ARGUMENTS */
 
 	register_observer(new TerminalObserver());

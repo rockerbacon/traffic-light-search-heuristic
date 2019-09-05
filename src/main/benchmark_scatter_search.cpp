@@ -1,10 +1,8 @@
 #include "heuristic/heuristic.h"
 #include "assertions/benchmark.h"
 #include "assertions/command_line_interface.h"
-#include <cstring>
 
 #define DEFAULT_NUMBER_OF_RUNS 1
-#define DEFAULT_GRAPH_MODEL GraphModel::ADJACENCY_LIST
 #define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(100)
 #define DEFAULT_ELITE_POPULATION_SIZE 1
 #define DEFAULT_DIVERSE_POPULATION_SIZE 9
