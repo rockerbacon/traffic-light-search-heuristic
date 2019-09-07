@@ -227,9 +227,6 @@ Solution heuristic::scatterSearch(const Graph& graph, size_t elitePopulationSize
 	TimeUnit infinite = numeric_limits<TimeUnit>::max();
 	StopFunction localSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 
-	int crossoverPRange = graph.getNumberOfVertices() * 0.1; //uma solução-pai poderá contribuir com no máximo 60% e no mínimo 40% (50 +/- 10)
-	double crossoverMutProb = 0.003;
-
 	if (livePopulationSize&1) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
 	}
