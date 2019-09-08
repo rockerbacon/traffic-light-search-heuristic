@@ -8,6 +8,7 @@ namespace heuristic {
 	struct Individual {
 		traffic::Solution solution;
 		traffic::TimeUnit penalty;
+		traffic::TimeUnit mininumDistance;
 
 		bool operator<(const Individual &other) const;
 	};
