@@ -2,11 +2,12 @@
 #include "assertions/benchmark.h"
 #include "assertions/command_line_interface.h"
 
-#define DEFAULT_NUMBER_OF_RUNS 1
-#define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(100)
+#define DEFAULT_NUMBER_OF_RUNS 3 
+#define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(500)
 #define DEFAULT_ELITE_POPULATION_SIZE 1
 #define DEFAULT_DIVERSE_POPULATION_SIZE 9
 #define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
+#define DEFAULT_NUMBER_OF_THREADS 1
 
 using namespace std;
 using namespace traffic;
@@ -41,6 +42,8 @@ int main (int argc, char** argv) {
 	cli::OptionalArgument<size_t> elitePopulationSize("elitePopulationSize", DEFAULT_ELITE_POPULATION_SIZE);
 	cli::OptionalArgument<size_t> diversePopulationSize("diversePopulationSize", DEFAULT_DIVERSE_POPULATION_SIZE);
 	cli::OptionalArgument<unsigned> localSearchIterations("localSearchIterations", DEFAULT_LOCAL_SEARCH_ITERATIONS);
+
+	cli::OptionalArgument<unsigned> numberOfThreads("threads", DEFAULT_NUMBER_OF_THREADS, 't');
 
 	cli::capture_all_arguments_from(argc, argv);
 
@@ -79,7 +82,11 @@ int main (int argc, char** argv) {
 
 		begin = chrono::high_resolution_clock::now();
 
-		solution = scatterSearch(*graph, *elitePopulationSize, *diversePopulationSize, *localSearchIterations, stopFunction, combinationMethod);
+		if (*numberOfThreads < 2) {
+			solution = scatterSearch(*graph, *elitePopulationSize, *diversePopulationSize, *localSearchIterations, stopFunction, combinationMethod);
+		} else {
+			solution = parallel::scatterSearch(*graph, *elitePopulationSize, *diversePopulationSize, *localSearchIterations, stopFunction, combinationMethod, *numberOfThreads);
+		}
 
 		duration = chrono::high_resolution_clock::now() - begin;
 		penalty = graph->totalPenalty(solution);
