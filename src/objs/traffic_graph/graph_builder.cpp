@@ -218,7 +218,7 @@ void GraphBuilder::withCycle (TimeUnit cycle) {
 }
 
 void GraphBuilder::output_to_file (ofstream &file_stream) const {
-	file_stream << this->cycle << ' ' << this->highestVertexIndex << '\n';
+	file_stream << this->cycle << ' ' << this->adjacencyListMap.size() << '\n';
 	for (auto &it: this->adjacencyListMap) {
 		file_stream << it.first << ' ' << it.second->size();
 		for (auto &jt: *it.second) {
@@ -231,19 +231,27 @@ void GraphBuilder::output_to_file (ofstream &file_stream) const {
 void GraphBuilder::read_from_file(std::ifstream &file_stream) {
 	TimeUnit cycle, weight;
 	Vertex numberOfVertices, numberOfNeighbours, vertex, neighbour;
+	size_t lines = 1;
 
 	file_stream >> cycle >> numberOfVertices;
+	lines++;
+	if (file_stream.fail()) {
+		throw std::invalid_argument("Could not cycle and number of vertices for graph");
+	}
 	this->withCycle(cycle);
 	for (Vertex i = 0; i < numberOfVertices; i++) {
 		file_stream >> vertex >> numberOfNeighbours;
+		if (file_stream.fail()) {
+			throw std::invalid_argument("Could not read vertex index and degree at line "+to_string(lines));
+		}
 		for (Vertex j = 0; j < numberOfNeighbours; j++) {
 			file_stream >> neighbour >> weight;
+			if (file_stream.fail()) {
+				throw std::invalid_argument("Could not read "+to_string(j)+"th neighbour index and edge weight at line "+to_string(lines)); 
+			}
 			this->addEdge({vertex, neighbour}, weight);
 		}	
-	}
-
-	if (file_stream.fail()) {
-		throw std::invalid_argument("Could not correctly parse file");
+		lines++;
 	}
 
 }
