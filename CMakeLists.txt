@@ -10,7 +10,7 @@ set(programs_src_dir "src/main")
 # set(warnings "-Wall -Wextra -Werror")
 set(cpp_version "c++14")
 
-set(CMAKE_CXX_FLAGS "${warnings} -std=${cpp_version} -Ofast -pthread")
+set(CMAKE_CXX_FLAGS "${warnings} -std=${cpp_version} -O0 -pthread")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(${objs_src_dir})

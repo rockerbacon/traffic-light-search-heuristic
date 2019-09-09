@@ -17,59 +17,40 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 	auto battlingPopulationEnd = candidatePopulation.end();
 	TimeUnit infinity = numeric_limits<TimeUnit>::max();
 	TimeUnit minusInfinity = numeric_limits<TimeUnit>::min();
-	TimeUnit currentDistance;
 	TimeUnit greatestMinimumDistance;
+	TimeUnit *greatestMinimumDistanceInThread;
 	decltype(battlingPopulationBegin) chosenIndividual;
+	decltype(chosenIndividual) *individualChosenByThread;
+	unsigned threadsUsed;
 
-	thread *threads = new thread[numberOfThreads];
-	decltype(battlingPopulationBegin) *individualChosenByThread = new decltype(battlingPopulationBegin)[numberOfThreads];
-	size_t individualsPerThread;
-	size_t individualsRemaining;
+	greatestMinimumDistanceInThread = new TimeUnit[numberOfThreads];
+	individualChosenByThread = new decltype(chosenIndividual)[numberOfThreads];
 
-	individualsRemaining = battlingPopulationEnd - battlingPopulationBegin;
-	if (individualsRemaining < numberOfThreads) {
-		numberOfThreads = individualsRemaining;
+	for (auto i = 0; i < numberOfThreads; i++) {
+		greatestMinimumDistanceInThread[i] = minusInfinity;
 	}
-	individualsPerThread = individualsRemaining/numberOfThreads;
-	for (unsigned i = 0; i < numberOfThreads; i++) {
+	parallel_for (battlingPopulationBegin, battlingPopulationEnd, numberOfThreads) {
+		TimeUnit currentDistance;
 
-		threads[i] = thread([&, i]() {
-
-			auto populationBegin = battlingPopulationBegin+individualsPerThread*i;
-			decltype(battlingPopulationBegin) populationEnd;
-			if (i == numberOfThreads-1) {
-				populationEnd = battlingPopulationEnd;
-			} else {
-				populationEnd = populationBegin+individualsPerThread;
+		i->mininumDistance = infinity;
+		for (auto j = nextGenerationBegin; j < nextGenerationEnd; j++) {
+			currentDistance = distance(graph, i->solution, j->solution);
+			if (currentDistance < i->mininumDistance) {
+				i->mininumDistance = currentDistance;
 			}
+		}	
 
-			auto greatestMinimumDistanceInThread = minusInfinity;
-			for (auto it = populationBegin; it != populationEnd; it++) {
+		if (i->mininumDistance > greatestMinimumDistanceInThread[thread_i]) {
+			greatestMinimumDistanceInThread[thread_i] = i->mininumDistance;
+			individualChosenByThread[thread_i] = i;
+		}
 
-				it->mininumDistance = infinity;
-				for (auto jt = nextGenerationBegin; jt != nextGenerationEnd; jt++) {
-					currentDistance = distance(graph, it->solution, jt->solution);
-					if (currentDistance < it->mininumDistance) {
-						it->mininumDistance = currentDistance;
-					}
-				}	
+	} end_parallel_for;
 
-				if (it->mininumDistance > greatestMinimumDistanceInThread) {
-					greatestMinimumDistanceInThread = it->mininumDistance;
-					individualChosenByThread[i] = it;
-				}
-			}
-
-		});
-
-	}
-
-	greatestMinimumDistance = minusInfinity;
-	for (unsigned i = 0; i < numberOfThreads; i++) {
-		threads[i].join();
-		if (individualChosenByThread[i]->mininumDistance > greatestMinimumDistance) {
+	chosenIndividual = individualChosenByThread[0];
+	for (auto i = 1; i < numberOfThreads; i++) {
+		if (individualChosenByThread[i]->mininumDistance > chosenIndividual->mininumDistance) {
 			chosenIndividual = individualChosenByThread[i];
-			greatestMinimumDistance = individualChosenByThread[i]->mininumDistance;
 		}
 	}
 
@@ -77,50 +58,27 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 	nextGenerationEnd++;
 	battlingPopulationBegin++;
 
-	individualsRemaining = battlingPopulationEnd - battlingPopulationBegin;
-	if (individualsRemaining < numberOfThreads) {
-		numberOfThreads = individualsRemaining;
-	}
-	individualsPerThread = individualsRemaining/numberOfThreads;
-
 	while (nextGenerationEnd != diversePopulation.end()) {
 
-		for (unsigned i = 0; i < numberOfThreads; i++) {
-
-			threads[i] = thread([&, i]() {
-
-				auto populationBegin = battlingPopulationBegin+individualsPerThread*i;
-				decltype(battlingPopulationBegin) populationEnd;
-				if (i == numberOfThreads-1) {
-					populationEnd = battlingPopulationEnd;
-				} else {
-					populationEnd = populationBegin+individualsPerThread;
-				}
-
-				auto greatestMinimumDistanceInThread = minusInfinity;
-				for (auto it = populationBegin; it != populationEnd; it++) {
-
-					currentDistance = distance(graph, chosenIndividual->solution, it->solution);
-					if (currentDistance < it->mininumDistance) {
-						it->mininumDistance = currentDistance;
-					}
-					if (it->mininumDistance > greatestMinimumDistanceInThread) {
-						greatestMinimumDistanceInThread = it->mininumDistance;
-						individualChosenByThread[i] = it;
-					}
-					
-				}
-
-			});
-
+		for (auto i = 0; i < numberOfThreads; i++) {
+			greatestMinimumDistanceInThread[i] = minusInfinity;
 		}
+		parallel_for (battlingPopulationBegin, battlingPopulationEnd, numberOfThreads) {
+			auto currentDistance = distance(graph, chosenIndividual->solution, i->solution);
+			if (currentDistance < i->mininumDistance) {
+				i->mininumDistance = currentDistance;
+			}
+			if (i->mininumDistance > greatestMinimumDistanceInThread[thread_i]) {
+				greatestMinimumDistanceInThread[thread_i] = i->mininumDistance;
+				individualChosenByThread[thread_i] = i;
+			}
+		} end_parallel_for;
 
-		greatestMinimumDistance = minusInfinity;
-		for (unsigned i = 0; i < numberOfThreads; i++) {
-			threads[i].join();
-			if (individualChosenByThread[i]->mininumDistance > greatestMinimumDistance) {
+		threadsUsed = ::parallel::usable_threads(battlingPopulationEnd-battlingPopulationBegin, numberOfThreads);
+		chosenIndividual = individualChosenByThread[0];
+		for (auto i = 1; i < threadsUsed; i++) {
+			if (individualChosenByThread[i]->mininumDistance > chosenIndividual->mininumDistance) {
 				chosenIndividual = individualChosenByThread[i];
-				greatestMinimumDistance = individualChosenByThread[i]->mininumDistance;
 			}
 		}
 
@@ -128,20 +86,12 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 		nextGenerationEnd++;
 		battlingPopulationBegin++;
 
-		individualsRemaining = battlingPopulationEnd - battlingPopulationBegin;
-		if (individualsRemaining < numberOfThreads) {
-			numberOfThreads = individualsRemaining;
-		}
-		individualsPerThread = individualsRemaining/numberOfThreads;
-
-	} 
-
-	delete [] threads;
-	delete [] individualChosenByThread;
+	}
 
 }
 
-Solution parallel::scatterSearch (const Graph &graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod, unsigned numberOfThreads) {
+
+Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod, unsigned numberOfThreads) {
 
 	size_t	referencePopulationSize = elitePopulationSize+diversePopulationSize,
 			totalPopulationSize = referencePopulationSize + referencePopulationSize/2,
