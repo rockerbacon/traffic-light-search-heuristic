@@ -73,10 +73,10 @@ int main (int argc, char** argv) {
 
 	register_observer(new TerminalObserver());
 
-	observe_variable("graph lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
-	observe_variable("populational heuristics penalty", penalty, observation_mode::AVERAGE_VALUE);
-	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("populational heuristic duration", duration, observation_mode::AVERAGE_VALUE);
+	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
+	observe_variable("populational heuristics penalty", penalty, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE | observation_mode::MINIMUM_VALUE);
+	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE | observation_mode::MINIMUM_VALUE);
+	observe_variable("populational heuristic duration", duration, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE);
 
 	benchmark("scatter search heuristic", *numberOfRuns) {
 

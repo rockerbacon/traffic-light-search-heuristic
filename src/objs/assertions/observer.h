@@ -42,7 +42,7 @@ namespace benchmark {
 			T average;
 			unsigned number_of_samples;
 		public:
-			ObservableVariableAverageTemplate (const std::string& label, const T& variable) : label(label), value(variable), number_of_samples(0) {}
+			ObservableVariableAverageTemplate (const std::string& label, const T& variable) : label(label+" (avg)"), value(variable), number_of_samples(0) {}
 
 			std::string get_label(void) {
 				return this->label;
@@ -62,9 +62,59 @@ namespace benchmark {
 
 	};
 
+	template<typename T>
+	class ObservableVariableMaximumTemplate : public ObservableVariable {
+		private:
+			const std::string label;
+			const T& value;
+			T maximum;
+			bool maximum_not_set;
+		public:
+			ObservableVariableMaximumTemplate (const std::string &label, const T& variable) : label(label+" (max)"), value(variable), maximum_not_set(true) {}
+			std::string get_label (void) {
+				return this->label;
+			}
+			std::string get_value (void) {
+				std::ostringstream str_builder;
+				if (this->maximum_not_set || this->value > this->maximum) {
+					this->maximum = this->value;
+					this->maximum_not_set = false;
+				}
+				str_builder << this->maximum;
+				return str_builder.str();
+			}
+	};
+
+	template<typename T>
+	class ObservableVariableMinimumTemplate : public ObservableVariable {
+		private:
+			const std::string label;
+			const T& value;
+			T minimum;
+			bool minimum_not_set;
+		public:
+			ObservableVariableMinimumTemplate (const std::string &label, const T& variable) : label(label+" (min)"), value(variable), minimum_not_set(true) {}
+
+			std::string get_label (void) {
+				return this->label;
+			}
+			std::string get_value (void) {
+				std::ostringstream str_builder;
+				if (this->minimum_not_set || this->value < this->minimum) {
+					this->minimum = this->value;
+					this->minimum_not_set = false;
+				}
+				str_builder << this->minimum;
+				return str_builder.str();
+			}
+	};
+
+
 	namespace observation_mode {
 		const unsigned CURRENT_VALUE = 0x01;
 		const unsigned AVERAGE_VALUE = 0x01 << 1;
+		const unsigned MAXIMUM_VALUE = 0x01 << 2;
+		const unsigned MINIMUM_VALUE = 0x01 << 3;
 	};
 
 	class Observer {
@@ -85,8 +135,18 @@ namespace benchmark {
 				}
 
 				if (observation_mode & observation_mode::AVERAGE_VALUE) {
-					ObservableVariableAverageTemplate<T> *observable_variable_average = new ObservableVariableAverageTemplate<T>(variable_label+" (avg)", variable);
+					ObservableVariableAverageTemplate<T> *observable_variable_average = new ObservableVariableAverageTemplate<T>(variable_label, variable);
 					this->variables_to_observe.push_back(observable_variable_average);
+				}
+
+				if (observation_mode & observation_mode::MAXIMUM_VALUE) {
+					ObservableVariableMaximumTemplate<T> *observable_variable_maximum = new ObservableVariableMaximumTemplate<T>(variable_label, variable);
+					this->variables_to_observe.push_back(observable_variable_maximum);
+				}
+
+				if (observation_mode & observation_mode::MINIMUM_VALUE) {
+					ObservableVariableMinimumTemplate<T> *observable_variable_minimum = new ObservableVariableMinimumTemplate<T>(variable_label, variable);
+					this->variables_to_observe.push_back(observable_variable_minimum);
 				}
 			}
 	};
