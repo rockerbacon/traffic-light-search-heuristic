@@ -18,9 +18,10 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 	TimeUnit currentDistance;
 	TimeUnit greatestMinimumDistance;
 	decltype(battlingPopulationBegin) chosenIndividual;
+	decltype(battlingPopulationBegin) nextChosenIndividual;
 
 	greatestMinimumDistance = minusInfinity;
-	for (auto it = battlingPopulationBegin; it < battlingPopulationEnd; it++) {
+	for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
 
 		it->mininumDistance = infinity;
 		for (auto jt = nextGenerationBegin; jt < nextGenerationEnd; jt++) {
@@ -36,23 +37,31 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 		}
 	}
 
-	do {
-		swap(*chosenIndividual, *nextGenerationEnd);
-		nextGenerationEnd++;
-		battlingPopulationBegin++;
+	swap(*chosenIndividual, *nextGenerationEnd);
+	nextGenerationEnd++;
+	battlingPopulationBegin++;
+
+	while (nextGenerationEnd != diversePopulation.end()) {
 
 		greatestMinimumDistance = minusInfinity;
-		for (auto it = battlingPopulationBegin; it < battlingPopulationEnd; it++) {
+		for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
 			currentDistance = distance(graph, chosenIndividual->solution, it->solution);
 			if (currentDistance < it->mininumDistance) {
 				it->mininumDistance = currentDistance;
 			}
 			if (it->mininumDistance > greatestMinimumDistance) {
 				greatestMinimumDistance = it->mininumDistance;
-				chosenIndividual = it;
+				nextChosenIndividual = it;
 			}
 		}
-	} while (battlingPopulationBegin == battlingPopulationEnd);
+
+		chosenIndividual = nextChosenIndividual;
+
+		swap(*chosenIndividual, *nextGenerationEnd);
+		nextGenerationEnd++;
+		battlingPopulationBegin++;
+
+	} 
 
 }
 
