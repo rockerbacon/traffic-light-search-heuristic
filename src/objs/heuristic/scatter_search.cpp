@@ -106,6 +106,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
 
+		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
 		for (size_t i = 0; i < candidatePopulation.size(); i++) {
 
 			individual1 = &referencePopulation[i*2];
@@ -119,7 +120,6 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 		sort(population.begin(), population.end());
 
 		diversify(graph, elitePopulation, diversePopulation, candidatePopulation);
-		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
 
 		metrics.numberOfIterations++;
 	}

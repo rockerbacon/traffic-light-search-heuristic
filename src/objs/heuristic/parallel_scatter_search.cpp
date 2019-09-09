@@ -110,7 +110,8 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	TimeUnit infinite = numeric_limits<TimeUnit>::max();
-	StopFunction localSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
+	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
+	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
 	thread *threads = new thread[numberOfThreads];
 
@@ -124,8 +125,13 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
-	parallel_for (referencePopulation.begin(), referencePopulation.end(), numberOfThreads) {
-		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), localSearchStopFunction);
+	parallel_for (elitePopulation.begin(), elitePopulation.end(), numberOfThreads) {
+		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
+		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
+	} end_parallel_for;
+
+	parallel_for (diversePopulation.begin(), diversePopulation.end(), numberOfThreads) {
+		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), diverseLocalSearchStopFunction);
 		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
 	} end_parallel_for;
 
@@ -134,13 +140,14 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
 
+		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
 		parallel_for (0, candidatePopulation.size(), numberOfThreads) {
 
 			individual1 = &referencePopulation[i*2];
 			individual2 = &referencePopulation[i*2+1];
 
 			candidatePopulation[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
-			candidatePopulation[i].solution = localSearchHeuristic(graph, candidatePopulation[i].solution, localSearchStopFunction);
+			candidatePopulation[i].solution = localSearchHeuristic(graph, candidatePopulation[i].solution, diverseLocalSearchStopFunction);
 			candidatePopulation[i].penalty = graph.totalPenalty(candidatePopulation[i].solution);
 
 		} end_parallel_for;
@@ -148,7 +155,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		sort(population.begin(), population.end());
 
 		diversify(graph, elitePopulation, diversePopulation, candidatePopulation, numberOfThreads);
-		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
 
 		metrics.numberOfIterations++;
 
