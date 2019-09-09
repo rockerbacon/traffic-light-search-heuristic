@@ -4,16 +4,22 @@
 #include <list>
 #include <thread>
 
+namespace parallel {
+	unsigned usable_threads (unsigned number_of_items, unsigned number_of_threads) {
+		if (number_of_items < number_of_threads) {
+			return 1;
+		} else {
+			return number_of_threads;
+		}
+	}
+}
+
 #define parallel_for(begin, end, available_threads) {\
 \
 	decltype(available_threads) parallel_for_use_threads; \
 	std::thread *parallel_for_executing_threads; \
 \
-	if (end-begin < available_threads) { \
-		parallel_for_use_threads = 1; \
-	} else { \
-		parallel_for_use_threads = available_threads; \
-	} \
+	parallel_for_use_threads = ::parallel::usable_threads(end-begin, available_threads); \
 	parallel_for_executing_threads = new std::thread[parallel_for_use_threads]; \
 \
 	auto parallel_for_items_per_thread = (end-begin)/parallel_for_use_threads; \
