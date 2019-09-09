@@ -9,7 +9,7 @@
 	decltype(available_threads) parallel_for_use_threads; \
 	std::thread *parallel_for_executing_threads; \
 \
-	if (begin-end < available_threads) { \
+	if (end-begin < available_threads) { \
 		parallel_for_use_threads = 1; \
 	} else { \
 		parallel_for_use_threads = available_threads; \
