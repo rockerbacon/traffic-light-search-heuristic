@@ -21,7 +21,7 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 	TimeUnit *greatestMinimumDistanceInThread;
 	decltype(battlingPopulationBegin) chosenIndividual;
 	decltype(chosenIndividual) *individualChosenByThread;
-	unsigned threadsUsed;
+	unsigned usableThreads;
 
 	greatestMinimumDistanceInThread = new TimeUnit[numberOfThreads];
 	individualChosenByThread = new decltype(chosenIndividual)[numberOfThreads];
@@ -60,10 +60,12 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 
 	while (nextGenerationEnd != diversePopulation.end()) {
 
-		for (auto i = 0; i < numberOfThreads; i++) {
+		usableThreads = ::parallel::usable_threads(battlingPopulationEnd-battlingPopulationBegin, numberOfThreads);
+
+		for (auto i = 0; i < usableThreads; i++) {
 			greatestMinimumDistanceInThread[i] = minusInfinity;
 		}
-		parallel_for (battlingPopulationBegin, battlingPopulationEnd, numberOfThreads) {
+		parallel_for (battlingPopulationBegin, battlingPopulationEnd, usableThreads) {
 			auto currentDistance = distance(graph, chosenIndividual->solution, i->solution);
 			if (currentDistance < i->mininumDistance) {
 				i->mininumDistance = currentDistance;
@@ -74,9 +76,8 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 			}
 		} end_parallel_for;
 
-		threadsUsed = ::parallel::usable_threads(battlingPopulationEnd-battlingPopulationBegin, numberOfThreads);
 		chosenIndividual = individualChosenByThread[0];
-		for (auto i = 1; i < threadsUsed; i++) {
+		for (auto i = 1; i < usableThreads; i++) {
 			if (individualChosenByThread[i]->mininumDistance > chosenIndividual->mininumDistance) {
 				chosenIndividual = individualChosenByThread[i];
 			}
@@ -115,7 +116,15 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	thread *threads = new thread[numberOfThreads];
 
-	if (referencePopulationSize&1) {
+	if (elitePopulation.size() < numberOfThreads) {
+		throw invalid_argument("elitePopulationSize must be greater than or equal the number of threads");
+	}
+
+	if (diversePopulation.size() < numberOfThreads) {
+		throw invalid_argument("diversePopulationSize must be greater than or equal the number of threads");
+	}
+
+	if (referencePopulation.size()&1) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
 	} 
 	
@@ -135,7 +144,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
 	} end_parallel_for;
 
-	candidatesPerThread = candidatePopulation.size()/numberOfThreads;
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {

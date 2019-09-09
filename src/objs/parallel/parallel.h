@@ -14,21 +14,20 @@ namespace parallel {
 	}
 }
 
-#define parallel_for(begin, end, available_threads) {\
+#define parallel_for(begin, end, number_of_threads) {\
 \
-	decltype(available_threads) parallel_for_use_threads; \
+	decltype(number_of_threads) parallel_for_available_threads = number_of_threads; \
 	std::thread *parallel_for_executing_threads; \
 \
-	parallel_for_use_threads = ::parallel::usable_threads(end-begin, available_threads); \
-	parallel_for_executing_threads = new std::thread[parallel_for_use_threads]; \
+	parallel_for_executing_threads = new std::thread[parallel_for_available_threads]; \
 \
-	auto parallel_for_items_per_thread = (end-begin)/parallel_for_use_threads; \
+	auto parallel_for_items_per_thread = (end-begin)/parallel_for_available_threads; \
 \
-	for (auto thread_i = 0; thread_i < parallel_for_use_threads; thread_i++) { \
+	for (auto thread_i = 0; thread_i < parallel_for_available_threads; thread_i++) { \
 \
 		auto thread_begin = begin + parallel_for_items_per_thread*thread_i; \
 		decltype(thread_begin) thread_end; \
-		if (thread_i == parallel_for_use_threads-1) { \
+		if (thread_i == parallel_for_available_threads-1) { \
 			thread_end = end; \
 		} else { \
 			thread_end = thread_begin + parallel_for_items_per_thread; \
@@ -41,7 +40,7 @@ namespace parallel {
 		}); \
 	} \
 \
-	for (auto i = 0; i < parallel_for_use_threads; i++) { \
+	for (auto i = 0; i < parallel_for_available_threads; i++) { \
 		parallel_for_executing_threads[i].join(); \
 	} \
 	delete [] parallel_for_executing_threads; \
