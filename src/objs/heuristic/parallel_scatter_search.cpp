@@ -9,7 +9,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-void parallel_diversify (const Graph &graph, PopulationSlice &elitePopulation, PopulationSlice &diversePopulation, PopulationSlice &candidatePopulation) {
+void diversify (const Graph &graph, PopulationSlice &elitePopulation, PopulationSlice &diversePopulation, PopulationSlice &candidatePopulation, unsigned numberOfThreads) {
 	auto nextGenerationBegin = elitePopulation.begin();
 	auto nextGenerationEnd = elitePopulation.end();
 	auto battlingPopulationBegin = diversePopulation.begin();
@@ -20,40 +20,123 @@ void parallel_diversify (const Graph &graph, PopulationSlice &elitePopulation, P
 	TimeUnit greatestMinimumDistance;
 	decltype(battlingPopulationBegin) chosenIndividual;
 
-	greatestMinimumDistance = minusInfinity;
-	for (auto it = battlingPopulationBegin; it < battlingPopulationEnd; it++) {
+	thread *threads = new thread[numberOfThreads];
+	decltype(battlingPopulationBegin) *individualChosenByThread = new decltype(battlingPopulationBegin)[numberOfThreads];
+	size_t individualsPerThread;
+	size_t individualsRemaining;
 
-		it->mininumDistance = infinity;
-		for (auto jt = nextGenerationBegin; jt < nextGenerationEnd; jt++) {
-			currentDistance = distance(graph, it->solution, jt->solution);
-			if (currentDistance < it->mininumDistance) {
-				it->mininumDistance = currentDistance;
+	individualsRemaining = battlingPopulationEnd - battlingPopulationBegin;
+	if (individualsRemaining < numberOfThreads) {
+		numberOfThreads = individualsRemaining;
+	}
+	individualsPerThread = individualsRemaining/numberOfThreads;
+	for (unsigned i = 0; i < numberOfThreads; i++) {
+
+		threads[i] = thread([&, i]() {
+
+			auto populationBegin = battlingPopulationBegin+individualsPerThread*i;
+			decltype(battlingPopulationBegin) populationEnd;
+			if (i == numberOfThreads-1) {
+				populationEnd = battlingPopulationEnd;
+			} else {
+				populationEnd = populationBegin+individualsPerThread;
 			}
-		}	
 
-		if (it->mininumDistance > greatestMinimumDistance) {
-			greatestMinimumDistance = it->mininumDistance;
-			chosenIndividual = it;
+			auto greatestMinimumDistanceInThread = minusInfinity;
+			for (auto it = populationBegin; it != populationEnd; it++) {
+
+				it->mininumDistance = infinity;
+				for (auto jt = nextGenerationBegin; jt != nextGenerationEnd; jt++) {
+					currentDistance = distance(graph, it->solution, jt->solution);
+					if (currentDistance < it->mininumDistance) {
+						it->mininumDistance = currentDistance;
+					}
+				}	
+
+				if (it->mininumDistance > greatestMinimumDistanceInThread) {
+					greatestMinimumDistanceInThread = it->mininumDistance;
+					individualChosenByThread[i] = it;
+				}
+			}
+
+		});
+
+	}
+
+	greatestMinimumDistance = minusInfinity;
+	for (unsigned i = 0; i < numberOfThreads; i++) {
+		threads[i].join();
+		if (individualChosenByThread[i]->mininumDistance > greatestMinimumDistance) {
+			chosenIndividual = individualChosenByThread[i];
+			greatestMinimumDistance = individualChosenByThread[i]->mininumDistance;
 		}
 	}
 
-	do {
+	swap(*chosenIndividual, *nextGenerationEnd);
+	nextGenerationEnd++;
+	battlingPopulationBegin++;
+
+	individualsRemaining = battlingPopulationEnd - battlingPopulationBegin;
+	if (individualsRemaining < numberOfThreads) {
+		numberOfThreads = individualsRemaining;
+	}
+	individualsPerThread = individualsRemaining/numberOfThreads;
+
+	while (nextGenerationEnd != diversePopulation.end()) {
+
+		for (unsigned i = 0; i < numberOfThreads; i++) {
+
+			threads[i] = thread([&, i]() {
+
+				auto populationBegin = battlingPopulationBegin+individualsPerThread*i;
+				decltype(battlingPopulationBegin) populationEnd;
+				if (i == numberOfThreads-1) {
+					populationEnd = battlingPopulationEnd;
+				} else {
+					populationEnd = populationBegin+individualsPerThread;
+				}
+
+				auto greatestMinimumDistanceInThread = minusInfinity;
+				for (auto it = populationBegin; it != populationEnd; it++) {
+
+					currentDistance = distance(graph, chosenIndividual->solution, it->solution);
+					if (currentDistance < it->mininumDistance) {
+						it->mininumDistance = currentDistance;
+					}
+					if (it->mininumDistance > greatestMinimumDistanceInThread) {
+						greatestMinimumDistanceInThread = it->mininumDistance;
+						individualChosenByThread[i] = it;
+					}
+					
+				}
+
+			});
+
+		}
+
+		greatestMinimumDistance = minusInfinity;
+		for (unsigned i = 0; i < numberOfThreads; i++) {
+			threads[i].join();
+			if (individualChosenByThread[i]->mininumDistance > greatestMinimumDistance) {
+				chosenIndividual = individualChosenByThread[i];
+				greatestMinimumDistance = individualChosenByThread[i]->mininumDistance;
+			}
+		}
+
 		swap(*chosenIndividual, *nextGenerationEnd);
 		nextGenerationEnd++;
 		battlingPopulationBegin++;
 
-		greatestMinimumDistance = minusInfinity;
-		for (auto it = battlingPopulationBegin; it < battlingPopulationEnd; it++) {
-			currentDistance = distance(graph, chosenIndividual->solution, it->solution);
-			if (currentDistance < it->mininumDistance) {
-				it->mininumDistance = currentDistance;
-			}
-			if (it->mininumDistance > greatestMinimumDistance) {
-				greatestMinimumDistance = it->mininumDistance;
-				chosenIndividual = it;
-			}
+		individualsRemaining = battlingPopulationEnd - battlingPopulationBegin;
+		if (individualsRemaining < numberOfThreads) {
+			numberOfThreads = individualsRemaining;
 		}
-	} while (battlingPopulationBegin == battlingPopulationEnd);
+		individualsPerThread = individualsRemaining/numberOfThreads;
+
+	} 
+
+	delete [] threads;
+	delete [] individualChosenByThread;
 
 }
 
@@ -131,7 +214,7 @@ Solution parallel::scatterSearch (const Graph &graph, size_t elitePopulationSize
 
 		sort(population.begin(), population.end());
 
-		parallel_diversify(graph, elitePopulation, diversePopulation, candidatePopulation);
+		diversify(graph, elitePopulation, diversePopulation, candidatePopulation, numberOfThreads);
 		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
 
 		metrics.numberOfIterations++;
