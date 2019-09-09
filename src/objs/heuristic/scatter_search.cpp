@@ -83,7 +83,8 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	TimeUnit infinite = numeric_limits<TimeUnit>::max();
-	StopFunction localSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
+	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
+	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
 	if (referencePopulationSize&1) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
@@ -91,8 +92,13 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
-	for (auto i = referencePopulation.begin(); i < referencePopulation.end(); i++) {
-		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), localSearchStopFunction);
+	for (auto i = elitePopulation.begin(); i < elitePopulation.end(); i++) {
+		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
+		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};	
+	}
+
+	for (auto i = diversePopulation.begin(); i < diversePopulation.end(); i++) {
+		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), diverseLocalSearchStopFunction);
 		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
 	}
 
@@ -106,7 +112,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 			individual2 = &referencePopulation[i*2+1];
 
 			candidatePopulation[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
-			candidatePopulation[i].solution = localSearchHeuristic(graph, candidatePopulation[i].solution, localSearchStopFunction);
+			candidatePopulation[i].solution = localSearchHeuristic(graph, candidatePopulation[i].solution, diverseLocalSearchStopFunction);
 			candidatePopulation[i].penalty = graph.totalPenalty(candidatePopulation[i].solution);
 		}
 
