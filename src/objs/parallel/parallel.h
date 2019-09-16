@@ -21,9 +21,9 @@ namespace parallel {
 \
 	parallel_for_executing_threads = new std::thread[parallel_for_available_threads]; \
 \
-	auto parallel_for_items_per_thread = (end-begin)/parallel_for_available_threads; \
+	decltype(number_of_threads) parallel_for_items_per_thread = (end-begin)/parallel_for_available_threads; \
 \
-	for (auto thread_i = 0; thread_i < parallel_for_available_threads; thread_i++) { \
+	for (decltype(number_of_threads) thread_i = 0; thread_i < parallel_for_available_threads; thread_i++) { \
 \
 		auto thread_begin = begin + parallel_for_items_per_thread*thread_i; \
 		decltype(thread_begin) thread_end; \
@@ -40,7 +40,7 @@ namespace parallel {
 		}); \
 	} \
 \
-	for (auto i = 0; i < parallel_for_available_threads; i++) { \
+	for (decltype(parallel_for_available_threads) i = 0; i < parallel_for_available_threads; i++) { \
 		parallel_for_executing_threads[i].join(); \
 	} \
 	delete [] parallel_for_executing_threads; \
