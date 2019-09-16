@@ -5,170 +5,93 @@
 #include <random>
 #include <algorithm>
 #include <thread>
+#include <mutex>
 
 using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-void diversify (const Graph &graph, PopulationSlice &elitePopulation, PopulationSlice &diversePopulation, PopulationSlice &candidatePopulation, unsigned numberOfThreads) {
-	auto nextGenerationBegin = elitePopulation.begin();
-	auto nextGenerationEnd = elitePopulation.end();
-	auto battlingPopulationBegin = diversePopulation.begin();
-	auto battlingPopulationEnd = candidatePopulation.end();
-	TimeUnit infinity = numeric_limits<TimeUnit>::max();
-	TimeUnit minusInfinity = numeric_limits<TimeUnit>::min();
-	TimeUnit greatestMinimumDistance;
-	TimeUnit *greatestMinimumDistanceInThread;
-	decltype(battlingPopulationBegin) chosenIndividual;
-	decltype(chosenIndividual) *individualChosenByThread;
-	unsigned usableThreads;
-
-	greatestMinimumDistanceInThread = new TimeUnit[numberOfThreads];
-	individualChosenByThread = new decltype(chosenIndividual)[numberOfThreads];
-
-	for (auto i = 0; i < numberOfThreads; i++) {
-		greatestMinimumDistanceInThread[i] = minusInfinity;
-	}
-	parallel_for (battlingPopulationBegin, battlingPopulationEnd, numberOfThreads) {
-		TimeUnit currentDistance;
-
-		i->mininumDistance = infinity;
-		for (auto j = nextGenerationBegin; j < nextGenerationEnd; j++) {
-			currentDistance = distance(graph, i->solution, j->solution);
-			if (currentDistance < i->mininumDistance) {
-				i->mininumDistance = currentDistance;
-			}
-		}	
-
-		if (i->mininumDistance > greatestMinimumDistanceInThread[thread_i]) {
-			greatestMinimumDistanceInThread[thread_i] = i->mininumDistance;
-			individualChosenByThread[thread_i] = i;
-		}
-
-	} end_parallel_for;
-
-	chosenIndividual = individualChosenByThread[0];
-	for (auto i = 1; i < numberOfThreads; i++) {
-		if (individualChosenByThread[i]->mininumDistance > chosenIndividual->mininumDistance) {
-			chosenIndividual = individualChosenByThread[i];
-		}
-	}
-
-	swap(*chosenIndividual, *nextGenerationEnd);
-	nextGenerationEnd++;
-	battlingPopulationBegin++;
-
-	while (nextGenerationEnd != diversePopulation.end()) {
-
-		usableThreads = ::parallel::usable_threads(battlingPopulationEnd-battlingPopulationBegin, numberOfThreads);
-
-		for (auto i = 0; i < usableThreads; i++) {
-			greatestMinimumDistanceInThread[i] = minusInfinity;
-		}
-		parallel_for (battlingPopulationBegin, battlingPopulationEnd, usableThreads) {
-			auto currentDistance = distance(graph, chosenIndividual->solution, i->solution);
-			if (currentDistance < i->mininumDistance) {
-				i->mininumDistance = currentDistance;
-			}
-			if (i->mininumDistance > greatestMinimumDistanceInThread[thread_i]) {
-				greatestMinimumDistanceInThread[thread_i] = i->mininumDistance;
-				individualChosenByThread[thread_i] = i;
-			}
-		} end_parallel_for;
-
-		chosenIndividual = individualChosenByThread[0];
-		for (auto i = 1; i < usableThreads; i++) {
-			if (individualChosenByThread[i]->mininumDistance > chosenIndividual->mininumDistance) {
-				chosenIndividual = individualChosenByThread[i];
-			}
-		}
-
-		swap(*chosenIndividual, *nextGenerationEnd);
-		nextGenerationEnd++;
-		battlingPopulationBegin++;
-
-	}
+void bottomUpTreeDiversify(const Graph &graph, PopulationSlice &threadReferencePopulation, PopulationSlice &threadCandidatePopulation) {
 
 }
 
-
 Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod, unsigned numberOfThreads) {
-
-	size_t	referencePopulationSize = elitePopulationSize+diversePopulationSize,
-			totalPopulationSize = referencePopulationSize + referencePopulationSize/2,
-			candidatesPerThread; 
-
-	Population population(totalPopulationSize, graph.getNumberOfVertices());
-
-	PopulationSlice	elitePopulation(population, 0, elitePopulationSize),
-				   	diversePopulation(population, elitePopulationSize, referencePopulationSize),
-				   	candidatePopulation(population, referencePopulationSize, totalPopulationSize),
-					referencePopulation(population, 0, referencePopulationSize);
-
-	const Individual *individual1, *individual2;
+	if (elitePopulationSize % numberOfThreads != 0) {
+		throw invalid_argument("elitePopulationSize must be a multiple of the number of threads");
+	}
+	if (diversePopulationSize % numberOfThreads != 0) {
+		throw invalid_argument("diversePopulationSize must be a multiple of the number of threads");
+	}
+	if (numberOfThreads % 2 != 0) {
+		throw invalid_argument("numberOfThreads must be an even number");
+	}
 
 	Metrics metrics;
-	random_device seeder;
-	mt19937 randomEngine(seeder());
-	TimeUnit infinite = numeric_limits<TimeUnit>::max();
+
+	auto referencePopulationSize = elitePopulationSize + diversePopulationSize;
+	auto candidatePopulationSize = referencePopulationSize/2;
+
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
+	Population totalPopulation(referencePopulationSize+candidatePopulationSize, graph.getNumberOfVertices());
+	PopulationSlice referencePopulation(totalPopulation, 0, referencePopulationSize);
+	PopulationSlice candidatePopulation(referencePopulation, referencePopulationSize, referencePopulationSize+candidatePopulationSize);
 
-	thread *threads = new thread[numberOfThreads];
-
-	if (elitePopulation.size() < numberOfThreads) {
-		throw invalid_argument("elitePopulationSize must be greater than or equal the number of threads");
-	}
-
-	if (diversePopulation.size() < numberOfThreads) {
-		throw invalid_argument("diversePopulationSize must be greater than or equal the number of threads");
-	}
-
-	if (referencePopulation.size()&1) {
-		throw invalid_argument("elitePopulationSize+diversePopulationSize must be an even number");
-	} 
-	
-	if (candidatePopulation.size() < numberOfThreads) {
-		throw invalid_argument("diversePopulationSize must be at least double the number of threads"); 
-	}
+	auto referenceIndividualsPerThread = (elitePopulationSize+diversePopulationSize)/numberOfThreads;
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
-	parallel_for (elitePopulation.begin(), elitePopulation.end(), numberOfThreads) {
-		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
-		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
-	} end_parallel_for;
-
-	parallel_for (diversePopulation.begin(), diversePopulation.end(), numberOfThreads) {
-		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), diverseLocalSearchStopFunction);
-		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
-	} end_parallel_for;
+	for_each_thread (numberOfThreads) {
+		PopulationSlice threadPopulation(totalPopulation, referenceIndividualsPerThread*thread_i, referenceIndividualsPerThread*(thread_i+1));
+		
+		for (decltype(elitePopulationSize) i = 0; i < elitePopulationSize; i++) {
+			threadPopulation[i].solution = constructHeuristicSolution(graph);
+			threadPopulation[i].solution = localSearchHeuristic(graph, threadPopulation[i].solution, eliteLocalSearchStopFunction);
+			threadPopulation[i].penalty = graph.totalPenalty(threadPopulation[i].solution);
+		}
+		
+		for (decltype(diversePopulationSize) i = elitePopulationSize; i < elitePopulationSize+diversePopulationSize; i++) {
+			threadPopulation[i].solution = constructHeuristicSolution(graph);
+			threadPopulation[i].penalty = graph.totalPenalty(threadPopulation[i].solution);
+		}
+	} end_for_each_thread;
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
 
-		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
-		parallel_for (0, candidatePopulation.size(), numberOfThreads) {
+		for_each_thread (numberOfThreads) {
 
-			individual1 = &referencePopulation[i*2];
-			individual2 = &referencePopulation[i*2+1];
+			random_device seeder;
+			mt19937 randomEngine(seeder());
 
-			candidatePopulation[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
-			candidatePopulation[i].solution = localSearchHeuristic(graph, candidatePopulation[i].solution, diverseLocalSearchStopFunction);
-			candidatePopulation[i].penalty = graph.totalPenalty(candidatePopulation[i].solution);
+			PopulationSlice threadReferencePopulation(referencePopulation, referenceIndividualsPerThread*thread_i, referenceIndividualsPerThread*(thread_i+1));
+			PopulationSlice threadCandidatePopulation(candidatePopulation, referenceIndividualsPerThread/2*thread_i, referenceIndividualsPerThread/2*(thread_i+1));
+			Individual *individual1, *individual2;
 
-		} end_parallel_for;
+			shuffle(threadReferencePopulation.begin(), threadReferencePopulation.end(), randomEngine);
 
-		sort(population.begin(), population.end());
+			for (size_t i = 0; i < threadCandidatePopulation.size(); i++) {
 
-		diversify(graph, elitePopulation, diversePopulation, candidatePopulation, numberOfThreads);
+				individual1 = &threadReferencePopulation[i*2];
+				individual2 = &threadReferencePopulation[i*2+1];
 
-		metrics.numberOfIterations++;
+				threadCandidatePopulation[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
+				threadCandidatePopulation[i].solution = localSearchHeuristic(graph, threadCandidatePopulation[i].solution, diverseLocalSearchStopFunction);
+				threadCandidatePopulation[i].penalty = graph.totalPenalty(threadCandidatePopulation[i].solution);
 
-	} 
-	
-	delete [] threads;
+			}
 
-	return population[0].solution;
+			sort(threadReferencePopulation.begin(), threadCandidatePopulation.end());
+
+			bottomUpTreeDiversify(graph, threadReferencePopulation, threadCandidatePopulation);
+
+			metrics.numberOfIterations++;
+
+		} end_for_each_thread;
+
+	}
+
+	return totalPopulation[0].solution;
+
 }
