@@ -33,7 +33,7 @@ namespace parallel {
 			thread_end = thread_begin + parallel_for_items_per_thread; \
 		} \
 \
-		parallel_for_executing_threads[thread_i] = std::thread( [&, thread_i, thread_begin, thread_end](void) { \
+		parallel_for_executing_threads[thread_i] = std::thread( [&, thread_begin, thread_end](void) { \
 			for (auto i = thread_begin; i < thread_end; i++) \
 
 #define end_parallel_for \
@@ -45,3 +45,18 @@ namespace parallel {
 	} \
 	delete [] parallel_for_executing_threads; \
 }
+
+#define for_each_thread(number_of_threads) {\
+\
+	decltype(number_of_threads) parallel_for_available_threads = number_of_threads; \
+	std::thread *parallel_for_executing_threads; \
+\
+	parallel_for_executing_threads = new std::thread[parallel_for_available_threads]; \
+\
+	for (decltype(number_of_threads) thread_i = 0; thread_i < numberOfThreads; thread_i++) { \
+		parallel_for_executing_threads[thread_i] = std::thread([&, thread_i](void) \
+
+#define end_for_each_thread \
+	);} \
+}
+
