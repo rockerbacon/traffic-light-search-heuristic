@@ -58,5 +58,10 @@ namespace parallel {
 
 #define end_for_each_thread \
 	);} \
+\
+	for (decltype(parallel_for_available_threads) thread_i = 0; thread_i < parallel_for_available_threads; thread_i++) { \
+		parallel_for_executing_threads[thread_i].join(); \
+	} \
+\
 }
 
