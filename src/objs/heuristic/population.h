@@ -35,6 +35,8 @@ namespace heuristic {
 			std::vector<Individual>::iterator sliceEnd;
 		public:
 			PopulationSlice (Population &population, size_t begin, size_t end);
+			PopulationSlice (decltype(sliceBegin) begin, decltype(sliceEnd) end);
+			PopulationSlice (PopulationSlice &population, size_t begin, size_t end);
 
 			decltype(sliceBegin) begin (void);
 			decltype(sliceEnd) end (void);

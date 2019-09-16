@@ -5,10 +5,18 @@ using namespace heuristic;
 using namespace std;
 
 PopulationSlice::PopulationSlice(Population &population, size_t begin, size_t end) {
-	this->sliceBegin = population.begin();
-	advance(this->sliceBegin, begin);
-	this->sliceEnd = population.begin();
-	advance(this->sliceEnd, end);
+	this->sliceBegin = population.begin()+begin;
+	this->sliceEnd = population.begin()+end;
+}
+
+PopulationSlice::PopulationSlice(decltype(PopulationSlice::sliceBegin) begin, decltype(PopulationSlice::sliceEnd) end) :
+	sliceBegin(begin),
+	sliceEnd(end)
+{}
+
+PopulationSlice::PopulationSlice(PopulationSlice &population, size_t begin, size_t end) {
+	this->sliceBegin = population.begin()+begin;
+	this->sliceEnd = population.begin()+end;
 }
 
 decltype(PopulationSlice::sliceBegin) PopulationSlice::begin (void) {
