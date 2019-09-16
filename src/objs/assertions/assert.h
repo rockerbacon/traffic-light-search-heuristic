@@ -84,11 +84,6 @@ namespace assert {
 			virtual const char* what (void) const noexcept;
 	};
 
-	class segmentation_fault_signalled : public std::exception {
-		public:
-			virtual const char* what (void) const noexcept;
-	};
-
 	class test_case_interruption : public std::exception {};
 
 	void signal_test_case_begun(void);

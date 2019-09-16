@@ -19,7 +19,6 @@ Observer::~Observer (void) {
 
 /*TERMINAL OBSERVER*/
 void TerminalObserver::notifyBenchmarkBegun (const string& benchmarkTitle, unsigned numberOfRuns) {
-	this->numberOfRuns = 0;
 	cout << "Executing '" << benchmarkTitle << "' " << numberOfRuns << " times..." << endl;
 	cout << SAVE_CURSOR_POSITION;
 }
@@ -29,7 +28,6 @@ void TerminalObserver::notifyRunBegun (void) {
 }
 
 void TerminalObserver::notifyRunEnded (void) {
-	this->numberOfRuns++;
 	cout << MOVE_CURSOR_TO_SAVED_POSITION << CLEAR_LINE;
 	for (auto observable_variable : this->variables_to_observe) {
 		cout << CLEAR_LINE;
@@ -46,11 +44,13 @@ void TerminalObserver::notifyBenchmarkEnded (void) {
 /*TEXT FILE OBSERVER*/
 TextFileObserver::TextFileObserver (const string& outputFilePath) {
 	this->outputFile.open(outputFilePath, ios::app);
-	this->numberOfRuns = 0;
+}
+
+TextFileObserver::~TextFileObserver (void) {
+	this->outputFile.close();
 }
 
 void TextFileObserver::notifyBenchmarkBegun (const string& benchmarkTitle, unsigned numberOfRuns) {
-	this->numberOfRuns = 0;
 	time_t currentTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	tm *ptm = localtime(&currentTime);
 	char formatedTime[20];
@@ -59,8 +59,7 @@ void TextFileObserver::notifyBenchmarkBegun (const string& benchmarkTitle, unsig
 }
 
 void TextFileObserver::notifyRunBegun (void) {
-	this->numberOfRuns++;
-	this->outputFile << "\tRun: " << this->numberOfRuns << endl;
+	// do nothing
 }
 
 void TextFileObserver::notifyRunEnded (void) {

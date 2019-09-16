@@ -10,14 +10,14 @@ reset_color=`tput setaf $default_text_color`
 up_line=`tput cuu 1`
 clear_line=`tput el 1`
 
-SCRIPT_PATH=$(realpath $(dirname $0))
-TESTS_DIR="$SCRIPT_PATH/tests"
-TEST_BUILD_DIR="$SCRIPT_PATH/build"
+SCRIPT_DIR=$(realpath $(dirname $0))
+TESTS_DIR="$SCRIPT_DIR/tests"
+BUILD_DIR="$SCRIPT_DIR/build"
 
 determine_current_test_full_name () {
 	ESCAPED_TESTS_DIR=$(echo $TESTS_DIR | sed 's/\//\\\//g; s/\./\\\./g')
-	ESCAPED_TEST_BUILD_DIR=$(echo $TEST_BUILD_DIR | sed 's/\//\\\//g; s/\./\\\./g')
-	TEST_NAME=$(echo $CURRENT_TEST | sed "s/^${ESCAPED_TESTS_DIR}\///; s/^${ESCAPED_TEST_BUILD_DIR}\///;" | sed "s/^test_//; s/.cpp$//")
+	ESCAPED_BUILD_DIR=$(echo $TEST_BUILD_DIR | sed 's/\//\\\//g; s/\./\\\./g')
+	TEST_NAME=$(echo $CURRENT_TEST | sed "s/^${ESCAPED_TESTS_DIR}\///; s/^${ESCAPED_BUILD_DIR}\///;" | sed "s/^test_//; s/.cpp$//")
 	TEST_FULL_NAME="test_${TEST_NAME}"
 }
 
@@ -26,7 +26,7 @@ determine_current_test_source_file () {
 }
 
 determine_current_test_binary_file () {
-	TEST_BINARY_FILE="${TEST_BUILD_DIR}/${TEST_FULL_NAME}"
+	TEST_BINARY_FILE="${BUILD_DIR}/${TEST_FULL_NAME}"
 }
 
 if [ "$#" -gt 0 ] && [ "$1" != "all" ]; then
@@ -41,15 +41,11 @@ else
 	TESTS="${TESTS_DIR}/*.cpp"
 fi
 
-if [ ! -d "$TEST_BUILD_DIR" ]; then
-	mkdir -p "$TEST_BUILD_DIR"
-	cd "$TEST_BUILD_DIR"
-	cmake "$SCRIPT_PATH" 
-fi
-
 FAILED_TESTS=0
 SUCCESSFUL_TESTS=0
 IGNORED_TESTS=0
+
+"$SCRIPT_DIR/build.sh" --cmake-only
 
 echo	# line feed
 echo "-------------------INDIVIDUAL TESTS-------------------"
@@ -65,7 +61,7 @@ do
 		determine_current_test_binary_file
 		if [ -f "$TEST_SOURCE_FILE" ]; then
 
-			$SCRIPT_PATH/build.sh $TEST_FULL_NAME
+			"$SCRIPT_DIR/build.sh" --no-cmake  $TEST_FULL_NAME
 
 			BUILD_STATUS=$?
 			if [ $BUILD_STATUS -eq 0 ]; then

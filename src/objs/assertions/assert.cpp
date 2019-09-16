@@ -24,17 +24,17 @@ using namespace std;
 using namespace assert;
 using namespace benchmark;
 
-void when_segfault_is_signalled (int signal, siginfo_t *si, void *arg) {
-	assert::signal_test_case_failed(segmentation_fault_signalled(), assert::test_case_title);
-	exit(0);
+void segfault_signalled (int signal) {
+	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
+	cout << ERROR_TEXT_COLOR << "Test case '" << assert::test_case_title << "' failed: segmentation fault, testing cannot continue" << DEFAULT_TEXT_COLOR << " (" << elapsed_time << ")" << endl;
+	exit(signal);
 }
 
 void assert::run_first_setup_if_needed (void) {
 	if (!assert::first_setup_done) {
 		memset(&signal_action, 0, sizeof(decltype(signal_action)));
 		sigemptyset(&signal_action.sa_mask);
-		signal_action.sa_sigaction = when_segfault_is_signalled;
-		signal_action.sa_flags = SA_SIGINFO;
+		signal_action.sa_handler = segfault_signalled;
 
 		sigaction(SIGSEGV, &signal_action, NULL);
 		assert::first_setup_done = true;
@@ -57,18 +57,14 @@ const char* assertion_failed::what (void) const noexcept {
 	return this->message.c_str();
 }
 
-const char* segmentation_fault_signalled::what (void) const noexcept {
-	return "segmentation fault, testing cannot continue";
-}
-
-void assert::signal_test_case_failed (const exception& e, const string& test_case_title) {
-	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
-	cout << ERROR_TEXT_COLOR << "Test case '" << test_case_title << "' failed: " << e.what() << DEFAULT_TEXT_COLOR << " (" << elapsed_time << ")" << endl;
-}
-
 void assert::signal_test_case_succeeded (const string& test_case_title) {
 	auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
 	cout << SUCCESS_TEXT_COLOR << "Test case '" << test_case_title << "' OK" << DEFAULT_TEXT_COLOR << " (" << elapsed_time << ")" << endl;
+}
+
+void assert::signal_test_case_failed (const exception& e, const string& test_case_title) {
+       auto elapsed_time = chrono::high_resolution_clock::now() - assert::test_case_start;
+       cout << ERROR_TEXT_COLOR << "Test case '" << test_case_title << "' failed: " << e.what() << DEFAULT_TEXT_COLOR << " (" << elapsed_time << ")" << endl;
 }
 
 void assert::signal_test_case_begun (void) {
