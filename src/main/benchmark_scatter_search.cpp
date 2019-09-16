@@ -2,12 +2,14 @@
 #include "assertions/benchmark.h"
 #include "assertions/command_line_interface.h"
 
-#define DEFAULT_NUMBER_OF_RUNS 3 
+#define DEFAULT_NUMBER_OF_RUNS 10 
 #define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(500)
-#define DEFAULT_ELITE_POPULATION_SIZE 1
-#define DEFAULT_DIVERSE_POPULATION_SIZE 9
+#define DEFAULT_ELITE_POPULATION_SIZE 10
+#define DEFAULT_DIVERSE_POPULATION_SIZE 100 
 #define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
 #define DEFAULT_NUMBER_OF_THREADS 1
+
+#define DONT_OUTPUT_TO_FILE ""
 
 using namespace std;
 using namespace traffic;
@@ -29,6 +31,7 @@ int main (int argc, char** argv) {
 
 	/* CLI INTERFACE */
 	cli::RequiredArgument<string> inputPath("input", 'i');
+	cli::OptionalArgument<string> outputPath("output", DONT_OUTPUT_TO_FILE, 'o');
 
 	cli::OptionalArgument<unsigned> numberOfRuns("runs", DEFAULT_NUMBER_OF_RUNS);
 
@@ -72,6 +75,9 @@ int main (int argc, char** argv) {
 	/* CLI INTERFACE */
 
 	register_observer(new TerminalObserver());
+	if (*outputPath != DONT_OUTPUT_TO_FILE) {
+		register_observer(new TextFileObserver(*outputPath));
+	}
 
 	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
 	observe_variable("populational heuristics penalty", penalty, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE | observation_mode::MINIMUM_VALUE);
