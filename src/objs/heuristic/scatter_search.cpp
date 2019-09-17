@@ -1,5 +1,4 @@
 #include "heuristic/heuristic.h"
-#include "heuristic/population.h"
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -8,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-void diversify (const Graph &graph, PopulationSlice &elitePopulation, PopulationSlice &diversePopulation, PopulationSlice &candidatePopulation) {
+void heuristic::diversify (const Graph &graph, PopulationSlice &elitePopulation, PopulationSlice &diversePopulation, PopulationSlice &candidatePopulation) {
 	auto nextGenerationBegin = elitePopulation.begin();
 	auto nextGenerationEnd = elitePopulation.end();
 	auto battlingPopulationBegin = diversePopulation.begin();
@@ -23,16 +22,16 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 	greatestMinimumDistance = minusInfinity;
 	for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
 
-		it->mininumDistance = infinity;
+		it->minimumDistance = infinity;
 		for (auto jt = nextGenerationBegin; jt < nextGenerationEnd; jt++) {
 			currentDistance = distance(graph, it->solution, jt->solution);
-			if (currentDistance < it->mininumDistance) {
-				it->mininumDistance = currentDistance;
+			if (currentDistance < it->minimumDistance) {
+				it->minimumDistance = currentDistance;
 			}
 		}	
 
-		if (it->mininumDistance > greatestMinimumDistance) {
-			greatestMinimumDistance = it->mininumDistance;
+		if (it->minimumDistance > greatestMinimumDistance) {
+			greatestMinimumDistance = it->minimumDistance;
 			chosenIndividual = it;
 		}
 	}
@@ -46,11 +45,11 @@ void diversify (const Graph &graph, PopulationSlice &elitePopulation, Population
 		greatestMinimumDistance = minusInfinity;
 		for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
 			currentDistance = distance(graph, chosenIndividual->solution, it->solution);
-			if (currentDistance < it->mininumDistance) {
-				it->mininumDistance = currentDistance;
+			if (currentDistance < it->minimumDistance) {
+				it->minimumDistance = currentDistance;
 			}
-			if (it->mininumDistance > greatestMinimumDistance) {
-				greatestMinimumDistance = it->mininumDistance;
+			if (it->minimumDistance > greatestMinimumDistance) {
+				greatestMinimumDistance = it->minimumDistance;
 				nextChosenIndividual = it;
 			}
 		}
@@ -82,7 +81,6 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	Metrics metrics;
 	random_device seeder;
 	mt19937 randomEngine(seeder());
-	TimeUnit infinite = numeric_limits<TimeUnit>::max();
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
@@ -94,12 +92,12 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 
 	for (auto i = elitePopulation.begin(); i < elitePopulation.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
-		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};	
+		*i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};	
 	}
 
 	for (auto i = diversePopulation.begin(); i < diversePopulation.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), diverseLocalSearchStopFunction);
-		*i = {constructedSolution, graph.totalPenalty(constructedSolution)};
+		*i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
 	}
 
 	metrics.numberOfIterations = 0;

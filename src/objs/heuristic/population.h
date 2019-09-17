@@ -8,7 +8,7 @@ namespace heuristic {
 	struct Individual {
 		traffic::Solution solution;
 		traffic::TimeUnit penalty;
-		traffic::TimeUnit mininumDistance;
+		traffic::TimeUnit minimumDistance;
 
 		bool operator<(const Individual &other) const;
 	};
@@ -34,6 +34,7 @@ namespace heuristic {
 			std::vector<Individual>::iterator sliceBegin;
 			std::vector<Individual>::iterator sliceEnd;
 		public:
+			PopulationSlice (void) = default;
 			PopulationSlice (Population &population, size_t begin, size_t end);
 			PopulationSlice (decltype(sliceBegin) begin, decltype(sliceEnd) end);
 			PopulationSlice (PopulationSlice &population, size_t begin, size_t end);
