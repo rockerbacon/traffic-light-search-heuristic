@@ -7,11 +7,11 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-void heuristic::diversify (const Graph &graph, PopulationSlice &elitePopulation, PopulationSlice &diversePopulation, PopulationSlice &candidatePopulation) {
-	auto nextGenerationBegin = elitePopulation.begin();
-	auto nextGenerationEnd = elitePopulation.end();
-	auto battlingPopulationBegin = diversePopulation.begin();
-	auto battlingPopulationEnd = candidatePopulation.end();
+void heuristic::diversify (const Graph &graph, ScatterSearchPopulation &population) {
+	auto nextGenerationBegin = population.elite.begin();
+	auto nextGenerationEnd = population.elite.end();
+	auto battlingPopulationBegin = population.diverse.begin();
+	auto battlingPopulationEnd = population.candidate.end();
 	TimeUnit infinity = numeric_limits<TimeUnit>::max();
 	TimeUnit minusInfinity = numeric_limits<TimeUnit>::min();
 	TimeUnit currentDistance;
@@ -40,7 +40,7 @@ void heuristic::diversify (const Graph &graph, PopulationSlice &elitePopulation,
 	nextGenerationEnd++;
 	battlingPopulationBegin++;
 
-	while (nextGenerationEnd != diversePopulation.end()) {
+	while (nextGenerationEnd != population.diverse.end()) {
 
 		greatestMinimumDistance = minusInfinity;
 		for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
@@ -69,12 +69,9 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	size_t	referencePopulationSize = elitePopulationSize+diversePopulationSize,
 			totalPopulationSize = referencePopulationSize + referencePopulationSize/2;
 
-	Population population(totalPopulationSize, graph.getNumberOfVertices());
-
-	PopulationSlice	elitePopulation(population, 0, elitePopulationSize),
-				   	diversePopulation(population, elitePopulationSize, referencePopulationSize),
-				   	candidatePopulation(population, referencePopulationSize, totalPopulationSize),
-					referencePopulation(population, 0, referencePopulationSize);
+	Population totalPopulation(totalPopulationSize, graph.getNumberOfVertices());
+	
+	ScatterSearchPopulation	population = ScatterSearchPopulation(totalPopulation, elitePopulationSize, diversePopulationSize);
 
 	const Individual *individual1, *individual2;
 
@@ -90,12 +87,12 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
-	for (auto i = elitePopulation.begin(); i < elitePopulation.end(); i++) {
+	for (auto i = population.elite.begin(); i < population.elite.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
 		*i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};	
 	}
 
-	for (auto i = diversePopulation.begin(); i < diversePopulation.end(); i++) {
+	for (auto i = population.diverse.begin(); i < population.diverse.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), diverseLocalSearchStopFunction);
 		*i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
 	}
@@ -104,22 +101,22 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
 
-		shuffle(referencePopulation.begin(), referencePopulation.end(), randomEngine);
-		for (size_t i = 0; i < candidatePopulation.size(); i++) {
+		shuffle(population.reference.begin(), population.reference.end(), randomEngine);
+		for (size_t i = 0; i < population.candidate.size(); i++) {
 
-			individual1 = &referencePopulation[i*2];
-			individual2 = &referencePopulation[i*2+1];
+			individual1 = &population.reference[i*2];
+			individual2 = &population.reference[i*2+1];
 
-			candidatePopulation[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
-			candidatePopulation[i].solution = localSearchHeuristic(graph, candidatePopulation[i].solution, diverseLocalSearchStopFunction);
-			candidatePopulation[i].penalty = graph.totalPenalty(candidatePopulation[i].solution);
+			population.candidate[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
+			population.candidate[i].solution = localSearchHeuristic(graph, population.candidate[i].solution, diverseLocalSearchStopFunction);
+			population.candidate[i].penalty = graph.totalPenalty(population.candidate[i].solution);
 		}
 
-		sort(population.begin(), population.end());
+		sort(population.total.begin(), population.total.end());
 
-		diversify(graph, elitePopulation, diversePopulation, candidatePopulation);
+		diversify(graph, population);
 
 		metrics.numberOfIterations++;
 	}
-	return population[0].solution;
+	return population.elite[0].solution;
 }

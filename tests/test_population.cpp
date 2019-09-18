@@ -22,7 +22,6 @@ int main (void) {
 
 	vector<Individual> populationFixture;
 	Population *population;
-	PopulationSlice *populationSlice;
 	Solution tmpSolution(3);
 
 	tmpSolution.setTiming(0, 2);
@@ -81,47 +80,60 @@ int main (void) {
 		}
 	} end_test_case;
 
-	test_case("population slice instantiation raises no errors") {
-		size_t begin = 0;
-		size_t end = 2;
-		populationSlice = new PopulationSlice(*population, begin, end);
-	} end_test_case;
-
 	test_case("population slice has correct size") {
-		assert_equal(populationSlice->size(), 2);
+		PopulationSlice slice = population->slice(0, 2);
+		assert_equal(slice.size(), 2);
 	} end_test_case;
 
 	test_case("chages in the original population affect the slice") {
+		PopulationSlice slice = population->slice(0, 2);
 		(*population)[0].penalty = 5;
 		(*population)[0].solution = Solution(3);
 		(*population)[1].penalty = 2;
 		(*population)[1].solution = Solution(3);
 		(*population)[1].solution.setTiming(1, 11);
-		customAssertEqual((*populationSlice)[0], (*population)[0]);
-		customAssertEqual((*populationSlice)[1], (*population)[1]);
+		customAssertEqual(slice[0], (*population)[0]);
+		customAssertEqual(slice[1], (*population)[1]);
 	} end_test_case;
 
 	test_case("population slice is correctly iterated using iterators") {
+		PopulationSlice slice = population->slice(0, 2);
 		size_t c = 0;
-		for (auto i = populationSlice->begin(); i < populationSlice->end(); i++) {
+		for (auto i = slice.begin(); i < slice.end(); i++) {
 			*i = populationFixture[c];
 			c++;
 		}
 		assert_equal(c, 2);
 		c = 0;
-		for (auto i = populationSlice->begin(); i < populationSlice->end(); i++) {
+		for (auto i = slice.begin(); i < slice.end(); i++) {
 			customAssertEqual(*i, populationFixture[c]);
 			c++;
 		}
 	} end_test_case;
 
 	test_case("population slice is correctly iterated using foreach") {
+		PopulationSlice slice = population->slice(0, 2);
 		size_t c = 0;
-		for (Individual i : *populationSlice) {
+		for (Individual i : slice) {
 			customAssertEqual(i, populationFixture[c]);
 			c++;
 		}
 		assert_equal(c, 2);
+	} end_test_case;
+
+	test_case("population slice can be sliced correctly") {
+		PopulationSlice slice = population->slice(0, 3).slice(1, 2);
+		for (size_t i = 0; i < slice.size(); i++) {
+			customAssertEqual(slice[i], (*population)[i+1]);
+		}
+	} end_test_case;
+
+	test_case("funtion to determine scatter search population size returns correct size") {
+		size_t elitePopulationSize = 2;
+		size_t diversePopulationSize = 6;
+		size_t expectedPopulationSize = 3*(elitePopulationSize+diversePopulationSize)/2;
+
+		assert_equal(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize), expectedPopulationSize);
 	} end_test_case;
 
 	test_case("scatter search population is created with correct sizes") {

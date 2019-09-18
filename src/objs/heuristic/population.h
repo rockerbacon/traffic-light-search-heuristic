@@ -13,7 +13,36 @@ namespace heuristic {
 		bool operator<(const Individual &other) const;
 	};
 
-	class Population {
+	class PopulationSlice;
+	class PopulationInterface {
+		public:
+			virtual std::vector<Individual>::iterator begin(void) = 0;
+			virtual std::vector<Individual>::iterator end(void) = 0;
+			virtual size_t size(void) const = 0;
+
+			virtual Individual& operator[](size_t index) = 0;
+
+			virtual PopulationSlice slice(size_t begin, size_t end) = 0;
+	};
+
+	class PopulationSlice : public PopulationInterface {
+		private:
+			std::vector<Individual>::iterator sliceBegin;
+			std::vector<Individual>::iterator sliceEnd;
+		public:
+			PopulationSlice (void) = default;
+			PopulationSlice (decltype(sliceBegin) begin, decltype(sliceEnd) end);
+
+			decltype(sliceBegin) begin (void);
+			decltype(sliceEnd) end (void);
+			size_t size (void) const;
+
+			Individual& operator[](size_t index);
+
+			PopulationSlice slice (size_t begin, size_t end);
+	};
+
+	class Population : public PopulationInterface {
 		private:
 			std::vector<Individual> individuals;
 		public:
@@ -27,24 +56,10 @@ namespace heuristic {
 
 			const Individual& operator[](size_t index) const;
 			Individual& operator[](size_t index);
+
+			PopulationSlice slice (size_t begin, size_t end);
 	};
 
-	class PopulationSlice {
-		private:
-			std::vector<Individual>::iterator sliceBegin;
-			std::vector<Individual>::iterator sliceEnd;
-		public:
-			PopulationSlice (void) = default;
-			PopulationSlice (Population &population, size_t begin, size_t end);
-			PopulationSlice (decltype(sliceBegin) begin, decltype(sliceEnd) end);
-			PopulationSlice (PopulationSlice &population, size_t begin, size_t end);
-
-			decltype(sliceBegin) begin (void);
-			decltype(sliceEnd) end (void);
-			size_t size (void) const;
-
-			Individual& operator[](size_t index);
-	};
 
 	size_t scatterSearchPopulationSize(size_t elitePopulationSize, size_t diversePopulationSize);
 
@@ -55,7 +70,8 @@ namespace heuristic {
 		PopulationSlice reference;
 		PopulationSlice candidate;
 
-		ScatterSearchPopulation (Population &population, size_t elitePopulationSize, size_t diversePopulationSize);
+		ScatterSearchPopulation (void) = default;
+		ScatterSearchPopulation (PopulationInterface &population, size_t elitePopulationSize, size_t diversePopulationSize);
 	};
 
 }

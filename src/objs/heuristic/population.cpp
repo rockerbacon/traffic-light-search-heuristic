@@ -47,9 +47,13 @@ Individual& Population::operator[] (size_t index) {
 	return this->individuals[index];
 }
 
-ScatterSearchPopulation::ScatterSearchPopulation (Population &population, size_t elitePopulationSize, size_t diversePopulationSize) :
-	total(population, 0, population.size()),
-	elite(total, 0, elitePopulationSize),
+size_t heuristic::scatterSearchPopulationSize(size_t elitePopulationSize, size_t diversePopulationSize) {
+	return 3*(elitePopulationSize+diversePopulationSize)/2;
+}
+
+ScatterSearchPopulation::ScatterSearchPopulation (PopulationInterface &population, size_t elitePopulationSize, size_t diversePopulationSize) :
+	total(population.begin(), population.end()),
+	elite(population.begin(), population.begin()+elitePopulationSize),
 	diverse(elite.end(), elite.end()+diversePopulationSize),
 	reference(elite.begin(), diverse.end()),
 	candidate(reference.end(), reference.end()+reference.size()/2) 
