@@ -13,6 +13,7 @@ Population::Population(size_t numberOfIndividuals, Vertex individualsSize) {
 	for (size_t i = 0; i < numberOfIndividuals; i++) {
 		this->individuals.push_back({
 			Solution(individualsSize),
+			-1,
 			-1
 		});
 	}
@@ -45,3 +46,12 @@ const Individual& Population::operator[](size_t index) const {
 Individual& Population::operator[] (size_t index) {
 	return this->individuals[index];
 }
+
+ScatterSearchPopulation::ScatterSearchPopulation (size_t elitePopulationSize, size_t diversePopulationSize, traffic::Vertex individualsSize) :
+	total(3*(elitePopulationSize+diversePopulationSize)/2, individualsSize),
+	elite(total, 0, elitePopulationSize),
+	diverse(elite.end(), elite.end()+diversePopulationSize),
+	reference(elite.begin(), diverse.end()),
+	candidate(reference.end(), reference.end()+reference.size()/2) 
+{
+}	

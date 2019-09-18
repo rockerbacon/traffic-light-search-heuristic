@@ -28,17 +28,17 @@ int main (void) {
 	tmpSolution.setTiming(0, 2);
 	tmpSolution.setTiming(1, 4);
 	tmpSolution.setTiming(2, 6);
-	populationFixture.push_back({tmpSolution, 40});
+	populationFixture.push_back({tmpSolution, 40, 0});
 
 	tmpSolution.setTiming(0, 6);
 	tmpSolution.setTiming(1, 3);
 	tmpSolution.setTiming(2, 8);
-	populationFixture.push_back({tmpSolution, 22});
+	populationFixture.push_back({tmpSolution, 22, 0});
 
 	tmpSolution.setTiming(0, 5);
 	tmpSolution.setTiming(1, 7);
 	tmpSolution.setTiming(2, 0);
-	populationFixture.push_back({tmpSolution, 31});
+	populationFixture.push_back({tmpSolution, 31, 0});
 
 	test_case("population instantiation raises no errors") {
 		size_t numberOfIndividuals = 3;
@@ -117,6 +117,30 @@ int main (void) {
 			c++;
 		}
 		assert_equal(c, 2);
+	} end_test_case;
+
+	test_case("scatter search population is created with correct sizes") {
+		size_t elitePopulationSize = 2;
+		size_t diversePopulationSize = 6;
+		size_t numberOfVertices = 3;
+		size_t referencePopulationSize = elitePopulationSize+diversePopulationSize;
+		ScatterSearchPopulation scatterSearchPopulation(diversePopulationSize, elitePopulationSize, numberOfVertices);
+
+		assert_equal(scatterSearchPopulation.total.size(), 3*referencePopulationSize/2);
+		assert_equal(scatterSearchPopulation.elite.size(), elitePopulationSize);
+		assert_equal(scatterSearchPopulation.diverse.size(), diversePopulationSize);
+		assert_equal(scatterSearchPopulation.reference.size(), referencePopulationSize);
+		assert_equal(scatterSearchPopulation.candidate.size(), referencePopulationSize/2);
+
+		for (auto i : scatterSearchPopulation.total) {
+			assert_equal(i.solution.getNumberOfVertices(), numberOfVertices);
+		}
+	} end_test_case;
+
+	test_case("reference population in scatter search population is the combination of elite and diverse populations") {
+		ScatterSearchPopulation scatterSearchPopulation(2, 6, 3);
+		assert_true(scatterSearchPopulation.elite.begin() == scatterSearchPopulation.reference.begin());
+		assert_true(scatterSearchPopulation.diverse.end() == scatterSearchPopulation.reference.end());
 	} end_test_case;
 
 	test_case("population destruction raises no errors") {
