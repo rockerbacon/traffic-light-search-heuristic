@@ -47,11 +47,10 @@ Individual& Population::operator[] (size_t index) {
 	return this->individuals[index];
 }
 
-ScatterSearchPopulation::ScatterSearchPopulation (size_t elitePopulationSize, size_t diversePopulationSize, traffic::Vertex individualsSize) :
-	total(3*(elitePopulationSize+diversePopulationSize)/2, individualsSize),
+ScatterSearchPopulation::ScatterSearchPopulation (Population &population, size_t elitePopulationSize, size_t diversePopulationSize) :
+	total(population, 0, population.size()),
 	elite(total, 0, elitePopulationSize),
 	diverse(elite.end(), elite.end()+diversePopulationSize),
 	reference(elite.begin(), diverse.end()),
 	candidate(reference.end(), reference.end()+reference.size()/2) 
-{
-}	
+{}	

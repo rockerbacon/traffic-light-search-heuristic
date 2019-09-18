@@ -46,14 +46,16 @@ namespace heuristic {
 			Individual& operator[](size_t index);
 	};
 
+	size_t scatterSearchPopulationSize(size_t elitePopulationSize, size_t diversePopulationSize);
+
 	struct ScatterSearchPopulation {
-		Population total;
+		PopulationSlice total;
 		PopulationSlice elite;
 		PopulationSlice diverse;
 		PopulationSlice reference;
 		PopulationSlice candidate;
 
-		ScatterSearchPopulation(size_t elitePopulationSize, size_t diversePopulationSize, traffic::Vertex individualsSize);
+		ScatterSearchPopulation (Population &population, size_t elitePopulationSize, size_t diversePopulationSize);
 	};
 
 }

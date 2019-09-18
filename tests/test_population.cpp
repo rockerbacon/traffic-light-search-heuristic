@@ -40,8 +40,13 @@ int main (void) {
 	tmpSolution.setTiming(2, 0);
 	populationFixture.push_back({tmpSolution, 31, 0});
 
+	tmpSolution.setTiming(0, 1);
+	tmpSolution.setTiming(1, 5);
+	tmpSolution.setTiming(2, 1);
+	populationFixture.push_back({tmpSolution, 20, 0});
+
 	test_case("population instantiation raises no errors") {
-		size_t numberOfIndividuals = 3;
+		size_t numberOfIndividuals = 4;
 		Vertex individualsSize = 3;
 		population = new Population(numberOfIndividuals, individualsSize);
 	} end_test_case;
@@ -63,7 +68,7 @@ int main (void) {
 		size_t c = 0;
 		for (Individual i : *population) {
 			customAssertEqual(i, populationFixture[c]);
-			c++;	
+			c++;
 		}
 	} end_test_case;
 
@@ -120,11 +125,10 @@ int main (void) {
 	} end_test_case;
 
 	test_case("scatter search population is created with correct sizes") {
-		size_t elitePopulationSize = 2;
-		size_t diversePopulationSize = 6;
-		size_t numberOfVertices = 3;
+		size_t elitePopulationSize = 1;
+		size_t diversePopulationSize = 3;
 		size_t referencePopulationSize = elitePopulationSize+diversePopulationSize;
-		ScatterSearchPopulation scatterSearchPopulation(diversePopulationSize, elitePopulationSize, numberOfVertices);
+		ScatterSearchPopulation scatterSearchPopulation(*population, diversePopulationSize, elitePopulationSize);
 
 		assert_equal(scatterSearchPopulation.total.size(), 3*referencePopulationSize/2);
 		assert_equal(scatterSearchPopulation.elite.size(), elitePopulationSize);
@@ -132,13 +136,10 @@ int main (void) {
 		assert_equal(scatterSearchPopulation.reference.size(), referencePopulationSize);
 		assert_equal(scatterSearchPopulation.candidate.size(), referencePopulationSize/2);
 
-		for (auto i : scatterSearchPopulation.total) {
-			assert_equal(i.solution.getNumberOfVertices(), numberOfVertices);
-		}
 	} end_test_case;
 
 	test_case("reference population in scatter search population is the combination of elite and diverse populations") {
-		ScatterSearchPopulation scatterSearchPopulation(2, 6, 3);
+		ScatterSearchPopulation scatterSearchPopulation(*population, 1, 3);
 		assert_true(scatterSearchPopulation.elite.begin() == scatterSearchPopulation.reference.begin());
 		assert_true(scatterSearchPopulation.diverse.end() == scatterSearchPopulation.reference.end());
 	} end_test_case;
