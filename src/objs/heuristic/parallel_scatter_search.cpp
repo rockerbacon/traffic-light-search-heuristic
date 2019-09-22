@@ -110,24 +110,24 @@ void combineAndDiversify (
 
 }
 
-void bottomUpTreeDiversify(const Graph &graph, PopulationInterface &combinedPopulation, ScatterSearchPopulation &currentPopulationLeftHalf, ScatterSearchPopulation &currentPopulationRightHalf, vector<mutex> &mutex, size_t populationToWait_i, unsigned numberOfThreads) {
+void bottomUpTreeDiversify(const Graph &graph, PopulationInterface &combinedPopulation, ScatterSearchPopulation &currentPopulationLeftHalf, ScatterSearchPopulation &currentPopulationRightHalf, vector<mutex> &mutex, size_t currentPopulation_i, size_t combinationsCount, unsigned numberOfThreads) {
 
-	mutex[populationToWait_i].lock();
+	auto populationToWait_i = currentPopulation_i+combinationsCount;
 
-	combineAndDiversify(graph, currentPopulationLeftHalf, currentPopulationRightHalf, combinedPopulation);
+	if (populationToWait_i < numberOfThreads) {
 
-	auto nextPopulationToWait_i = populationToWait_i*2;
+		mutex[populationToWait_i].lock();
+			combineAndDiversify(graph, currentPopulationLeftHalf, currentPopulationRightHalf, combinedPopulation);
 
-	if (nextPopulationToWait_i < numberOfThreads) {
+			auto expandedPopulation = PopulationSlice(combinedPopulation.begin(), combinedPopulation.begin()+2*combinedPopulation.size());
 
-		auto expandedPopulation = PopulationSlice(combinedPopulation.begin(), combinedPopulation.begin()+2*combinedPopulation.size());
+			auto nextPopulationLeftHalf = ScatterSearchPopulation(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
 
-		auto nextPopulationLeftHalf = ScatterSearchPopulation(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
+			auto nextPopulationRightHalfSlice = PopulationSlice(currentPopulationRightHalf.total.end(), currentPopulationRightHalf.total.end()+combinedPopulation.size());
+			auto nextPopulationRightHalf = ScatterSearchPopulation(nextPopulationRightHalfSlice, nextPopulationLeftHalf.elite.size(), nextPopulationLeftHalf.diverse.size());
 
-		auto nextPopulationRightHalfSlice = PopulationSlice(currentPopulationRightHalf.total.end(), currentPopulationRightHalf.total.end()+combinedPopulation.size());
-		auto nextPopulationRightHalf = ScatterSearchPopulation(nextPopulationRightHalfSlice, nextPopulationLeftHalf.elite.size(), nextPopulationLeftHalf.diverse.size());
-
-		bottomUpTreeDiversify(graph, expandedPopulation, nextPopulationLeftHalf, nextPopulationRightHalf, mutex, nextPopulationToWait_i, numberOfThreads);
+			bottomUpTreeDiversify(graph, expandedPopulation, nextPopulationLeftHalf, nextPopulationRightHalf, mutex, currentPopulation_i, combinationsCount*2, numberOfThreads);
+		mutex[populationToWait_i].unlock();
 
 	}
 
@@ -142,21 +142,22 @@ unsigned brianKernighanCountBitsSet (unsigned number) {
 	return count;
 }
 
-void redistributePopulation (PopulationInterface &totalPopulation, vector<ScatterSearchPopulation> &population, size_t totalReferencePopulationSize, unsigned thread_i) {
+void redistributePopulation (ScatterSearchPopulation &totalPopulation, ScatterSearchPopulation &population, unsigned thread_i) {
 
-	size_t elitePopulationOffset = population[thread_i].elite.size()*thread_i;
-	size_t candidatePopulationOffset = totalReferencePopulationSize+population[thread_i].candidate.size()*thread_i;
+	auto elitePopulationBegin = totalPopulation.elite.begin()+population.elite.size()*thread_i;
+	auto elitePopulationEnd = totalPopulation.elite.begin()+population.elite.size()*(thread_i+1);
+	auto candidatePopulationBegin = totalPopulation.candidate.begin()+population.candidate.size()*thread_i;
+	auto candidatePopulationEnd = totalPopulation.candidate.end()+population.candidate.size()*(thread_i+1);
 	vector<Individual>::iterator unifiedDiverseIndividual;
 
-	unifiedDiverseIndividual = population[thread_i].elite.begin();
-	for (auto unifiedEliteIndividual = totalPopulation.begin()+elitePopulationOffset; unifiedEliteIndividual != totalPopulation.begin()+elitePopulationOffset+population[thread_i].elite.size(); unifiedEliteIndividual++) {
-		swap(*unifiedEliteIndividual, *unifiedDiverseIndividual);
+	unifiedDiverseIndividual = population.elite.begin();
+	for (auto unifiedEliteIndividual = elitePopulationBegin; unifiedEliteIndividual != elitePopulationEnd; unifiedEliteIndividual++) {
+		//swap(*unifiedEliteIndividual, *unifiedDiverseIndividual);
 		unifiedDiverseIndividual++;
 	}
-
-	unifiedDiverseIndividual = population[thread_i].candidate.begin();
-	for (auto unifiedCandidateIndividual = totalPopulation.begin()+candidatePopulationOffset; unifiedCandidateIndividual != totalPopulation.begin()+candidatePopulationOffset+population[thread_i].candidate.size(); unifiedCandidateIndividual++) {
-		swap(*unifiedCandidateIndividual, *unifiedDiverseIndividual);
+	unifiedDiverseIndividual = population.candidate.begin();
+	for (auto unifiedCandidateIndividual = candidatePopulationBegin; unifiedCandidateIndividual != candidatePopulationEnd; unifiedCandidateIndividual++) {
+		//swap(*unifiedCandidateIndividual, *unifiedDiverseIndividual);
 		unifiedDiverseIndividual++;
 	}
 
@@ -179,16 +180,16 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
 	vector<Population> totalPopulation; totalPopulation.reserve(2);
+	vector<ScatterSearchPopulation> totalSubdividedPopulation(2);
 	size_t currentPopulation_i;
 	vector<vector<ScatterSearchPopulation>> population(2);
 
 	for (size_t i = 0; i < 2; i++) {
 		totalPopulation.push_back( Population(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize), graph.getNumberOfVertices()) );
+		totalSubdividedPopulation[i] = ScatterSearchPopulation(totalPopulation.back(), elitePopulationSize, diversePopulationSize);
 		population[i] = vector<ScatterSearchPopulation>(numberOfThreads);
 	}
 	currentPopulation_i = 0;
-
-	auto referencePopulationSize = elitePopulationSize+diversePopulationSize;
 
 	auto threadPopulationSize = totalPopulation[currentPopulation_i].size()/numberOfThreads;
 	auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
@@ -252,7 +253,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 			if ((thread_i&1) == 0) {
 				auto nextPopulationSlice = totalPopulation[nextPopulation_i].slice(threadReferencePopulationSize*thread_i, threadReferencePopulationSize*(thread_i + 2));
-				bottomUpTreeDiversify(graph, nextPopulationSlice, population[currentPopulation_i][thread_i], population[currentPopulation_i][thread_i+1], populationMutex, thread_i+1, numberOfThreads);
+				bottomUpTreeDiversify(graph, nextPopulationSlice, population[currentPopulation_i][thread_i], population[currentPopulation_i][thread_i+1], populationMutex, thread_i, 1, numberOfThreads);
 			}
 
 			populationMutex[thread_i].unlock();
@@ -260,7 +261,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		} end_for_each_thread;
 
 		for_each_thread	(numberOfThreads) {
-			redistributePopulation(totalPopulation[nextPopulation_i], population[nextPopulation_i], referencePopulationSize, thread_i);
+			redistributePopulation(totalSubdividedPopulation[nextPopulation_i], population[nextPopulation_i][thread_i], thread_i);
 		} end_for_each_thread;
 
 		metrics.numberOfIterations++;
