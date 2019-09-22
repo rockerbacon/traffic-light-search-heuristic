@@ -13,6 +13,13 @@ using namespace heuristic;
 
 // TODO clean after debugging
 mutex coutMutex;
+ostream& operator<<(ostream &stream, const Individual &individual) {
+	for (Vertex v = 0; v < individual.solution.getNumberOfVertices(); v++) {
+		stream << individual.solution.getTiming(v) << ", ";
+	}
+	return stream;
+}
+		
 
 vector<Individual>::iterator recalculateDistancesToElitePopulation(const Graph &graph, PopulationSlice &population, PopulationInterface &elitePopulation) {
 
@@ -71,10 +78,10 @@ void combineAndDiversify (
 
 	// insert elite elements
 	for (auto &i : leftPopulation.elite) {
-		nextPopulation[individualsChosen++] = i;
+		swap(nextPopulation[individualsChosen++], i);
 	}
 	for (auto &i : rightPopulation.elite) {
-		nextPopulation[individualsChosen++] = i;
+		swap(nextPopulation[individualsChosen++], i);
 	}
 
 	auto leftChosenIndividual = recalculateDistancesToElitePopulation(graph, leftPopulation.diverse, rightPopulation.elite);
@@ -86,7 +93,7 @@ void combineAndDiversify (
 		chosenIndividual = &rightChosenIndividual;
 	}
 
-	nextPopulation[individualsChosen++] = **chosenIndividual;
+	swap(nextPopulation[individualsChosen++], **chosenIndividual);
 
 	while (individualsChosen < nextPopulation.size()) {
 	
@@ -104,7 +111,7 @@ void combineAndDiversify (
 			chosenIndividual = &rightChosenIndividual;
 		}
 
-		nextPopulation[individualsChosen++] = **chosenIndividual;
+		swap(nextPopulation[individualsChosen++], **chosenIndividual);
 
 	}
 
@@ -142,22 +149,22 @@ unsigned brianKernighanCountBitsSet (unsigned number) {
 	return count;
 }
 
-void redistributePopulation (ScatterSearchPopulation &totalPopulation, ScatterSearchPopulation &population, unsigned thread_i) {
+void arrangePopulation (ScatterSearchPopulation &totalPopulation, ScatterSearchPopulation &population, unsigned thread_i) {
 
 	auto elitePopulationBegin = totalPopulation.elite.begin()+population.elite.size()*thread_i;
 	auto elitePopulationEnd = totalPopulation.elite.begin()+population.elite.size()*(thread_i+1);
 	auto candidatePopulationBegin = totalPopulation.candidate.begin()+population.candidate.size()*thread_i;
-	auto candidatePopulationEnd = totalPopulation.candidate.end()+population.candidate.size()*(thread_i+1);
+	auto candidatePopulationEnd = totalPopulation.candidate.begin()+population.candidate.size()*(thread_i+1);
 	vector<Individual>::iterator unifiedDiverseIndividual;
 
 	unifiedDiverseIndividual = population.elite.begin();
 	for (auto unifiedEliteIndividual = elitePopulationBegin; unifiedEliteIndividual != elitePopulationEnd; unifiedEliteIndividual++) {
-		//swap(*unifiedEliteIndividual, *unifiedDiverseIndividual);
+		swap(*unifiedEliteIndividual, *unifiedDiverseIndividual);
 		unifiedDiverseIndividual++;
 	}
 	unifiedDiverseIndividual = population.candidate.begin();
 	for (auto unifiedCandidateIndividual = candidatePopulationBegin; unifiedCandidateIndividual != candidatePopulationEnd; unifiedCandidateIndividual++) {
-		//swap(*unifiedCandidateIndividual, *unifiedDiverseIndividual);
+		swap(*unifiedCandidateIndividual, *unifiedDiverseIndividual);
 		unifiedDiverseIndividual++;
 	}
 
@@ -181,7 +188,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	vector<Population> totalPopulation; totalPopulation.reserve(2);
 	vector<ScatterSearchPopulation> totalSubdividedPopulation(2);
-	size_t currentPopulation_i;
+	size_t currentPopulation_i, nextPopulation_i;
 	vector<vector<ScatterSearchPopulation>> population(2);
 
 	for (size_t i = 0; i < 2; i++) {
@@ -189,9 +196,8 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		totalSubdividedPopulation[i] = ScatterSearchPopulation(totalPopulation.back(), elitePopulationSize, diversePopulationSize);
 		population[i] = vector<ScatterSearchPopulation>(numberOfThreads);
 	}
-	currentPopulation_i = 0;
 
-	auto threadPopulationSize = totalPopulation[currentPopulation_i].size()/numberOfThreads;
+	auto threadPopulationSize = totalPopulation[0].size()/numberOfThreads;
 	auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
 	auto threadDiversePopulationSize = diversePopulationSize/numberOfThreads;
 	auto threadReferencePopulationSize = threadElitePopulationSize+threadDiversePopulationSize;
@@ -205,25 +211,45 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 			population[i][thread_i] = ScatterSearchPopulation(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
 		}
 		
-		for (auto &i : population[currentPopulation_i][thread_i].elite) {
-			i.solution = constructHeuristicSolution(graph);
-			i.solution = localSearchHeuristic(graph, i.solution, eliteLocalSearchStopFunction);
-			i.penalty = graph.totalPenalty(i.solution);
+		for (auto i = threadElitePopulationSize*thread_i; i < threadElitePopulationSize*(thread_i+1); i++) {
+			totalPopulation[0][i].solution = constructHeuristicSolution(graph);
+			totalPopulation[0][i].solution = localSearchHeuristic(graph, totalPopulation[0][i].solution, eliteLocalSearchStopFunction);
+			totalPopulation[0][i].penalty = graph.totalPenalty(totalPopulation[0][i].solution);
 		}
 		
-		for (auto &i : population[currentPopulation_i][thread_i].diverse) {
-			i.solution = constructHeuristicSolution(graph);
-			i.penalty = graph.totalPenalty(i.solution);
+		for (auto i = elitePopulationSize+threadDiversePopulationSize*thread_i; i < elitePopulationSize+threadDiversePopulationSize*(thread_i+1); i++) {
+			totalPopulation[0][i].solution = constructHeuristicSolution(graph);
+			totalPopulation[0][i].penalty = graph.totalPenalty(totalPopulation[0][i].solution);
 		}
 
 	} end_for_each_thread;
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
+	nextPopulation_i = 0;
 	while (stopFunction(metrics)) {
 
 		vector<mutex> populationMutex(numberOfThreads);
-		auto nextPopulation_i = (currentPopulation_i+1) % 2;
+		currentPopulation_i = nextPopulation_i;
+		nextPopulation_i = (currentPopulation_i+1)%2;
+
+				coutMutex.lock();
+				cout << " before arrangement" << endl;
+				for (auto &i : totalPopulation[currentPopulation_i]) {
+					cout << i << " penalty " << i.penalty << endl;
+				}
+				coutMutex.unlock();
+
+		for_each_thread (numberOfThreads) {
+			arrangePopulation(totalSubdividedPopulation[currentPopulation_i], population[currentPopulation_i][thread_i], thread_i);
+		} end_for_each_thread;
+
+				coutMutex.lock();
+				cout << " after arrangement" << endl;
+				for (auto &i : totalPopulation[currentPopulation_i]) {
+					cout << i << " penalty " << i.penalty << endl;
+				}
+				coutMutex.unlock();
 
 		for_each_thread (numberOfThreads) {
 
@@ -234,38 +260,33 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 			populationMutex[thread_i].lock();
 
-			shuffle(population[currentPopulation_i][thread_i].reference.begin(), population[currentPopulation_i][thread_i].reference.end(), randomEngine);
+				shuffle(population[currentPopulation_i][thread_i].reference.begin(), population[currentPopulation_i][thread_i].reference.end(), randomEngine);
 
-			for (size_t i = 0; i < population[currentPopulation_i][thread_i].candidate.size(); i++) {
+				for (size_t i = 0; i < population[currentPopulation_i][thread_i].candidate.size(); i++) {
 
-				individual1 = &population[currentPopulation_i][thread_i].reference[i*2];
-				individual2 = &population[currentPopulation_i][thread_i].reference[i*2+1];
+					individual1 = &population[currentPopulation_i][thread_i].reference[i*2];
+					individual2 = &population[currentPopulation_i][thread_i].reference[i*2+1];
 
-				population[currentPopulation_i][thread_i].candidate[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
-				population[currentPopulation_i][thread_i].candidate[i].solution = localSearchHeuristic(graph, population[currentPopulation_i][thread_i].candidate[i].solution, diverseLocalSearchStopFunction);
-				population[currentPopulation_i][thread_i].candidate[i].penalty = graph.totalPenalty(population[currentPopulation_i][thread_i].candidate[i].solution);
+					population[currentPopulation_i][thread_i].candidate[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
+					population[currentPopulation_i][thread_i].candidate[i].solution = localSearchHeuristic(graph, population[currentPopulation_i][thread_i].candidate[i].solution, diverseLocalSearchStopFunction);
+					population[currentPopulation_i][thread_i].candidate[i].penalty = graph.totalPenalty(population[currentPopulation_i][thread_i].candidate[i].solution);
 
-			}
+				}
 
-			sort(population[currentPopulation_i][thread_i].total.begin(), population[currentPopulation_i][thread_i].total.end());
+				sort(population[currentPopulation_i][thread_i].total.begin(), population[currentPopulation_i][thread_i].total.end());
 
-			diversify(graph, population[currentPopulation_i][thread_i]);
+				diversify(graph, population[currentPopulation_i][thread_i]);
 
-			if ((thread_i&1) == 0) {
-				auto nextPopulationSlice = totalPopulation[nextPopulation_i].slice(threadReferencePopulationSize*thread_i, threadReferencePopulationSize*(thread_i + 2));
-				bottomUpTreeDiversify(graph, nextPopulationSlice, population[currentPopulation_i][thread_i], population[currentPopulation_i][thread_i+1], populationMutex, thread_i, 1, numberOfThreads);
-			}
+				if ((thread_i&1) == 0) {
+					auto nextPopulationSlice = totalPopulation[nextPopulation_i].slice(threadReferencePopulationSize*thread_i, threadReferencePopulationSize*(thread_i + 2));
+					bottomUpTreeDiversify(graph, nextPopulationSlice, population[currentPopulation_i][thread_i], population[currentPopulation_i][thread_i+1], populationMutex, thread_i, 1, numberOfThreads);
+				}
 
 			populationMutex[thread_i].unlock();
 
 		} end_for_each_thread;
 
-		for_each_thread	(numberOfThreads) {
-			redistributePopulation(totalSubdividedPopulation[nextPopulation_i], population[nextPopulation_i][thread_i], thread_i);
-		} end_for_each_thread;
-
 		metrics.numberOfIterations++;
-		currentPopulation_i = nextPopulation_i;
 
 	}
 
