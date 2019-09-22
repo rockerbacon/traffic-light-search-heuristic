@@ -2,6 +2,8 @@
 
 #include "traffic_graph/traffic_graph.h"
 #include <vector>
+#include <list>
+#include <mutex>
 
 namespace heuristic {
 
@@ -16,6 +18,8 @@ namespace heuristic {
 	class PopulationSlice;
 	class PopulationInterface {
 		public:
+			virtual ~PopulationInterface(void) = default;
+
 			virtual std::vector<Individual>::iterator begin(void) = 0;
 			virtual std::vector<Individual>::iterator end(void) = 0;
 			virtual size_t size(void) const = 0;
@@ -69,6 +73,7 @@ namespace heuristic {
 		PopulationSlice diverse;
 		PopulationSlice reference;
 		PopulationSlice candidate;
+		PopulationSlice battling;
 
 		ScatterSearchPopulation (void) = default;
 		ScatterSearchPopulation (PopulationInterface &population, size_t elitePopulationSize, size_t diversePopulationSize);

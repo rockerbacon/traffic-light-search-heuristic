@@ -56,5 +56,6 @@ ScatterSearchPopulation::ScatterSearchPopulation (PopulationInterface &populatio
 	elite(population.begin(), population.begin()+elitePopulationSize),
 	diverse(elite.end(), elite.end()+diversePopulationSize),
 	reference(elite.begin(), diverse.end()),
-	candidate(reference.end(), reference.end()+reference.size()/2) 
+	candidate(reference.end(), reference.end()+reference.size()/2),
+	battling(diverse.begin(), candidate.end())
 {}	

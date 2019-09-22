@@ -140,13 +140,15 @@ int main (void) {
 		size_t elitePopulationSize = 1;
 		size_t diversePopulationSize = 3;
 		size_t referencePopulationSize = elitePopulationSize+diversePopulationSize;
-		ScatterSearchPopulation scatterSearchPopulation(*population, diversePopulationSize, elitePopulationSize);
+		Population population2(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize), 3);
+		ScatterSearchPopulation scatterSearchPopulation(population2, elitePopulationSize, diversePopulationSize);
 
 		assert_equal(scatterSearchPopulation.total.size(), 3*referencePopulationSize/2);
 		assert_equal(scatterSearchPopulation.elite.size(), elitePopulationSize);
 		assert_equal(scatterSearchPopulation.diverse.size(), diversePopulationSize);
 		assert_equal(scatterSearchPopulation.reference.size(), referencePopulationSize);
 		assert_equal(scatterSearchPopulation.candidate.size(), referencePopulationSize/2);
+		assert_equal(scatterSearchPopulation.battling.size(), diversePopulationSize + referencePopulationSize/2);
 
 	} end_test_case;
 
