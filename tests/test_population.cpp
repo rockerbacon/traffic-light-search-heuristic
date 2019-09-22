@@ -158,6 +158,21 @@ int main (void) {
 		assert_true(scatterSearchPopulation.diverse.end() == scatterSearchPopulation.reference.end());
 	} end_test_case;
 
+	test_case("elite population begins at beginning of total population") {
+		ScatterSearchPopulation scatterSearchPopulation(*population, 1, 3);
+		assert_true(scatterSearchPopulation.elite.begin() == population->begin());
+	} end_test_case;
+
+	test_case("diverse population begins where elite popultion ends") {
+		ScatterSearchPopulation scatterSearchPopulation(*population, 1, 3);
+		assert_true(scatterSearchPopulation.diverse.begin() == scatterSearchPopulation.elite.end());
+	} end_test_case;
+
+	test_case("candidate population begins where diverse population ends") {
+		ScatterSearchPopulation scatterSearchPopulation(*population, 1, 3);
+		assert_true(scatterSearchPopulation.candidate.begin() == scatterSearchPopulation.diverse.end());
+	} end_test_case;
+
 	test_case("population destruction raises no errors") {
 		delete population;
 	} end_test_case;
