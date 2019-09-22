@@ -11,6 +11,9 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
+// TODO clean after debugging
+mutex coutMutex;
+
 vector<Individual>::iterator recalculateDistancesToElitePopulation(const Graph &graph, PopulationSlice &population, PopulationInterface &elitePopulation) {
 
 	TimeUnit currentDistance;
@@ -117,7 +120,7 @@ void bottomUpTreeDiversify(const Graph &graph, PopulationInterface &combinedPopu
 
 	if (nextPopulationToWait_i < numberOfThreads) {
 
-		auto expandedPopulation = PopulationSlice(combinedPopulation.begin(), combinedPopulation.end()+combinedPopulation.size());
+		auto expandedPopulation = PopulationSlice(combinedPopulation.begin(), combinedPopulation.begin()+2*combinedPopulation.size());
 
 		auto nextPopulationLeftHalf = ScatterSearchPopulation(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
 
@@ -156,11 +159,15 @@ void redistributePopulation (PopulationInterface &totalPopulation, vector<Scatte
 		swap(*unifiedCandidateIndividual, *unifiedDiverseIndividual);
 		unifiedDiverseIndividual++;
 	}
+
 }
 
 Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod, unsigned numberOfThreads) {
 	if ((elitePopulationSize+diversePopulationSize) % numberOfThreads != 0) {
 		throw invalid_argument("elitePopulationSize+diversePopulationSize must be a multiple of the number of threads");
+	}
+	if (((elitePopulationSize+diversePopulationSize)/numberOfThreads)&1) {
+		throw invalid_argument("(elitePopulationSize+diversePopulationSize)/numberOfThreads must be an even number");
 	}
 	if (brianKernighanCountBitsSet(numberOfThreads) != 1) {
 		throw invalid_argument("numberOfThreads must be a power of 2");
@@ -244,7 +251,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 			diversify(graph, population[currentPopulation_i][thread_i]);
 
 			if ((thread_i&1) == 0) {
-				auto nextPopulationSlice = totalPopulation[nextPopulation_i].slice(threadReferencePopulationSize*thread_i, threadReferencePopulationSize*(thread_i+1)*2);
+				auto nextPopulationSlice = totalPopulation[nextPopulation_i].slice(threadReferencePopulationSize*thread_i, threadReferencePopulationSize*(thread_i + 2));
 				bottomUpTreeDiversify(graph, nextPopulationSlice, population[currentPopulation_i][thread_i], population[currentPopulation_i][thread_i+1], populationMutex, thread_i+1, numberOfThreads);
 			}
 
@@ -252,7 +259,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 		} end_for_each_thread;
 
-		for_each_thread (numberOfThreads) {
+		for_each_thread	(numberOfThreads) {
 			redistributePopulation(totalPopulation[nextPopulation_i], population[nextPopulation_i], referencePopulationSize, thread_i);
 		} end_for_each_thread;
 
