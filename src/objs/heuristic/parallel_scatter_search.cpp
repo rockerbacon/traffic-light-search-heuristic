@@ -11,16 +11,6 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-// TODO clean after debugging
-mutex coutMutex;
-ostream& operator<<(ostream &stream, const Individual &individual) {
-	for (Vertex v = 0; v < individual.solution.getNumberOfVertices(); v++) {
-		stream << individual.solution.getTiming(v) << ", ";
-	}
-	return stream;
-}
-		
-
 vector<Individual>::iterator recalculateDistancesToElitePopulation(const Graph &graph, PopulationSlice &population, PopulationInterface &elitePopulation) {
 
 	TimeUnit currentDistance;
@@ -76,18 +66,16 @@ void combineAndDiversify (
 	auto rightPopulationBegin = rightPopulation.battling.begin();
 	auto rightPopulationEnd = rightPopulation.battling.end();
 
-	bool leftIndividualWasChosen;
-
 	auto newReferencePopulationEnd = leftPopulation.total.begin() + leftPopulation.reference.size()+rightPopulation.reference.size();
-	auto newElitePopulationEnd = leftPopulation.total.begin() + leftPopulation.elite.size()+rightPopulation.elite.size();
+	auto newElitePopulationEnd = leftPopulation.elite.begin() + leftPopulation.elite.size()+rightPopulation.elite.size();
+
+	decltype(leftPopulationEnd) leftPopulationBegin;
 
 	// insert elite elements
-	auto leftPopulationBegin = leftPopulation.elite.begin();
-	while (leftPopulationBegin != newElitePopulationEnd) {
+	for (leftPopulationBegin = leftPopulation.elite.begin(); leftPopulationBegin != newElitePopulationEnd; leftPopulationBegin++) {
 		if (rightPopulation.elite.begin()->penalty < leftPopulationBegin->penalty) {
 			swap(*leftPopulationBegin, *rightPopulation.elite.begin());
 		}
-		leftPopulationBegin++;
 	}
 
 	auto leftChosenIndividual = recalculateDistancesToElitePopulation(graph, leftPopulation.battling, rightPopulation.elite);
@@ -95,27 +83,27 @@ void combineAndDiversify (
 
 	while (leftPopulationBegin != newReferencePopulationEnd) {
 	
-		leftIndividualWasChosen = leftPopulationBegin != leftPopulationEnd && (rightPopulationBegin == rightPopulationEnd || leftChosenIndividual->minimumDistance > rightChosenIndividual->minimumDistance);
+		if (leftPopulationBegin != leftPopulationEnd && (rightPopulationBegin == rightPopulationEnd || leftChosenIndividual->minimumDistance > rightChosenIndividual->minimumDistance)) {
 
-		if (leftIndividualWasChosen) {
 			swap(*leftPopulationBegin, *leftChosenIndividual);
 			leftPopulationBegin++;
+
+			//rightChosenIndividual = recalculateDistances(graph, leftChosenIndividual, rightPopulationBegin, rightPopulationEnd);
+			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
+
 		} else {
+
 			swap(*rightPopulationBegin, *rightChosenIndividual);
 			swap(*leftPopulationEnd, *rightPopulationBegin);
 			swap(*leftPopulationBegin, *leftPopulationEnd);
 			rightPopulationBegin++;
 			leftPopulationBegin++;
 			leftPopulationEnd++;
-		}
 
-		if (leftIndividualWasChosen) {
-			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
-			rightChosenIndividual = recalculateDistances(graph, leftChosenIndividual, rightPopulationBegin, rightPopulationEnd);
-		} else {
-			leftChosenIndividual = recalculateDistances(graph, rightChosenIndividual, leftPopulationBegin, leftPopulationEnd);
+			//leftChosenIndividual = recalculateDistances(graph, rightChosenIndividual, leftPopulationBegin, leftPopulationEnd);
 			rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
-		}	
+
+		}
 
 	}
 
@@ -128,27 +116,10 @@ void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation &currentP
 	if (populationToWait_i < numberOfThreads) {
 
 		mutex[populationToWait_i].lock();
-				coutMutex.lock();
-				cout << currentPopulation_i << " left" << endl;
-				for (auto &i : currentPopulationLeftHalf.total) {
-					cout << i << " penalty " << i.penalty << endl;
-				}
-
-				cout << currentPopulation_i << " right" << endl;
-				for (auto &i : currentPopulationRightHalf.total) {
-					cout << i << " penalty " << i.penalty << endl;
-				}
-
 
 			combineAndDiversify(graph, currentPopulationLeftHalf, currentPopulationRightHalf);
 
 			auto combinedPopulation = PopulationSlice(currentPopulationLeftHalf.total.begin(), currentPopulationLeftHalf.total.begin()+currentPopulationLeftHalf.reference.size()+currentPopulationRightHalf.reference.size()); 
-				cout << currentPopulation_i << " combined" << endl;
-				for (auto &i : combinedPopulation) {
-					cout << i << " penalty " << i.penalty << endl;
-				}
-				coutMutex.unlock();
-
 
 			auto nextPopulationLeftHalf = ScatterSearchPopulation(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
 
@@ -216,7 +187,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
 	auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
 	auto threadDiversePopulationSize = diversePopulationSize/numberOfThreads;
-	auto threadReferencePopulationSize = threadElitePopulationSize+threadDiversePopulationSize;
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
