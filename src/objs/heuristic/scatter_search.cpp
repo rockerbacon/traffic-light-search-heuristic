@@ -7,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-void heuristic::diversify (const Graph &graph, ScatterSearchPopulation &population) {
+void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individual> &population) {
 	auto nextGenerationBegin = population.elite.begin();
 	auto nextGenerationEnd = population.elite.end();
 	auto battlingPopulationBegin = population.diverse.begin();
@@ -69,9 +69,9 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	size_t	referencePopulationSize = elitePopulationSize+diversePopulationSize,
 			totalPopulationSize = referencePopulationSize + referencePopulationSize/2;
 
-	Population totalPopulation(totalPopulationSize, graph.getNumberOfVertices());
+	Population<Individual> totalPopulation(totalPopulationSize, graph.getNumberOfVertices());
 	
-	ScatterSearchPopulation	population = ScatterSearchPopulation(totalPopulation, elitePopulationSize, diversePopulationSize);
+	ScatterSearchPopulation<Individual>	population = ScatterSearchPopulation<Individual>(totalPopulation, elitePopulationSize, diversePopulationSize);
 
 	const Individual *individual1, *individual2;
 
