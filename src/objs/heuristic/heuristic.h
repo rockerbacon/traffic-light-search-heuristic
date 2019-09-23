@@ -48,7 +48,7 @@ namespace heuristic {
 	traffic::Solution localSearchHeuristic(const traffic::Graph& graph, const traffic::Solution& initialSolution, const std::function<bool(const Metrics&)>& stopCriteriaNotMet);
 	traffic::Solution geneticAlgorithm(const traffic::Graph& graph, size_t populationSize, const StopFunction &stopFunction, const CombinationMethod &combinationMethod);
 
-	void diversify (const traffic::Graph &graph, ScatterSearchPopulation<Individual> &population);
+	void diversify (const traffic::Graph &graph, ScatterSearchPopulation<Individual*> &population);
 	traffic::Solution scatterSearch (const traffic::Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod);
 	namespace parallel {
 		traffic::Solution scatterSearch (const traffic::Graph& graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod, unsigned numberOfThreads);

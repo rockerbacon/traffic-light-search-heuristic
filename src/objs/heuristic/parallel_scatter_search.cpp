@@ -19,24 +19,24 @@ ostream & operator<< (ostream &stream, const Solution &solution) {
 	return stream;
 }
 
-vector<Individual>::iterator recalculateDistancesToElitePopulation(const Graph &graph, PopulationSlice<Individual> &population, PopulationInterface<Individual> &elitePopulation) {
+vector<Individual*>::iterator recalculateDistancesToElitePopulation(const Graph &graph, PopulationSlice<Individual*> &population, PopulationInterface<Individual*> &elitePopulation) {
 
 	TimeUnit currentDistance;
 	TimeUnit greatestMinimumDistance = numeric_limits<TimeUnit>::min();
-	vector<Individual>::iterator chosenIndividual;
+	vector<Individual*>::iterator chosenIndividual;
 
 	for (auto i = population.begin(); i != population.end(); i++) {
 
 		for (auto &j : elitePopulation) {
-			currentDistance = distance(graph, i->solution, j.solution);
-			if (currentDistance < i->minimumDistance) {
-				i->minimumDistance = currentDistance;
+			currentDistance = distance(graph, (*i)->solution, (*j).solution);
+			if (currentDistance < (*i)->minimumDistance) {
+				(*i)->minimumDistance = currentDistance;
 			}
 		}
 
-		if (i->minimumDistance > greatestMinimumDistance) {
+		if ((*i)->minimumDistance > greatestMinimumDistance) {
 			chosenIndividual = i;
-			greatestMinimumDistance = i->minimumDistance;
+			greatestMinimumDistance = (*i)->minimumDistance;
 		}
 
 	}
@@ -45,18 +45,18 @@ vector<Individual>::iterator recalculateDistancesToElitePopulation(const Graph &
 
 }
 
-vector<Individual>::iterator recalculateDistances(const Graph &graph, const vector<Individual>::iterator &individual, const vector<Individual>::iterator &begin, const vector<Individual>::iterator &end) {
+vector<Individual*>::iterator recalculateDistances(const Graph &graph, const vector<Individual*>::iterator &individual, const vector<Individual*>::iterator &begin, const vector<Individual*>::iterator &end) {
 	TimeUnit currentDistance;
 	TimeUnit greatestMinimumDistance = numeric_limits<TimeUnit>::min();
-	vector<Individual>::iterator chosenIndividual;
+	vector<Individual*>::iterator chosenIndividual;
 
 	for (auto i = begin; i != end; i++) {
-		currentDistance = distance(graph, individual->solution, i->solution);
-		if (currentDistance < i->minimumDistance) {
-			i->minimumDistance = currentDistance;
+		currentDistance = distance(graph, (*individual)->solution, (*i)->solution);
+		if (currentDistance < (*i)->minimumDistance) {
+			(*i)->minimumDistance = currentDistance;
 		}
-		if (i->minimumDistance > greatestMinimumDistance) {
-			greatestMinimumDistance = i->minimumDistance;
+		if ((*i)->minimumDistance > greatestMinimumDistance) {
+			greatestMinimumDistance = (*i)->minimumDistance;
 			chosenIndividual = i;
 		}
 	}
@@ -66,8 +66,8 @@ vector<Individual>::iterator recalculateDistances(const Graph &graph, const vect
 
 void combineAndDiversify (
 	const Graph &graph,
-	ScatterSearchPopulation<Individual> &leftPopulation,
-   	ScatterSearchPopulation<Individual> &rightPopulation
+	ScatterSearchPopulation<Individual*> &leftPopulation,
+   	ScatterSearchPopulation<Individual*> &rightPopulation
 ) {
 
 	auto leftPopulationEnd = leftPopulation.battling.end(); 
@@ -81,7 +81,7 @@ void combineAndDiversify (
 
 	// insert elite elements
 	for (leftPopulationBegin = leftPopulation.elite.begin(); leftPopulationBegin != newElitePopulationEnd; leftPopulationBegin++) {
-		if (rightPopulation.elite.begin()->penalty < leftPopulationBegin->penalty) {
+		if ((*rightPopulation.elite.begin())->penalty < (*leftPopulationBegin)->penalty) {
 			swap(*leftPopulationBegin, *rightPopulation.elite.begin());
 		}
 	}
@@ -91,13 +91,13 @@ void combineAndDiversify (
 
 	while (leftPopulationBegin != newReferencePopulationEnd) {
 	
-		if (leftPopulationBegin != leftPopulationEnd && (rightPopulationBegin == rightPopulationEnd || leftChosenIndividual->minimumDistance > rightChosenIndividual->minimumDistance)) {
+		if (leftPopulationBegin != leftPopulationEnd && (rightPopulationBegin == rightPopulationEnd || (*leftChosenIndividual)->minimumDistance > (*rightChosenIndividual)->minimumDistance)) {
 
 			swap(*leftPopulationBegin, *leftChosenIndividual);
 			leftPopulationBegin++;
 
 			rightChosenIndividual = recalculateDistances(graph, leftChosenIndividual, rightPopulationBegin, rightPopulationEnd);
-			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
+			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
 
 		} else {
 
@@ -109,7 +109,7 @@ void combineAndDiversify (
 			leftPopulationEnd++;
 
 			leftChosenIndividual = recalculateDistances(graph, rightChosenIndividual, leftPopulationBegin, leftPopulationEnd);
-			rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
+			rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
 
 		}
 
@@ -117,7 +117,7 @@ void combineAndDiversify (
 
 }
 
-void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation<Individual> &currentPopulationLeftHalf, ScatterSearchPopulation<Individual> &currentPopulationRightHalf, vector<mutex> &mutex, size_t currentPopulation_i, size_t combinationsCount, unsigned numberOfThreads) {
+void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation<Individual*> &currentPopulationLeftHalf, ScatterSearchPopulation<Individual*> &currentPopulationRightHalf, vector<mutex> &mutex, size_t currentPopulation_i, size_t combinationsCount, unsigned numberOfThreads) {
 
 	auto populationToWait_i = currentPopulation_i+combinationsCount;
 
@@ -136,17 +136,17 @@ void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation<Individua
 			}*/
 			combineAndDiversify(graph, currentPopulationLeftHalf, currentPopulationRightHalf);
 
-			auto combinedPopulation = PopulationSlice<Individual>(currentPopulationLeftHalf.total.begin(), currentPopulationLeftHalf.total.begin()+currentPopulationLeftHalf.reference.size()+currentPopulationRightHalf.reference.size()); 
+			auto combinedPopulation = PopulationSlice<Individual*>(currentPopulationLeftHalf.total.begin(), currentPopulationLeftHalf.total.begin()+currentPopulationLeftHalf.reference.size()+currentPopulationRightHalf.reference.size()); 
 			/*cout << currentPopulation_i << " combined" << endl;
 			for (auto i : combinedPopulation) {
 				cout << i.solution << " penalty " << i.penalty << endl;
 			}
 			coutMutex.unlock();
 */
-			auto nextPopulationLeftHalf = ScatterSearchPopulation<Individual>(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
+			auto nextPopulationLeftHalf = ScatterSearchPopulation<Individual*>(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
 
-			auto nextPopulationRightHalfSlice = PopulationSlice<Individual>(currentPopulationRightHalf.total.end(), currentPopulationRightHalf.total.end()+combinedPopulation.size());
-			auto nextPopulationRightHalf = ScatterSearchPopulation<Individual>(nextPopulationRightHalfSlice, nextPopulationLeftHalf.elite.size(), nextPopulationLeftHalf.diverse.size());
+			auto nextPopulationRightHalfSlice = PopulationSlice<Individual*>(currentPopulationRightHalf.total.end(), currentPopulationRightHalf.total.end()+combinedPopulation.size());
+			auto nextPopulationRightHalf = ScatterSearchPopulation<Individual*>(nextPopulationRightHalfSlice, nextPopulationLeftHalf.elite.size(), nextPopulationLeftHalf.diverse.size());
 
 			bottomUpTreeDiversify(graph, nextPopulationLeftHalf, nextPopulationRightHalf, mutex, currentPopulation_i, combinationsCount*2, numberOfThreads);
 		mutex[populationToWait_i].unlock();
@@ -164,23 +164,14 @@ unsigned brianKernighanCountBitsSet (unsigned number) {
 	return count;
 }
 
-void arrangePopulation (ScatterSearchPopulation<Individual> &totalPopulation, ScatterSearchPopulation<Individual> &population, unsigned thread_i) {
+void arrangePopulation (PopulationInterface<Individual> &totalPopulation, PopulationInterface<Individual*> &population, unsigned thread_i) {
 
-	auto elitePopulationBegin = totalPopulation.elite.begin()+population.elite.size()*thread_i;
-	auto elitePopulationEnd = totalPopulation.elite.begin()+population.elite.size()*(thread_i+1);
-	auto candidatePopulationBegin = totalPopulation.candidate.begin()+population.candidate.size()*thread_i;
-	auto candidatePopulationEnd = totalPopulation.candidate.begin()+population.candidate.size()*(thread_i+1);
-	vector<Individual>::iterator unifiedDiverseIndividual;
+	auto totalPopulationBegin = population.size()*thread_i;
+	auto totalPopulationEnd = totalPopulationBegin+population.size();
+	size_t total_i, population_i;
 
-	unifiedDiverseIndividual = population.elite.begin();
-	for (auto unifiedEliteIndividual = elitePopulationBegin; unifiedEliteIndividual != elitePopulationEnd; unifiedEliteIndividual++) {
-		swap(*unifiedEliteIndividual, *unifiedDiverseIndividual);
-		unifiedDiverseIndividual++;
-	}
-	unifiedDiverseIndividual = population.candidate.begin();
-	for (auto unifiedCandidateIndividual = candidatePopulationBegin; unifiedCandidateIndividual != candidatePopulationEnd; unifiedCandidateIndividual++) {
-		swap(*unifiedCandidateIndividual, *unifiedDiverseIndividual);
-		unifiedDiverseIndividual++;
+	for (total_i = totalPopulationBegin, population_i = 0; total_i < totalPopulationEnd; total_i++, population_i++) {
+		population[population_i] = &totalPopulation[total_i];
 	}
 
 }
@@ -201,58 +192,68 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
-	Population<Individual> totalPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize), graph.getNumberOfVertices()); 
+	Population<Individual> totalPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize), graph.getNumberOfVertices());
 	ScatterSearchPopulation<Individual> totalSubdividedPopulation(totalPopulation, elitePopulationSize, diversePopulationSize);
 
-	vector<ScatterSearchPopulation<Individual>> population(numberOfThreads);
+   	Population<Individual*> populationArrangement(totalPopulation.size());	
 
-	auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
-	auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
-	auto threadDiversePopulationSize = diversePopulationSize/numberOfThreads;
+	vector<ScatterSearchPopulation<Individual*>> population(numberOfThreads);
+
+	const auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
+	const auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
+	const auto threadDiversePopulationSize = diversePopulationSize/numberOfThreads;
+	const auto threadCandidatePopulationSize = threadElitePopulationSize+threadDiversePopulationSize/2;
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
 	for_each_thread (numberOfThreads) {
 
-		auto threadPopulation = totalPopulation.slice(threadPopulationSize*thread_i, threadPopulationSize*(thread_i+1));
-		population[thread_i] = ScatterSearchPopulation<Individual>(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
+		auto elitePopulationBegin = threadElitePopulationSize*thread_i;
+		auto elitePopulationEnd = threadElitePopulationSize*(thread_i+1);
+		auto diversePopulationBegin = elitePopulationSize + threadDiversePopulationSize*thread_i;
+		auto diversePopulationEnd = elitePopulationSize + threadDiversePopulationSize*(thread_i+1);
+
+		auto threadPopulation = populationArrangement.slice(threadPopulationSize*thread_i, threadPopulationSize*(thread_i+1));
+		population[thread_i] = ScatterSearchPopulation<Individual*>(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
 		
-		for (auto i = threadElitePopulationSize*thread_i; i < threadElitePopulationSize*(thread_i+1); i++) {
+		for (auto i = elitePopulationBegin; i < elitePopulationEnd; i++) {
 			totalPopulation[i].solution = constructHeuristicSolution(graph);
 			totalPopulation[i].solution = localSearchHeuristic(graph, totalPopulation[i].solution, eliteLocalSearchStopFunction);
 			totalPopulation[i].penalty = graph.totalPenalty(totalPopulation[i].solution);
 		}
 		
-		for (auto i = elitePopulationSize+threadDiversePopulationSize*thread_i; i < elitePopulationSize+threadDiversePopulationSize*(thread_i+1); i++) {
+		for (auto i = diversePopulationBegin; i < diversePopulationEnd; i++) {
 			totalPopulation[i].solution = constructHeuristicSolution(graph);
 			totalPopulation[i].penalty = graph.totalPenalty(totalPopulation[i].solution);
 		}
+
+		arrangePopulation(totalSubdividedPopulation.elite, population[thread_i].elite, thread_i);
+		arrangePopulation(totalSubdividedPopulation.diverse, population[thread_i].diverse, thread_i);
+		arrangePopulation(totalSubdividedPopulation.candidate, population[thread_i].candidate, thread_i);
 
 	} end_for_each_thread;
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
+		/*
+			cout << " total population" << endl;
+			for (auto i : totalPopulation) {
+				cout << i.solution << " penalty " << i.penalty << endl;
+			}
+			coutMutex.unlock();
+*/
 
 		vector<mutex> populationMutex(numberOfThreads);
-/*
-			cout << " before arrangement" << endl;
-			for (auto i : totalPopulation) {
-				cout << i.solution << " penalty " << i.penalty << endl;
-			}
-			coutMutex.unlock();
-*/
-		for (decltype(numberOfThreads) thread_i = 0; thread_i < numberOfThreads; thread_i++) {
-			arrangePopulation(totalSubdividedPopulation, population[thread_i], thread_i);
-		}
-		/*
-			cout << " after arrangement" << endl;
-			for (auto i : totalPopulation) {
-				cout << i.solution << " penalty " << i.penalty << endl;
-			}
-			coutMutex.unlock();
-*/
 		for_each_thread (numberOfThreads) {
+
+/*
+			cout << " arrangement " << thread_i << endl;
+			for (auto i : population[thread_i]) {
+				cout << i->solution << " penalty " << i->penalty << endl;
+			}
+			coutMutex.unlock();
+*/
 
 			random_device seeder;
 			mt19937 randomEngine(seeder());
@@ -265,12 +266,12 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 				for (size_t i = 0; i < population[thread_i].candidate.size(); i++) {
 
-					individual1 = &population[thread_i].reference[i*2];
-					individual2 = &population[thread_i].reference[i*2+1];
+					individual1 = population[thread_i].reference[i*2];
+					individual2 = population[thread_i].reference[i*2+1];
 
-					population[thread_i].candidate[i].solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
-					population[thread_i].candidate[i].solution = localSearchHeuristic(graph, population[thread_i].candidate[i].solution, diverseLocalSearchStopFunction);
-					population[thread_i].candidate[i].penalty = graph.totalPenalty(population[thread_i].candidate[i].solution);
+					population[thread_i].candidate[i]->solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
+					population[thread_i].candidate[i]->solution = localSearchHeuristic(graph, population[thread_i].candidate[i]->solution, diverseLocalSearchStopFunction);
+					population[thread_i].candidate[i]->penalty = graph.totalPenalty(population[thread_i].candidate[i]->solution);
 
 				}
 
