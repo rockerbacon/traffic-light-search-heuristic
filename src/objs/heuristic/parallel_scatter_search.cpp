@@ -11,6 +11,14 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
+mutex coutMutex;
+ostream & operator<< (ostream &stream, const Solution &solution) {
+	for (Vertex v = 0; v < solution.getNumberOfVertices(); v++) {
+		stream << solution.getTiming(v) << ", ";
+	}
+	return stream;
+}
+
 vector<Individual>::iterator recalculateDistancesToElitePopulation(const Graph &graph, PopulationSlice &population, PopulationInterface &elitePopulation) {
 
 	TimeUnit currentDistance;
@@ -88,7 +96,7 @@ void combineAndDiversify (
 			swap(*leftPopulationBegin, *leftChosenIndividual);
 			leftPopulationBegin++;
 
-			//rightChosenIndividual = recalculateDistances(graph, leftChosenIndividual, rightPopulationBegin, rightPopulationEnd);
+			rightChosenIndividual = recalculateDistances(graph, leftChosenIndividual, rightPopulationBegin, rightPopulationEnd);
 			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
 
 		} else {
@@ -100,7 +108,7 @@ void combineAndDiversify (
 			leftPopulationBegin++;
 			leftPopulationEnd++;
 
-			//leftChosenIndividual = recalculateDistances(graph, rightChosenIndividual, leftPopulationBegin, leftPopulationEnd);
+			leftChosenIndividual = recalculateDistances(graph, rightChosenIndividual, leftPopulationBegin, leftPopulationEnd);
 			rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a.minimumDistance > b.minimumDistance; });
 
 		}
@@ -117,9 +125,23 @@ void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation &currentP
 
 		mutex[populationToWait_i].lock();
 
+			coutMutex.lock();
+			cout << currentPopulation_i << " left" << endl;
+			for (auto i : currentPopulationLeftHalf.total) {
+				cout << i.solution << " penalty " << i.penalty << endl;
+			}
+			cout << currentPopulation_i << " right" << endl;
+			for (auto i : currentPopulationRightHalf.total) {
+				cout << i.solution << " penalty " << i.penalty << endl;
+			}
 			combineAndDiversify(graph, currentPopulationLeftHalf, currentPopulationRightHalf);
 
 			auto combinedPopulation = PopulationSlice(currentPopulationLeftHalf.total.begin(), currentPopulationLeftHalf.total.begin()+currentPopulationLeftHalf.reference.size()+currentPopulationRightHalf.reference.size()); 
+			cout << currentPopulation_i << " combined" << endl;
+			for (auto i : combinedPopulation) {
+				cout << i.solution << " penalty " << i.penalty << endl;
+			}
+			coutMutex.unlock();
 
 			auto nextPopulationLeftHalf = ScatterSearchPopulation(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
 
@@ -214,9 +236,21 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 		vector<mutex> populationMutex(numberOfThreads);
 
+			cout << " before arrangement" << endl;
+			for (auto i : totalPopulation) {
+				cout << i.solution << " penalty " << i.penalty << endl;
+			}
+			coutMutex.unlock();
+
 		for_each_thread (numberOfThreads) {
 			arrangePopulation(totalSubdividedPopulation, population[thread_i], thread_i);
 		} end_for_each_thread;
+
+			cout << " after arrangement" << endl;
+			for (auto i : totalPopulation) {
+				cout << i.solution << " penalty " << i.penalty << endl;
+			}
+			coutMutex.unlock();
 
 		for_each_thread (numberOfThreads) {
 
@@ -241,6 +275,8 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 				}
 
 				sort(population[thread_i].total.begin(), population[thread_i].total.end());
+
+				diversify(graph, population[thread_i]);
 
 				if ((thread_i&1) == 0) {
 					bottomUpTreeDiversify(graph, population[thread_i], population[thread_i+1], populationMutex, thread_i, 1, numberOfThreads);
