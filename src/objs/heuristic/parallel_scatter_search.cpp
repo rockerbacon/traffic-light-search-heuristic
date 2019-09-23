@@ -202,7 +202,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	const auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
 	const auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
 	const auto threadDiversePopulationSize = diversePopulationSize/numberOfThreads;
-	const auto threadCandidatePopulationSize = threadElitePopulationSize+threadDiversePopulationSize/2;
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
@@ -275,7 +274,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 				}
 
-				sort(population[thread_i].total.begin(), population[thread_i].total.end());
+				sort(population[thread_i].total.begin(), population[thread_i].total.end(), [](auto a, auto b) { return a->penalty < b->penalty; });
 
 				diversify(graph, population[thread_i]);
 
