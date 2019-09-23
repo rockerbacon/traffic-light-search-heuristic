@@ -124,7 +124,7 @@ void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation &currentP
 	if (populationToWait_i < numberOfThreads) {
 
 		mutex[populationToWait_i].lock();
-
+/*
 			coutMutex.lock();
 			cout << currentPopulation_i << " left" << endl;
 			for (auto i : currentPopulationLeftHalf.total) {
@@ -133,16 +133,16 @@ void bottomUpTreeDiversify(const Graph &graph, ScatterSearchPopulation &currentP
 			cout << currentPopulation_i << " right" << endl;
 			for (auto i : currentPopulationRightHalf.total) {
 				cout << i.solution << " penalty " << i.penalty << endl;
-			}
+			}*/
 			combineAndDiversify(graph, currentPopulationLeftHalf, currentPopulationRightHalf);
 
 			auto combinedPopulation = PopulationSlice(currentPopulationLeftHalf.total.begin(), currentPopulationLeftHalf.total.begin()+currentPopulationLeftHalf.reference.size()+currentPopulationRightHalf.reference.size()); 
-			cout << currentPopulation_i << " combined" << endl;
+			/*cout << currentPopulation_i << " combined" << endl;
 			for (auto i : combinedPopulation) {
 				cout << i.solution << " penalty " << i.penalty << endl;
 			}
 			coutMutex.unlock();
-
+*/
 			auto nextPopulationLeftHalf = ScatterSearchPopulation(combinedPopulation, currentPopulationLeftHalf.elite.size()+currentPopulationRightHalf.elite.size(), currentPopulationLeftHalf.diverse.size()+currentPopulationRightHalf.diverse.size());
 
 			auto nextPopulationRightHalfSlice = PopulationSlice(currentPopulationRightHalf.total.end(), currentPopulationRightHalf.total.end()+combinedPopulation.size());
@@ -235,23 +235,23 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	while (stopFunction(metrics)) {
 
 		vector<mutex> populationMutex(numberOfThreads);
-
+/*
 			cout << " before arrangement" << endl;
 			for (auto i : totalPopulation) {
 				cout << i.solution << " penalty " << i.penalty << endl;
 			}
 			coutMutex.unlock();
-
-		for_each_thread (numberOfThreads) {
+*/
+		for (decltype(numberOfThreads) thread_i = 0; thread_i < numberOfThreads; thread_i++) {
 			arrangePopulation(totalSubdividedPopulation, population[thread_i], thread_i);
-		} end_for_each_thread;
-
+		}
+		/*
 			cout << " after arrangement" << endl;
 			for (auto i : totalPopulation) {
 				cout << i.solution << " penalty " << i.penalty << endl;
 			}
 			coutMutex.unlock();
-
+*/
 		for_each_thread (numberOfThreads) {
 
 			random_device seeder;
