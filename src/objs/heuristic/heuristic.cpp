@@ -224,7 +224,7 @@ CombinationMethod combination_method_factory::crossover (double mutationProbabil
 		Solution solution(nVertices);
 
 		int p = pPicker(randomEngine);
-		int k = nVertices / 2 + p;
+		Vertex k = nVertices / 2 + p;
 
 		for(Vertex v = 0; v < nVertices; v++)
 		{
@@ -290,12 +290,12 @@ Solution heuristic::geneticAlgorithm(const Graph& graph, size_t populationSize, 
 	while(stopFunction(metrics))
 	{
 		iterationHadNoImprovement = true;
-		for(int selectedParents = 0; selectedParents < replaceSize; selectedParents++)
+		for(unsigned selectedParents = 0; selectedParents < replaceSize; selectedParents++)
 		{
 			size_t random = tournamentPicker(randomEngine);
 			tournamentWinner = population[random];
 
-			for(int j = 0; j < tournamentSize - 1; j++)
+			for(unsigned j = 0; j < tournamentSize - 1; j++)
 			{
 				random = tournamentPicker(randomEngine);
 				tournamentIndividual = population[random];
