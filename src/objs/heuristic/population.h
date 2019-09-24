@@ -72,6 +72,8 @@ namespace heuristic {
 		private:
 			std::vector<T> individuals;
 		public:
+			Population (void) = default;
+
 			template<typename... Varargs>
 			Population (size_t numberOfIndividuals, Varargs... constructor_args) {
 				this->individuals.reserve(numberOfIndividuals);
