@@ -76,7 +76,7 @@ int main (int argc, char** argv) {
 
 	register_observer(new TerminalObserver());
 	if (*outputPath != DONT_OUTPUT_TO_FILE) {
-		register_observer(new TextFileObserver(*outputPath));
+		register_observer(new TsvFileObserver(*outputPath));
 	}
 
 	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
