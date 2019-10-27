@@ -73,3 +73,37 @@ void TextFileObserver::notifyBenchmarkEnded (void) {
 	// do nothing
 }
 /*TEXT FILE OBSERVER*/
+
+/*CSV FILE OBSERVER*/
+TsvFileObserver::TsvFileObserver (const string& outputFilePath) {
+	this->outputFile.open(outputFilePath, ios::app);
+}
+
+TsvFileObserver::~TsvFileObserver (void) {
+	this->outputFile.close();
+}
+
+void TsvFileObserver::notifyBenchmarkBegun(const string& benchmarkTitle, unsigned numberOfRuns) {
+	for (auto observable_variable : this->variables_to_observe) {
+		this->outputFile << observable_variable->get_label() << '\t';	
+	}
+	this->outputFile << benchmarkTitle << '\t' << numberOfRuns << " runs";
+	this->outputFile << '\n';
+}
+
+void TsvFileObserver::notifyRunBegun(void) {
+	//do nothing
+}
+
+void TsvFileObserver::notifyRunEnded(void) {
+	for (auto observable_variable : this->variables_to_observe) {
+		this->outputFile << observable_variable->get_value() << '\t';	
+	}
+	this->outputFile << '\n';
+}
+
+void TsvFileObserver::notifyBenchmarkEnded(void) {
+	// do nothing
+}
+/*CSV FILE OBSERVER*/
+

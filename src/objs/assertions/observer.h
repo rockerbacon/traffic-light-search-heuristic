@@ -174,4 +174,18 @@ namespace benchmark {
 			void notifyBenchmarkEnded (void);
 
 	};
+
+	class TsvFileObserver : public Observer {
+		private:
+			std::ofstream outputFile;
+		public:
+			TsvFileObserver (const std::string &outputFilePath);
+			~TsvFileObserver (void);
+
+			void notifyBenchmarkBegun (const std::string &benchmarkTitle, unsigned numberOfRuns);
+			void notifyRunBegun (void);
+			void notifyRunEnded (void);
+			void notifyBenchmarkEnded (void);
+	};
+
 }
