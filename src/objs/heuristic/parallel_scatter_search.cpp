@@ -21,7 +21,7 @@ ostream & operator<< (ostream &stream, const Solution &solution) {
 
 void recalculateDistances(const Graph &graph, Individual* individual, const vector<Individual*>::iterator &begin, const vector<Individual*>::iterator &end, unsigned availableThreads) {
 	#pragma omp parallel for num_threads(availableThreads)
-	for (auto i = begin; i != end; i++) {
+	for (auto i = begin; i < end; i++) {
 		auto currentDistance = distance(graph, individual->solution, (*i)->solution);
 		if (currentDistance < (*i)->minimumDistance) {
 			(*i)->minimumDistance = currentDistance;
@@ -67,9 +67,13 @@ Population<Individual*> combineAndDiversify (
 	// pick most diverse elements
 	for ( ; combinedElements < referencePopulationSize; combinedElements++) {
 
-		leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
-		rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
-
+		#pragma omp sections
+		{
+			#pragma omp section
+			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
+			#pragma omp section
+			rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
+		}
 		if (leftPopulationBegin != leftPopulationEnd && (rightPopulationBegin == rightPopulationEnd || (*leftChosenIndividual)->minimumDistance > (*rightChosenIndividual)->minimumDistance)) {
 
 			swap(*leftPopulationBegin, *leftChosenIndividual);
