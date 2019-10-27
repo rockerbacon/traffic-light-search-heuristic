@@ -19,20 +19,14 @@ ostream & operator<< (ostream &stream, const Solution &solution) {
 	return stream;
 }
 
-void recalculateDistances(const Graph &graph, Individual* individual, const vector<Individual*>::iterator &begin, const vector<Individual*>::iterator &end) {
-	TimeUnit currentDistance;
-	TimeUnit greatestMinimumDistance = numeric_limits<TimeUnit>::min();
-
+void recalculateDistances(const Graph &graph, Individual* individual, const vector<Individual*>::iterator &begin, const vector<Individual*>::iterator &end, unsigned availableThreads) {
+	#pragma omp parallel for num_threads(availableThreads)
 	for (auto i = begin; i != end; i++) {
-		currentDistance = distance(graph, individual->solution, (*i)->solution);
+		auto currentDistance = distance(graph, individual->solution, (*i)->solution);
 		if (currentDistance < (*i)->minimumDistance) {
 			(*i)->minimumDistance = currentDistance;
 		}
-		if ((*i)->minimumDistance > greatestMinimumDistance) {
-			greatestMinimumDistance = (*i)->minimumDistance;
-		}
 	}
-
 }
 
 Population<Individual*> combineAndDiversify (
@@ -40,7 +34,8 @@ Population<Individual*> combineAndDiversify (
 	PopulationInterface<Individual*> &leftPopulation,
    	PopulationInterface<Individual*> &rightPopulation,
 	size_t elitePopulationSize,
-	size_t diversePopulationSize
+	size_t diversePopulationSize,
+	unsigned availableThreads
 ) {
 
 	Population<Individual*> combinedPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize));
@@ -60,11 +55,11 @@ Population<Individual*> combineAndDiversify (
 	for (combinedElements = 0; combinedElements < elitePopulationSize; combinedElements++) {
 		if ((*leftPopulationBegin)->penalty < (*rightPopulationBegin)->penalty) {
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, availableThreads);
 			leftPopulationBegin++;
 		} else {
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, availableThreads);
 			rightPopulationBegin++;
 		}
 	}
@@ -81,7 +76,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
 			leftPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, availableThreads);
 
 		} else {
 
@@ -89,7 +84,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
 			rightPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, availableThreads);
 
 		}
 
@@ -150,7 +145,7 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 			cout << populationBegin << " to " << populationEnd << " finished" << endl;
 		coutMutex.unlock();
 */
-		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize);
+		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize, population.size());
 	}	
 }
 
