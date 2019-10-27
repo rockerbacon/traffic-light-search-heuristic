@@ -79,11 +79,11 @@ int main (void) {
 
 	test_case("scatter search raises no errors") {
 		size_t elitePopulationSize = 4;
-		size_t diversePopulationSize = 8;
+		size_t diversePopulationSize = 12;
 		size_t localSearchIterations = 10;
 		StopFunction stopFunction = stop_function_factory::numberOfIterations(3);
 		CombinationMethod combinationMethod = combination_method_factory::breadthFirstSearch();
-		unsigned numberOfThreads = 2;
+		unsigned numberOfThreads = 4;
 
 		solution = parallel::scatterSearch(mockGraph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod, numberOfThreads);
 	} end_test_case;

@@ -1,47 +1,6 @@
 #include "heuristic/population.h"
 
-using namespace std;
-using namespace heuristic;
-using namespace traffic;
-
-bool Individual::operator<(const Individual &other) const {
-	return this->penalty < other.penalty;
+size_t heuristic::scatterSearchPopulationSize(size_t elitePopulationSize, size_t diversePopulationSize) {
+       return 3*(elitePopulationSize+diversePopulationSize)/2;
 }
 
-Population::Population(size_t numberOfIndividuals, Vertex individualsSize) {
-	this->individuals.reserve(numberOfIndividuals);
-	for (size_t i = 0; i < numberOfIndividuals; i++) {
-		this->individuals.push_back({
-			Solution(individualsSize),
-			-1
-		});
-	}
-}
-
-decltype(Population::individuals)::iterator Population::begin (void) {
-	return this->individuals.begin();
-}
-
-decltype(Population::individuals)::iterator Population::end (void) {
-	return this->individuals.end();
-}
-
-decltype(Population::individuals)::const_iterator Population::cbegin (void) const {
-	return this->individuals.cbegin();
-}
-
-decltype(Population::individuals)::const_iterator Population::cend (void) const {
-	return this->individuals.cend();
-}
-
-size_t Population::size (void) const {
-	return this->individuals.size();
-}
-
-const Individual& Population::operator[](size_t index) const {
-	return this->individuals[index];
-}
-
-Individual& Population::operator[] (size_t index) {
-	return this->individuals[index];
-}
