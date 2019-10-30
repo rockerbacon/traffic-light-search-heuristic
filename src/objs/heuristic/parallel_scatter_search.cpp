@@ -110,17 +110,9 @@ Population<Individual*> combineAndDiversify (
 }
 
 Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual*>> &population, vector<mutex> &mutex, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize) {
-/*
-	coutMutex.lock();
-	cout << "this is the deal " << populationBegin << " " << populationEnd << " " << populationEnd-populationBegin << endl;
-	coutMutex.unlock();
-*/
+
 	if (populationEnd-populationBegin < 2) {
-		/*
-		coutMutex.lock();
-			cout << populationBegin << " finished" << endl;
-		coutMutex.unlock();
-		*/
+
 		Population<Individual*> populationCopy(population[populationBegin].total.size());
 		mutex[populationBegin].lock();
 			for (size_t i = 0; i < populationCopy.size(); i++) {
@@ -130,11 +122,7 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 
 		return populationCopy;
 	} else {
-		/*
-		coutMutex.lock();
-			cout << populationBegin << "-" << populationEnd << " being subdivided in " << populationBegin << "-" << (populationBegin+populationEnd)/2 << " and " << (populationBegin+populationEnd)/2 << "-" << populationEnd << endl;
-		coutMutex.unlock();
-		*/
+
 		Population<Individual*> leftHalf, rightHalf;
 		auto thread1 = thread([&]() {
 			leftHalf = bottomUpTreeDiversify(graph, population, mutex, populationBegin, (populationBegin+populationEnd)/2, elitePopulationSize/2, diversePopulationSize/2);
@@ -144,13 +132,9 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 		});
 		thread1.join();
 		thread2.join();
-/*
-		coutMutex.lock();
-			cout << populationBegin << " to " << populationEnd << " finished" << endl;
-		coutMutex.unlock();
-*/
+
 		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize, population.size());
-	}	
+	}
 }
 
 unsigned brianKernighanCountBitsSet (unsigned number) {
@@ -219,14 +203,14 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 		auto threadPopulation = arrangedPopulation.slice(threadPopulationSize*thread_i, threadPopulationSize*(thread_i+1));
 		population[thread_i] = ScatterSearchPopulation<Individual*>(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
-		
+
 		for (auto i = elitePopulationBegin; i < elitePopulationEnd; i++) {
 			totalPopulation[i].solution = constructHeuristicSolution(graph);
 			totalPopulation[i].solution = localSearchHeuristic(graph, totalPopulation[i].solution, eliteLocalSearchStopFunction);
 			totalPopulation[i].penalty = graph.totalPenalty(totalPopulation[i].solution);
 			subdividedTotalPopulation.total[i] = &totalPopulation[i];
 		}
-		
+
 		for (auto i = diversePopulationBegin; i < diversePopulationEnd; i++) {
 			totalPopulation[i].solution = constructHeuristicSolution(graph);
 			totalPopulation[i].penalty = graph.totalPenalty(totalPopulation[i].solution);
@@ -242,12 +226,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
-/*
-			cout << " total population" << endl;
-			for (auto i : subdividedTotalPopulation.total) {
-				cout << i->solution << " penalty " << i->penalty << endl;
-			}
-*/
+
 		for (unsigned thread_i = 0; thread_i < numberOfThreads; thread_i++) {
 			arrangePopulation(subdividedTotalPopulation.elite, population[thread_i].elite, thread_i);
 			arrangePopulation(subdividedTotalPopulation.diverse, population[thread_i].diverse, thread_i);
@@ -258,14 +237,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		for_each_thread (numberOfThreads) {
 
 			if (thread_i != 0) populationMutex[thread_i].lock();
-/*
-				coutMutex.lock();
-				cout << " arrangement " << thread_i << endl;
-				for (auto i : population[thread_i].total) {
-					cout << i->solution << " penalty " << i->penalty << endl;
-				}
-				coutMutex.unlock();
-*/
 				random_device seeder;
 				mt19937 randomEngine(seeder());
 
@@ -294,7 +265,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 						subdividedTotalPopulation.total[i] = nextPopulation[i];
 					}
 				}
-
 			if (thread_i != 0) populationMutex[thread_i].unlock();
 
 		} end_for_each_thread;
