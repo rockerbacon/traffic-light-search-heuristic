@@ -1,4 +1,4 @@
-#include "heuristic/heuristic.h"
+#include "heuristic.h"
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -28,7 +28,7 @@ void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individua
 			if (currentDistance < (*it)->minimumDistance) {
 				(*it)->minimumDistance = currentDistance;
 			}
-		}	
+		}
 
 		if ((*it)->minimumDistance > greatestMinimumDistance) {
 			greatestMinimumDistance = (*it)->minimumDistance;
@@ -60,7 +60,7 @@ void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individua
 		nextGenerationEnd++;
 		battlingPopulationBegin++;
 
-	} 
+	}
 
 }
 
@@ -74,7 +74,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	for (size_t i = 0; i < totalPopulation.size(); i++) {
 		totalPopulationReferences[i] = &totalPopulation[i];
 	}
-	
+
 	ScatterSearchPopulation<Individual*> population = ScatterSearchPopulation<Individual*>(totalPopulationReferences, elitePopulationSize, diversePopulationSize);
 
 	const Individual *individual1, *individual2;
@@ -93,7 +93,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 
 	for (auto i = population.elite.begin(); i < population.elite.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
-		**i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};	
+		**i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
 	}
 
 	for (auto i = population.diverse.begin(); i < population.diverse.end(); i++) {

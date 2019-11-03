@@ -1,4 +1,4 @@
-#include "traffic_graph/traffic_graph.h"
+#include "traffic_graph.h"
 
 #include <vector>
 #include <random>
@@ -247,10 +247,10 @@ void GraphBuilder::read_from_file(std::ifstream &file_stream) {
 		for (Vertex j = 0; j < numberOfNeighbours; j++) {
 			file_stream >> neighbour >> weight;
 			if (file_stream.fail()) {
-				throw std::invalid_argument("Could not read "+to_string(j)+"th neighbour index and edge weight at line "+to_string(lines)); 
+				throw std::invalid_argument("Could not read "+to_string(j)+"th neighbour index and edge weight at line "+to_string(lines));
 			}
 			this->addEdge({vertex, neighbour}, weight);
-		}	
+		}
 		lines++;
 	}
 

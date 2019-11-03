@@ -38,7 +38,7 @@ namespace traffic {
 			TimeUnit cycle;
 			size_t numberOfVertices;
 		public:
-			class Edge {
+			struct Edge {
 				public:
 					Vertex vertex1;
 					Vertex vertex2;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "traffic_graph/traffic_graph.h"
+#include "../traffic_graph/traffic_graph.h"
 #include <vector>
 #include <list>
 #include <mutex>
