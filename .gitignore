@@ -1,7 +1,8 @@
+/build
 *~
 *.swp
-/comparison_results.txt
-/build
-/compile_commands.json
-/instances
+compile_commands.json
 *.swo
+/external_dependencies
+*.bak
+/instances
