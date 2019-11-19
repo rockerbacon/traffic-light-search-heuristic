@@ -43,7 +43,10 @@ add_tests_from_directory () {
 	TESTS_IN_FOLDER="${CURRENT_TEST}/*"
 	for INNER_TEST in $TESTS_IN_FOLDER
 	do
-		TESTS+=("$INNER_TEST")
+		IS_NOT_TEST=$(echo "$INNER_TEST" | grep -oE "(.h|.hpp)$")
+		if [ "$IS_NOT_TEST" == "" ]; then
+			TESTS+=("$INNER_TEST")
+		fi
 	done
 }
 

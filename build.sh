@@ -81,9 +81,7 @@ elif [ "$ACTION" == "target" ]; then
 	do
 		export TARGET=$TARGET
 		source "$PROJECT_ROOT/.assertions/get_target_info.sh"
-		if [ $TARGET_BUILD_IS_OUTDATED ]; then
-			make $TARGET_RULE
-		fi
+		make $TARGET_RULE
 	done
 else
 	echo "Error: unknown action $ACTION"

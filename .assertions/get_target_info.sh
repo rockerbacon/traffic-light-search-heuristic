@@ -57,25 +57,10 @@ if [ "$TARGET" != "$CURRENT_TARGET" ]; then
 		fi
 	}
 
-	export_target_build_is_outdated() {
-		if [ ! -f "$TARGET_BINARY_PATH" ]; then
-			export TARGET_BUILD_IS_OUTDATED=true
-		else
-			TARGET_SOURCE_MODIFICATION_TIME=$(stat -c %Y "$TARGET_SOURCE_PATH")
-			TARGET_BINARY_MODIFICATION_TIME=$(stat -c %Y "$TARGET_BINARY_PATH")
-			if [ "$TARGET_SOURCE_MODIFICATION_TIME" -gt "$TARGET_BINARY_MODIFICATION_TIME" ]; then
-				export TARGET_BUILD_IS_OUTDATED=true
-			else
-				export TARGET_BUILD_IS_OUTDATED=""
-			fi
-		fi
-	}
-
 	export_target_rule
 	export_target_is_test
 	export_target_source_path
 	export_target_binary_path
-	export_target_build_is_outdated
 
 	export CURRENT_TARGET=$TARGET
 fi
