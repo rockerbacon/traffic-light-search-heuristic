@@ -1,6 +1,6 @@
-#include "heuristic/heuristic.h"
-#include "heuristic/population.h"
-#include "parallel/parallel.h"
+#include "heuristic.h"
+#include "population.h"
+#include "../parallel/parallel.h"
 #include <vector>
 #include <random>
 #include <algorithm>

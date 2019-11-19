@@ -1,10 +1,10 @@
 #pragma once
 
-#include "traffic_graph/traffic_graph.h"
+#include "../traffic_graph/traffic_graph.h"
 #include <unordered_set>
 #include <functional>
 #include <chrono>
-#include "heuristic/population.h"
+#include "population.h"
 
 namespace heuristic {
 	traffic::Solution constructRandomSolution (const traffic::Graph& graph);

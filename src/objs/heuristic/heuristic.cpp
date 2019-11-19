@@ -1,4 +1,4 @@
-#include "heuristic/heuristic.h"
+#include "heuristic.h"
 
 #include <random>
 #include <algorithm>
