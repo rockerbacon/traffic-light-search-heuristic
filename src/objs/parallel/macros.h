@@ -26,7 +26,7 @@ namespace parallel {
 
 #define parallel_for(begin, end) {\
 \
-	unsigned parallel_number_of_threads = parallel_configuration.end - parallel_configuration.begin; \
+	auto parallel_number_of_threads = parallel_configuration.end - parallel_configuration.begin; \
 	::std::vector<::std::future<void>> parallel_for_futures(parallel_number_of_threads); \
 \
 	decltype(parallel_number_of_threads) parallel_for_items_per_thread = (end-begin)/parallel_number_of_threads; \
@@ -53,21 +53,20 @@ namespace parallel {
 	} \
 }
 
-#define for_each_thread(number_of_threads) {\
+#define for_each_thread {\
 \
-	decltype(number_of_threads) parallel_for_available_threads = number_of_threads; \
-	std::thread *parallel_for_executing_threads; \
+	auto parallel_number_of_threads = parallel_configuration.end - parallel_configuration.begin; \
+	::std::vector<::std::future<void>> parallel_for_futures(parallel_number_of_threads); \
 \
-	parallel_for_executing_threads = new std::thread[parallel_for_available_threads]; \
-\
-	for (decltype(number_of_threads) thread_i = 0; thread_i < numberOfThreads; thread_i++) { \
-		parallel_for_executing_threads[thread_i] = std::thread([&, thread_i](void) \
+	for (auto [thread, thread_i_name] = ::std::make_tuple(parallel_configuration.begin, 0u); thread < parallel_configuration.end; thread++, thread_i_name++) { \
+		unsigned thread_i = thread_i_name; \
+		parallel_for_futures[thread_i] = thread->exec([&, thread_i](void) \
 
 #define end_for_each_thread \
 	);} \
 \
-	for (decltype(parallel_for_available_threads) thread_i = 0; thread_i < parallel_for_available_threads; thread_i++) { \
-		parallel_for_executing_threads[thread_i].join(); \
+	for (auto &future : parallel_for_futures) { \
+		future.wait(); \
 	} \
 \
 }

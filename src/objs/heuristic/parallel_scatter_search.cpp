@@ -187,6 +187,12 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	Metrics metrics;
 
+	vector<::parallel::reusable_thread> threads(numberOfThreads);
+	::parallel::configuration parallel_configuration {
+		threads.begin(),
+		threads.end()
+	};
+
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
@@ -205,7 +211,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
-	for_each_thread (numberOfThreads) {
+	for_each_thread {
 
 		auto elitePopulationBegin = threadElitePopulationSize*thread_i;
 		auto elitePopulationEnd = threadElitePopulationSize*(thread_i+1);
@@ -247,7 +253,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		}
 
 		vector<mutex> populationMutex(numberOfThreads);
-		for_each_thread (numberOfThreads) {
+		for_each_thread {
 
 			if (thread_i != 0) populationMutex[thread_i].lock();
 				random_device seeder;
