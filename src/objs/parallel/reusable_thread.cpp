@@ -1,11 +1,7 @@
 #include "reusable_thread.h"
 
-#include <iostream>
-
 using namespace std;
 using namespace parallel;
-
-mutex cerr_mutex;
 
 reusable_thread::reusable_thread() :
 	running(true),
@@ -13,30 +9,11 @@ reusable_thread::reusable_thread() :
 	mutex(),
 	condition_variable(),
 	thread([this]() {
-
-		cerr_mutex.lock();
-		cerr << "initializing thread" << endl;
-		cerr_mutex.unlock();
-
 		unique_lock<std::mutex> lock(this->mutex);
 		while(this->running) {
-
-			cerr_mutex.lock();
-			cerr << "thread waiting for task" << endl;
-			cerr_mutex.unlock();
-
 			this->condition_variable.wait(lock, [this]() { return this->has_new_task; });
-
-			cerr_mutex.lock();
-			cerr << "thread beginning task execution" << endl;
-			cerr_mutex.unlock();
-
 			current_task();
 			this->has_new_task = false;
-
-			cerr_mutex.lock();
-			cerr << "thread finished task execution" << endl;
-			cerr_mutex.unlock();
 		}
 	})
 {}
