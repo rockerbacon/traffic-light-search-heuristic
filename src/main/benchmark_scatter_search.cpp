@@ -1,11 +1,12 @@
 #include "heuristic/heuristic.h"
-#include "assertions/benchmark.h"
-#include "assertions/command_line_interface.h"
+#include <cpp-benchmark/benchmark.h>
+#include <cpp-command-line-interface/command_line_interface.h>
+#include <fstream>
 
-#define DEFAULT_NUMBER_OF_RUNS 10 
+#define DEFAULT_NUMBER_OF_RUNS 10
 #define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(500)
 #define DEFAULT_ELITE_POPULATION_SIZE 10
-#define DEFAULT_DIVERSE_POPULATION_SIZE 100 
+#define DEFAULT_DIVERSE_POPULATION_SIZE 100
 #define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
 #define DEFAULT_NUMBER_OF_THREADS 1
 
@@ -16,7 +17,29 @@ using namespace traffic;
 using namespace benchmark;
 using namespace heuristic;
 
-int main (int argc, char** argv) {
+cli_main (
+	"benchmark_scatter_search",
+	"undefined",
+	"Benchmark Scatter Search Heuristic for the simplified traffic light problem",
+
+	cli::RequiredArgument<string> inputPath("input", "path to file containing the problem instance");
+	cli::OptionalArgument<string> outputPath(DONT_OUTPUT_TO_FILE, "output", "path to where benchmark results will be output (tsv format)");
+
+	cli::OptionalArgument<unsigned> numberOfRuns(DEFAULT_NUMBER_OF_RUNS, "runs", "number of times to execute benchmark");
+
+	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix", "if present will execute scatter search using an adjacency matrix instead of an adjacency list");
+
+	cli::OptionalArgument<unsigned> numberOfIterationsToStop(0, "iterations", "stop heuristic after specified number of iterations");
+	cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop(0, "iterationsWithoutImprovement", "stop heuristic after specified number of iterations without improvement");
+
+	cli::OptionalArgument<double> crossoverMutationProbability(-1.0, "useCrossoverWithMutationProbability", "use crossover combination method with the specified mutation probability. A breadth first search combination is used by default");
+
+	cli::OptionalArgument<size_t> elitePopulationSize(DEFAULT_ELITE_POPULATION_SIZE, "elite", "specify size for the elite population");
+	cli::OptionalArgument<size_t> diversePopulationSize(DEFAULT_DIVERSE_POPULATION_SIZE, "diverse", "specify size for the diverse population");
+	cli::OptionalArgument<unsigned> localSearchIterations(DEFAULT_LOCAL_SEARCH_ITERATIONS, "localSearchIterations", "specify number of iterations the improvement method should execute");
+
+	cli::OptionalArgument<unsigned> numberOfThreads(DEFAULT_NUMBER_OF_THREADS, "threads", "specify number of threads");
+) {
 
 	GraphBuilder graphBuilder;
 	Graph *graph = nullptr;
@@ -28,27 +51,6 @@ int main (int argc, char** argv) {
 	chrono::high_resolution_clock::time_point begin;
 	chrono::high_resolution_clock::duration duration;
 	ifstream graphFile;
-
-	/* CLI INTERFACE */
-	cli::RequiredArgument<string> inputPath("input", 'i');
-	cli::OptionalArgument<string> outputPath("output", DONT_OUTPUT_TO_FILE, 'o');
-
-	cli::OptionalArgument<unsigned> numberOfRuns("runs", DEFAULT_NUMBER_OF_RUNS);
-
-	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
-
-	cli::OptionalArgument<unsigned> numberOfIterationsToStop("iterations", 0);
-	cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop("iterationsWithoutImprovement", 0);
-
-	cli::OptionalArgument<double> crossoverMutationProbability("useCrossoverWithMutationProbability", -1.0);
-
-	cli::OptionalArgument<size_t> elitePopulationSize("elitePopulationSize", DEFAULT_ELITE_POPULATION_SIZE);
-	cli::OptionalArgument<size_t> diversePopulationSize("diversePopulationSize", DEFAULT_DIVERSE_POPULATION_SIZE);
-	cli::OptionalArgument<unsigned> localSearchIterations("localSearchIterations", DEFAULT_LOCAL_SEARCH_ITERATIONS);
-
-	cli::OptionalArgument<unsigned> numberOfThreads("threads", DEFAULT_NUMBER_OF_THREADS, 't');
-
-	cli::capture_all_arguments_from(argc, argv);
 
 	graphFile.open(*inputPath);
 	graphBuilder.read_from_file(graphFile);
@@ -65,14 +67,13 @@ int main (int argc, char** argv) {
 		stopFunction = stop_function_factory::numberOfIterationsWithoutImprovement(*numberOfIterationsWithoutImprovementToStop);
 	} else {
 		stopFunction = DEFAULT_STOP_FUNCTION;
-	}	
+	}
 
 	if (crossoverMutationProbability.is_present()) {
 		combinationMethod = combination_method_factory::crossover(*crossoverMutationProbability);
 	} else {
-		combinationMethod = combination_method_factory::breadthFirstSearch();	
+		combinationMethod = combination_method_factory::breadthFirstSearch();
 	}
-	/* CLI INTERFACE */
 
 	register_observer(new TerminalObserver());
 	if (*outputPath != DONT_OUTPUT_TO_FILE) {
@@ -106,4 +107,4 @@ int main (int argc, char** argv) {
 	delete_observers();
 
 	return 0;
-}
+} end_cli_main;
