@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <list>
 #include <thread>
+#include <vector>
+#include "reusable_thread.h"
 
 namespace parallel {
 	unsigned usable_threads (unsigned number_of_items, unsigned number_of_threads) {
@@ -12,38 +14,43 @@ namespace parallel {
 			return number_of_threads;
 		}
 	}
+
+	struct configuration {
+		std::vector<reusable_thread>::iterator begin;
+		decltype(begin) end;
+	};
 }
 
-#define parallel_for(begin, end, number_of_threads) {\
+#define using_parallel_configuration(configuration_instance)\
+	const ::parallel::configuration &parallel_configuration = configuration_instance;
+
+#define parallel_for(begin, end) {\
 \
-	decltype(number_of_threads) parallel_for_available_threads = number_of_threads; \
-	std::thread *parallel_for_executing_threads; \
+	unsigned parallel_number_of_threads = parallel_configuration.end - parallel_configuration.begin; \
+	::std::vector<::std::future<void>> parallel_for_futures(parallel_number_of_threads); \
 \
-	parallel_for_executing_threads = new std::thread[parallel_for_available_threads]; \
+	decltype(parallel_number_of_threads) parallel_for_items_per_thread = (end-begin)/parallel_number_of_threads; \
 \
-	decltype(number_of_threads) parallel_for_items_per_thread = (end-begin)/parallel_for_available_threads; \
-\
-	for (decltype(number_of_threads) thread_i = 0; thread_i < parallel_for_available_threads; thread_i++) { \
+	for (auto [thread, thread_i] = ::std::make_tuple(parallel_configuration.begin, 0u); thread < parallel_configuration.end; thread++, thread_i++) { \
 \
 		auto thread_begin = begin + parallel_for_items_per_thread*thread_i; \
 		decltype(thread_begin) thread_end; \
-		if (thread_i == parallel_for_available_threads-1) { \
+		if (thread_i == parallel_number_of_threads-1) { \
 			thread_end = end; \
 		} else { \
 			thread_end = thread_begin + parallel_for_items_per_thread; \
 		} \
 \
-		parallel_for_executing_threads[thread_i] = std::thread( [&, thread_begin, thread_end](void) { \
+		parallel_for_futures[thread_i] = thread->exec([&, thread_begin, thread_end](void) { \
 			for (auto i = thread_begin; i < thread_end; i++) \
 
 #define end_parallel_for \
 		}); \
 	} \
 \
-	for (decltype(parallel_for_available_threads) i = 0; i < parallel_for_available_threads; i++) { \
-		parallel_for_executing_threads[i].join(); \
+	for (auto &future : parallel_for_futures) { \
+		future.wait(); \
 	} \
-	delete [] parallel_for_executing_threads; \
 }
 
 #define for_each_thread(number_of_threads) {\

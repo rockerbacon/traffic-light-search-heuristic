@@ -1,11 +1,12 @@
 #include "heuristic.h"
 #include "population.h"
-#include "../parallel/parallel.h"
+#include "../parallel/macros.h"
 #include <vector>
 #include <random>
 #include <algorithm>
 #include <thread>
 #include <mutex>
+#include "../parallel/reusable_thread.h"
 
 using namespace traffic;
 using namespace std;
@@ -19,14 +20,20 @@ ostream & operator<< (ostream &stream, const Solution &solution) {
 	return stream;
 }
 
-void recalculateDistances(const Graph &graph, Individual* individual, const vector<Individual*>::iterator &begin, const vector<Individual*>::iterator &end, unsigned availableThreads) {
-	#pragma omp parallel for num_threads(availableThreads)
-	for (auto i = begin; i < end; i++) {
+void recalculateDistances(
+		const Graph &graph,
+		Individual* individual,
+		const vector<Individual*>::iterator &begin,
+		const vector<Individual*>::iterator &end,
+		const ::parallel::configuration &thread_configuration
+) {
+	using_parallel_configuration(thread_configuration);
+	parallel_for (begin, end) {
 		auto currentDistance = distance(graph, individual->solution, (*i)->solution);
 		if (currentDistance < (*i)->minimumDistance) {
 			(*i)->minimumDistance = currentDistance;
 		}
-	}
+	} end_parallel_for;
 }
 
 Population<Individual*> combineAndDiversify (
@@ -39,6 +46,11 @@ Population<Individual*> combineAndDiversify (
 ) {
 
 	Population<Individual*> combinedPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize));
+	vector<::parallel::reusable_thread> threads(availableThreads);
+	::parallel::configuration thread_configuration {
+		threads.begin(),
+		threads.end()
+	};
 
 	size_t combinedElements;
 	auto leftPopulationBegin = leftPopulation.begin();
@@ -55,11 +67,11 @@ Population<Individual*> combineAndDiversify (
 	for (combinedElements = 0; combinedElements < elitePopulationSize; combinedElements++) {
 		if ((*leftPopulationBegin)->penalty < (*rightPopulationBegin)->penalty) {
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, availableThreads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, thread_configuration);
 			leftPopulationBegin++;
 		} else {
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, availableThreads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, thread_configuration);
 			rightPopulationBegin++;
 		}
 	}
@@ -67,20 +79,21 @@ Population<Individual*> combineAndDiversify (
 	// pick most diverse elements
 	for ( ; combinedElements < referencePopulationSize; combinedElements++) {
 
-		#pragma omp sections
-		{
-			#pragma omp section
+		auto leftChosenIndividualFuture = threads[0].exec([&]() {
 			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
-			#pragma omp section
-			rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
-		}
+		});
+
+		rightChosenIndividual = max_element(rightPopulationBegin, rightPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
+
+		leftChosenIndividualFuture.wait();
+
 		if (leftPopulationBegin != leftPopulationEnd && (rightPopulationBegin == rightPopulationEnd || (*leftChosenIndividual)->minimumDistance > (*rightChosenIndividual)->minimumDistance)) {
 
 			swap(*leftPopulationBegin, *leftChosenIndividual);
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
 			leftPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, availableThreads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, thread_configuration);
 
 		} else {
 
@@ -88,7 +101,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
 			rightPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, availableThreads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, thread_configuration);
 
 		}
 
