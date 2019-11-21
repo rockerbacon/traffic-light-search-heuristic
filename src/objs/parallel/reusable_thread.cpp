@@ -7,12 +7,20 @@ reusable_thread::reusable_thread() :
 	running(true),
 	tasks_count(0),
 	mutex(),
+#ifndef REUSABLE_THREAD_SPINLOCK
+	notifier(),
+#endif
 	thread([this]() {
 		packaged_task<void()> current_task;
 		while(this->running || this->tasks_count > 0) {
+		#ifdef REUSABLE_THREAD_SPINLOCK
 			while (this->tasks_count == 0) { /* wait for tasks*/ }
+		#endif
 			{
 				unique_lock<std::mutex> lock(this->mutex);
+			#ifndef REUSABLE_THREAD_SPINLOCK
+				this->notifier.wait(lock, [this]{ return this->tasks_count > 0; });
+			#endif
 				current_task = std::move(this->task_queue.front());
 				this->task_queue.pop_front();
 				this->tasks_count--;
@@ -36,6 +44,9 @@ future<void> reusable_thread::exec(const function<void()> &task) {
 		this->task_queue.emplace_back(std::move(packaged_task));
 		this->tasks_count++;
 	}
+#ifndef REUSABLE_THREAD_SPINLOCK
+	this->notifier.notify_one();
+#endif
 
 	return future;
 }

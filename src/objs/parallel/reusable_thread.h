@@ -1,5 +1,7 @@
 #pragma once
 
+//#define REUSABLE_THREAD_SPINLOCK
+
 #include <thread>
 #include <mutex>
 #include <future>
@@ -13,6 +15,9 @@ namespace parallel {
 			volatile bool running;
 			volatile unsigned tasks_count;
 			std::mutex mutex;
+		#ifndef REUSABLE_THREAD_SPINLOCK
+			std::condition_variable notifier;
+		#endif
 			std::thread thread;
 			std::list<std::packaged_task<void()>> task_queue;
 
