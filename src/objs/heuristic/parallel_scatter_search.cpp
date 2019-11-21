@@ -13,6 +13,10 @@ using namespace std;
 using namespace heuristic;
 using namespace ::parallel;
 
+namespace global {
+	thread_pile *threads;
+}
+
 void recalculateDistances(
 		const Graph &graph,
 		Individual* individual,
@@ -181,7 +185,8 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	Metrics metrics;
 
 	thread_pile threads(numberOfThreads);
-	thread_pile::slice_t allThreads = threads;
+	global::threads = &threads;
+	thread_pile::slice_t allThreads = *global::threads;
 	::parallel::configuration allThreadsConfig {
 		allThreads.begin,
 		allThreads.end
