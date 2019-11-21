@@ -13,7 +13,6 @@ namespace parallel {
 			volatile bool running;
 			volatile unsigned tasks_count;
 			std::mutex mutex;
-			std::condition_variable notifier;
 			std::thread thread;
 			std::list<std::packaged_task<void()>> task_queue;
 

@@ -7,13 +7,12 @@ reusable_thread::reusable_thread() :
 	running(true),
 	tasks_count(0),
 	mutex(),
-	notifier(),
 	thread([this]() {
 		packaged_task<void()> current_task;
 		while(this->running || this->tasks_count > 0) {
+			while (this->tasks_count == 0) { /* wait for tasks*/ }
 			{
 				unique_lock<std::mutex> lock(this->mutex);
-				this->notifier.wait(lock, [this]() { return this->tasks_count > 0; });
 				current_task = std::move(this->task_queue.front());
 				this->task_queue.pop_front();
 				this->tasks_count--;
@@ -30,15 +29,13 @@ reusable_thread::~reusable_thread() {
 }
 
 future<void> reusable_thread::exec(const function<void()> &task) {
-	future<void> future;
+	packaged_task<void()> packaged_task(task);
+	auto future = packaged_task.get_future();
 	{
 		lock_guard<std::mutex> lock(this->mutex);
-		this->task_queue.emplace_back(task);
-		future = this->task_queue.back().get_future();
+		this->task_queue.emplace_back(std::move(packaged_task));
 		this->tasks_count++;
 	}
-
-	this->notifier.notify_one();
 
 	return future;
 }
