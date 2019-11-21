@@ -11,14 +11,7 @@
 using namespace traffic;
 using namespace std;
 using namespace heuristic;
-
-mutex coutMutex;
-ostream & operator<< (ostream &stream, const Solution &solution) {
-	for (Vertex v = 0; v < solution.getNumberOfVertices(); v++) {
-		stream << solution.getTiming(v) << ", ";
-	}
-	return stream;
-}
+using namespace ::parallel;
 
 void recalculateDistances(
 		const Graph &graph,
@@ -187,10 +180,11 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	Metrics metrics;
 
-	vector<::parallel::reusable_thread> threads(numberOfThreads);
-	::parallel::configuration allThreads {
-		threads.begin(),
-		threads.end()
+	thread_pile threads(numberOfThreads);
+	thread_pile::slice_t allThreads = threads;
+	::parallel::configuration allThreadsConfig {
+		allThreads.begin,
+		allThreads.end
 	};
 	using_threads(allThreads);
 
@@ -278,7 +272,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 			diversify(graph, population[thread_i]);
 
 			if (thread_i == 0) {
-				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize, allThreads);
+				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize, allThreadsConfig);
 				for (size_t i = 0; i < nextPopulation.size(); i++) {
 					subdividedTotalPopulation.total[i] = nextPopulation[i];
 				}
