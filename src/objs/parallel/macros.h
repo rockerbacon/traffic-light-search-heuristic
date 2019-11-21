@@ -17,21 +17,22 @@ namespace parallel {
 
 	struct configuration {
 		std::vector<reusable_thread>::iterator begin;
-		decltype(begin) end;
+		std::vector<reusable_thread>::iterator end;
 	};
 }
 
-#define using_parallel_configuration(configuration_instance)\
-	const ::parallel::configuration &parallel_configuration = configuration_instance;
+#define using_threads(pile)\
+	auto [parallel_threads_begin, parallel_threads_end] = pile; \
+	// auto [parallel_threads_begin, parallel_threads_end] = (::parallel::thread_pile::slice_t)pile;
 
 #define parallel_for(begin, end) {\
 \
-	auto parallel_number_of_threads = parallel_configuration.end - parallel_configuration.begin; \
+	auto parallel_number_of_threads = parallel_threads_end - parallel_threads_begin; \
 	::std::vector<::std::future<void>> parallel_for_futures(parallel_number_of_threads); \
 \
 	decltype(parallel_number_of_threads) parallel_for_items_per_thread = (end-begin)/parallel_number_of_threads; \
 \
-	for (auto [thread, thread_i] = ::std::make_tuple(parallel_configuration.begin, 0u); thread < parallel_configuration.end; thread++, thread_i++) { \
+	for (auto [thread, thread_i] = ::std::make_tuple(parallel_threads_begin, 0u); thread < parallel_threads_end; thread++, thread_i++) { \
 \
 		auto thread_begin = begin + parallel_for_items_per_thread*thread_i; \
 		decltype(thread_begin) thread_end; \
@@ -55,10 +56,10 @@ namespace parallel {
 
 #define for_each_thread {\
 \
-	auto parallel_number_of_threads = parallel_configuration.end - parallel_configuration.begin; \
+	auto parallel_number_of_threads = parallel_threads_end - parallel_threads_begin; \
 	::std::vector<::std::future<void>> parallel_for_futures(parallel_number_of_threads); \
 \
-	for (auto [thread, thread_i_name] = ::std::make_tuple(parallel_configuration.begin, 0u); thread < parallel_configuration.end; thread++, thread_i_name++) { \
+	for (auto [thread, thread_i_name] = ::std::make_tuple(parallel_threads_begin, 0u); thread < parallel_threads_end; thread++, thread_i_name++) { \
 		unsigned thread_i = thread_i_name; \
 		parallel_for_futures[thread_i] = thread->exec([&, thread_i](void) \
 

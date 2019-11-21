@@ -27,7 +27,7 @@ void recalculateDistances(
 		const vector<Individual*>::iterator &end,
 		const ::parallel::configuration &thread_configuration
 ) {
-	using_parallel_configuration(thread_configuration);
+	using_threads(thread_configuration);
 	parallel_for (begin, end) {
 		auto currentDistance = distance(graph, individual->solution, (*i)->solution);
 		if (currentDistance < (*i)->minimumDistance) {
@@ -192,7 +192,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		threads.begin(),
 		threads.end()
 	};
-	using_parallel_configuration(allThreads);
+	using_threads(allThreads);
 
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
