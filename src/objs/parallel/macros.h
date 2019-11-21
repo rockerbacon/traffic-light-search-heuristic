@@ -14,16 +14,10 @@ namespace parallel {
 			return number_of_threads;
 		}
 	}
-
-	struct configuration {
-		std::vector<reusable_thread>::iterator begin;
-		std::vector<reusable_thread>::iterator end;
-	};
 }
 
 #define using_threads(pile)\
-	auto [parallel_threads_begin, parallel_threads_end] = pile; \
-	// auto [parallel_threads_begin, parallel_threads_end] = (::parallel::thread_pile::slice_t)pile;
+	auto [parallel_threads_begin, parallel_threads_end] = (::parallel::thread_pile::slice_t)pile;
 
 #define parallel_for(begin, end) {\
 \

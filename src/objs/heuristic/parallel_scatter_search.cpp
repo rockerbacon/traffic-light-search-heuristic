@@ -22,7 +22,7 @@ void recalculateDistances(
 		Individual* individual,
 		const vector<Individual*>::iterator &begin,
 		const vector<Individual*>::iterator &end,
-		const ::parallel::configuration &thread_configuration
+		thread_pile &thread_configuration
 ) {
 	using_threads(thread_configuration);
 	parallel_for (begin, end) {
@@ -43,11 +43,7 @@ Population<Individual*> combineAndDiversify (
 ) {
 
 	Population<Individual*> combinedPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize));
-	vector<::parallel::reusable_thread> threads(availableThreads);
-	::parallel::configuration thread_configuration {
-		threads.begin(),
-		threads.end()
-	};
+	thread_pile threads(availableThreads);
 
 	size_t combinedElements;
 	auto leftPopulationBegin = leftPopulation.begin();
@@ -64,11 +60,11 @@ Population<Individual*> combineAndDiversify (
 	for (combinedElements = 0; combinedElements < elitePopulationSize; combinedElements++) {
 		if ((*leftPopulationBegin)->penalty < (*rightPopulationBegin)->penalty) {
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, thread_configuration);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, threads);
 			leftPopulationBegin++;
 		} else {
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, thread_configuration);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, threads);
 			rightPopulationBegin++;
 		}
 	}
@@ -90,7 +86,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
 			leftPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, thread_configuration);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, threads);
 
 		} else {
 
@@ -98,7 +94,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
 			rightPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, thread_configuration);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, threads);
 
 		}
 
@@ -119,7 +115,7 @@ Population<Individual*> combineAndDiversify (
 
 }
 
-Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual*>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize, const ::parallel::configuration &allThreads) {
+Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual*>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize) {
 
 	if (populationEnd-populationBegin < 2) {
 
@@ -133,13 +129,13 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 
 		Population<Individual*> leftHalf, rightHalf;
 		auto neighborPopulationBegin = (populationBegin+populationEnd)/2;
-		auto neighborThread = allThreads.begin+neighborPopulationBegin;
+		auto& neighborThread = (*global::threads)[neighborPopulationBegin];
 
-		auto rightHalfFuture = neighborThread->exec([&]() {
-			rightHalf = bottomUpTreeDiversify(graph, population, neighborPopulationBegin, populationEnd, elitePopulationSize/2, diversePopulationSize/2, allThreads);
+		auto rightHalfFuture = neighborThread.exec([&]() {
+			rightHalf = bottomUpTreeDiversify(graph, population, neighborPopulationBegin, populationEnd, elitePopulationSize/2, diversePopulationSize/2);
 		});
 
-		leftHalf = bottomUpTreeDiversify(graph, population, populationBegin, neighborPopulationBegin, elitePopulationSize/2, diversePopulationSize/2, allThreads);
+		leftHalf = bottomUpTreeDiversify(graph, population, populationBegin, neighborPopulationBegin, elitePopulationSize/2, diversePopulationSize/2);
 
 		rightHalfFuture.wait();
 
@@ -186,12 +182,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	thread_pile threads(numberOfThreads);
 	global::threads = &threads;
-	thread_pile::slice_t allThreads = *global::threads;
-	::parallel::configuration allThreadsConfig {
-		allThreads.begin,
-		allThreads.end
-	};
-	using_threads(allThreads);
+	using_threads(*global::threads);
 
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
@@ -277,7 +268,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 			diversify(graph, population[thread_i]);
 
 			if (thread_i == 0) {
-				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize, allThreadsConfig);
+				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);
 				for (size_t i = 0; i < nextPopulation.size(); i++) {
 					subdividedTotalPopulation.total[i] = nextPopulation[i];
 				}
