@@ -61,7 +61,7 @@ thread_pile::slice_t::slice_t(iterator begin, iterator end) :
 thread_pile::slice_t thread_pile::slice_t::slice(unsigned begin, unsigned end) {
 	return slice_t{
 		this->begin+begin,
-		this->end+end
+		this->begin+end
 	};
 }
 

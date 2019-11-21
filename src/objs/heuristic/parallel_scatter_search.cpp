@@ -22,9 +22,9 @@ void recalculateDistances(
 		Individual* individual,
 		const vector<Individual*>::iterator &begin,
 		const vector<Individual*>::iterator &end,
-		thread_pile &thread_configuration
+		thread_pile::slice_t &availableThreads
 ) {
-	using_threads(thread_configuration);
+	using_threads(availableThreads);
 	parallel_for (begin, end) {
 		auto currentDistance = distance(graph, individual->solution, (*i)->solution);
 		if (currentDistance < (*i)->minimumDistance) {
@@ -39,11 +39,10 @@ Population<Individual*> combineAndDiversify (
    	PopulationInterface<Individual*> &rightPopulation,
 	size_t elitePopulationSize,
 	size_t diversePopulationSize,
-	unsigned availableThreads
+	thread_pile::slice_t &availableThreads
 ) {
 
 	Population<Individual*> combinedPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize));
-	thread_pile threads(availableThreads);
 
 	size_t combinedElements;
 	auto leftPopulationBegin = leftPopulation.begin();
@@ -60,11 +59,11 @@ Population<Individual*> combineAndDiversify (
 	for (combinedElements = 0; combinedElements < elitePopulationSize; combinedElements++) {
 		if ((*leftPopulationBegin)->penalty < (*rightPopulationBegin)->penalty) {
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, threads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, availableThreads);
 			leftPopulationBegin++;
 		} else {
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, threads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, availableThreads);
 			rightPopulationBegin++;
 		}
 	}
@@ -72,7 +71,7 @@ Population<Individual*> combineAndDiversify (
 	// pick most diverse elements
 	for ( ; combinedElements < referencePopulationSize; combinedElements++) {
 
-		auto leftChosenIndividualFuture = threads[0].exec([&]() {
+		auto leftChosenIndividualFuture = availableThreads.begin->exec([&]() {
 			leftChosenIndividual = max_element(leftPopulationBegin, leftPopulationEnd, [](const auto &a, const auto &b) { return a->minimumDistance > b->minimumDistance; });
 		});
 
@@ -86,7 +85,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *leftPopulationBegin;
 			leftPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, threads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], rightPopulationBegin, rightPopulationEnd, availableThreads);
 
 		} else {
 
@@ -94,7 +93,7 @@ Population<Individual*> combineAndDiversify (
 			combinedPopulation[combinedElements] = *rightPopulationBegin;
 			rightPopulationBegin++;
 
-			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, threads);
+			recalculateDistances(graph, combinedPopulation[combinedElements], leftPopulationBegin, leftPopulationEnd, availableThreads);
 
 		}
 
@@ -139,7 +138,8 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 
 		rightHalfFuture.wait();
 
-		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize, population.size());
+		auto availableThreads = global::threads->depth(1).slice(populationBegin, populationEnd);
+		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize, availableThreads);
 	}
 }
 
@@ -180,7 +180,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	Metrics metrics;
 
-	thread_pile threads(numberOfThreads);
+	thread_pile threads(numberOfThreads, 2);
 	global::threads = &threads;
 	using_threads(*global::threads);
 
