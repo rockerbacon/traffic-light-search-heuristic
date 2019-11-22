@@ -179,6 +179,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	}
 
 	Metrics metrics;
+	atomic<bool> combinationSignal;
 
 	thread_pile threads(numberOfThreads, 2);
 	global::threads = &threads;
@@ -194,6 +195,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	Population<Individual*> arrangedPopulation(totalPopulation.size());
 
 	vector<ScatterSearchPopulation<Individual*>> population(numberOfThreads);
+	vector<TimeUnit> minimumPenalty(numberOfThreads, numeric_limits<TimeUnit>::max());
 
 	const auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
 	const auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
@@ -265,13 +267,19 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 			sort(population[thread_i].total.begin(), population[thread_i].total.end(), [](auto a, auto b) { return a->penalty < b->penalty; });
 
+			if(population[thread_i].elite[0]->penalty < minimumPenalty[thread_i]) {
+				combinationSignal.store(true);
+				minimumPenalty[thread_i] = population[thread_i].elite[0]->penalty;
+			}
+
 			diversify(graph, population[thread_i]);
 
-			if (thread_i == 0) {
+			if (thread_i == 0 && combinationSignal.load()) {
 				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);
 				for (size_t i = 0; i < nextPopulation.size(); i++) {
 					subdividedTotalPopulation.total[i] = nextPopulation[i];
 				}
+				combinationSignal.store(false);
 			}
 
 		} end_for_each_thread;
