@@ -239,11 +239,11 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
 
-		for (unsigned thread_i = 0; thread_i < numberOfThreads; thread_i++) {
+		for_each_thread {
 			arrangePopulation(subdividedTotalPopulation.elite, population[thread_i].elite, thread_i);
 			arrangePopulation(subdividedTotalPopulation.diverse, population[thread_i].diverse, thread_i);
 			arrangePopulation(subdividedTotalPopulation.candidate, population[thread_i].candidate, thread_i);
-		}
+		} end_for_each_thread;
 
 		for_each_thread {
 
