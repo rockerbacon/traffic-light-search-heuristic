@@ -196,6 +196,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	vector<ScatterSearchPopulation<Individual*>> population(numberOfThreads);
 	vector<TimeUnit> minimumPenalty(numberOfThreads, numeric_limits<TimeUnit>::max());
+	vector<TimeUnit> minimumDistance(numberOfThreads, numeric_limits<TimeUnit>::max());
 
 	const auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
 	const auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
@@ -272,7 +273,12 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 				minimumPenalty[thread_i] = population[thread_i].elite[0]->penalty;
 			}
 
-			diversify(graph, population[thread_i]);
+			auto iterationMinimumDistance = diversify(graph, population[thread_i]);
+
+			if (iterationMinimumDistance < minimumDistance[thread_i]) {
+				combinationSignal.store(true);
+				minimumDistance[thread_i] = iterationMinimumDistance;
+			}
 
 			if (thread_i == 0 && combinationSignal.load()) {
 				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);

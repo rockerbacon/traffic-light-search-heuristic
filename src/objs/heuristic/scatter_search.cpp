@@ -7,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individual*> &population) {
+TimeUnit heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individual*> &population) {
 	auto nextGenerationBegin = population.elite.begin();
 	auto nextGenerationEnd = population.elite.end();
 	auto battlingPopulationBegin = population.diverse.begin();
@@ -16,6 +16,7 @@ void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individua
 	TimeUnit minusInfinity = numeric_limits<TimeUnit>::min();
 	TimeUnit currentDistance;
 	TimeUnit greatestMinimumDistance;
+	TimeUnit lowestDistance = numeric_limits<TimeUnit>::max();
 	decltype(battlingPopulationBegin) chosenIndividual;
 	decltype(battlingPopulationBegin) nextChosenIndividual;
 
@@ -25,6 +26,9 @@ void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individua
 		(*it)->minimumDistance = infinity;
 		for (auto jt = nextGenerationBegin; jt < nextGenerationEnd; jt++) {
 			currentDistance = distance(graph, (*it)->solution, (*jt)->solution);
+			if (currentDistance < lowestDistance) {
+				lowestDistance = currentDistance;
+			}
 			if (currentDistance < (*it)->minimumDistance) {
 				(*it)->minimumDistance = currentDistance;
 			}
@@ -45,6 +49,9 @@ void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individua
 		greatestMinimumDistance = minusInfinity;
 		for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
 			currentDistance = distance(graph, (*chosenIndividual)->solution, (*it)->solution);
+			if (currentDistance < lowestDistance) {
+				lowestDistance = currentDistance;
+			}
 			if (currentDistance < (*it)->minimumDistance) {
 				(*it)->minimumDistance = currentDistance;
 			}
@@ -62,6 +69,7 @@ void heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individua
 
 	}
 
+	return lowestDistance;
 }
 
 Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSize, size_t diversePopulationSize, size_t localSearchIterations, const StopFunction &stopFunction, const CombinationMethod &combinationMethod) {
