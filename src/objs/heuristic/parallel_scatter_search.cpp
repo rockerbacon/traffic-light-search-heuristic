@@ -15,6 +15,7 @@ using namespace ::parallel;
 
 namespace global {
 	thread_pile *threads;
+	thread_pile::slice_t *threads_depth1;
 }
 
 void recalculateDistances(
@@ -138,7 +139,7 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 
 		rightHalfFuture.wait();
 
-		auto availableThreads = global::threads->depth(1).slice(populationBegin, populationEnd);
+		auto availableThreads = global::threads_depth1->slice(populationBegin, populationEnd);
 		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize, availableThreads);
 	}
 }
@@ -182,7 +183,9 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	atomic<bool> combinationSignal;
 
 	thread_pile threads(numberOfThreads, 2);
+	thread_pile::slice_t threads_depth1 = threads.depth(1);
 	global::threads = &threads;
+	global::threads_depth1 = &threads_depth1;
 	using_threads(*global::threads);
 
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
