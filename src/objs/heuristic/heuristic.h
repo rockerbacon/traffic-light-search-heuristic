@@ -8,7 +8,7 @@
 
 namespace heuristic {
 	traffic::Solution constructRandomSolution (const traffic::Graph& graph);
-	traffic::Solution constructHeuristicSolution (const traffic::Graph& graph, unsigned char numberOfTuplesToTestPerIteration=3);
+	traffic::Solution constructHeuristicSolution (const traffic::Graph& graph, traffic::Vertex numberOfTuplesToTestPerIteration=3);
 
 	traffic::TimeUnit distance(const traffic::Graph& graph, const traffic::Solution& a, const traffic::Solution& b);
 

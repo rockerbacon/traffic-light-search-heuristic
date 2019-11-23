@@ -23,19 +23,18 @@ Solution heuristic::constructRandomSolution (const Graph& graph) {
 
 }
 
-Solution heuristic::constructHeuristicSolution (const Graph& graph, unsigned char numberOfTuplesToTestPerIteration) {
+Solution heuristic::constructHeuristicSolution (const Graph& graph, Vertex numberOfTuplesToTestPerIteration) {
 	vector<Vertex> unvisitedVertices(graph.getNumberOfVertices());
 	const unordered_map<Vertex, Weight>* neighborhood;
 	unordered_map<Vertex, Weight>::const_iterator neighborhoodIterator;
 	TimeUnit *candidateTimings = new TimeUnit[2*numberOfTuplesToTestPerIteration];
 	Vertex vertex1, vertex2;
-	TimeUnit bestVertex1Timing, bestVertex2Timing, bestPenalty;
+	TimeUnit bestVertex1Timing = -1, bestVertex2Timing = -1, bestPenalty;
 	random_device seeder;
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<Vertex> edgePicker;
 	uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
 	TimeUnit infinite = numeric_limits<TimeUnit>::max();
-	size_t i;
 	TimeUnit candidateTimingVertex1, candidateTimingVertex2, penalty;
 	Solution solution(graph.getNumberOfVertices());
 
@@ -56,12 +55,12 @@ Solution heuristic::constructHeuristicSolution (const Graph& graph, unsigned cha
 		advance(neighborhoodIterator, edgePicker(randomEngine));
 		vertex2 = neighborhoodIterator->first;
 
-		for (i = 0; i < 2*numberOfTuplesToTestPerIteration; i++) {
+		for (decltype(numberOfTuplesToTestPerIteration) i = 0; i < 2*numberOfTuplesToTestPerIteration; i++) {
 			candidateTimings[i] = timingPicker(randomEngine);
 		}
 
 		bestPenalty = infinite;
-		for (i = 0; i < numberOfTuplesToTestPerIteration; i++) {
+		for (decltype(numberOfTuplesToTestPerIteration) i = 0; i < numberOfTuplesToTestPerIteration; i++) {
 			candidateTimingVertex1 = candidateTimings[i*2];
 			candidateTimingVertex2 = candidateTimings[i*2+1];
 

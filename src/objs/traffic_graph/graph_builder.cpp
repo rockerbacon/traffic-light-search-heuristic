@@ -21,7 +21,7 @@ bool GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 	decltype(GraphBuilder::adjacencyListMap)::iterator vertex1Index;
 	unordered_map<Vertex, Weight>* vertex1Map;
 	unordered_map<Vertex, Weight>::iterator vertex2Index;
-	size_t highestVertexIndexInEdge;
+	Vertex highestVertexIndexInEdge;
 	Vertex i, j;
 
 	if (edge.vertex1 > edge.vertex2) {
@@ -42,7 +42,7 @@ bool GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 
 	vertex1Index = this->adjacencyListMap.find(i);
 	if (vertex1Index == this->adjacencyListMap.end()) {
-		vertex1Map = new unordered_map<size_t, Weight>();
+		vertex1Map = new unordered_map<Vertex, Weight>();
 		this->adjacencyListMap[i] = vertex1Map;
 	} else {
 		vertex1Map = vertex1Index->second;
@@ -59,7 +59,7 @@ bool GraphBuilder::addEdge(const Graph::Edge& edge, Weight weight) {
 
 }
 
-GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDegree, int minWeight, int maxWeight) : GraphBuilder()
+GraphBuilder::GraphBuilder(Vertex nVertices, Vertex minDegree, Vertex maxDegree, Weight minWeight, Weight maxWeight) : GraphBuilder()
 {
 	if(nVertices < 2)
 	{
@@ -79,7 +79,7 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 
 	vector<Vertex> verticesToConnect;
 	vector<Vertex> connectedVertices;
-	unsigned *degree;
+	Vertex *degree;
 	Vertex randomConnectedVertex, nextVertexToConnect;
 	Vertex randomIndex;
 	Weight weight;
@@ -87,7 +87,7 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 	mt19937 randomEngine(seeder());
 	uniform_int_distribution<Vertex> vertexPicker;
 	uniform_int_distribution<Weight> weightPicker(minWeight, maxWeight);
-	uniform_int_distribution<unsigned> degreePicker;
+	uniform_int_distribution<Vertex> degreePicker;
 
 	for (auto mapIterator = this->adjacencyListMap.begin(); mapIterator != this->adjacencyListMap.end(); mapIterator++) {
 		delete(mapIterator->second);
@@ -95,7 +95,7 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 
 	verticesToConnect.reserve(nVertices);
 	connectedVertices.reserve(nVertices);
-	degree = new unsigned[nVertices];
+	degree = new Vertex[nVertices];
 
 	for(Vertex i = 0; i < nVertices; i++)
 	{
@@ -149,8 +149,8 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 		}
 
 		if (degree[i] < maxDegree) {
-			degreePicker = uniform_int_distribution<unsigned>(0, maxDegree-degree[i]);
-			unsigned increaseDegreeBy = degreePicker(randomEngine);
+			degreePicker = uniform_int_distribution<Vertex>(0, maxDegree-degree[i]);
+			Vertex increaseDegreeBy = degreePicker(randomEngine);
 
 			while (increaseDegreeBy > 0) {
 				randomConnectedVertex = vertexPicker(randomEngine);
@@ -172,11 +172,11 @@ GraphBuilder::GraphBuilder(size_t nVertices, unsigned minDegree, unsigned maxDeg
 }
 
 AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
-	size_t matrixDimension = this->highestVertexIndex+1;
-	size_t matrixDimensionX2minus1 = matrixDimension*2-1;
-	size_t matrixTotalSize = matrixDimension/2*matrixDimension + matrixDimension/2;
+	Vertex matrixDimension = this->highestVertexIndex+1;
+	Vertex matrixDimensionX2minus1 = matrixDimension*2-1;
+	Vertex matrixTotalSize = matrixDimension/2*matrixDimension + matrixDimension/2;
 	Vertex i, j;
-	size_t index;
+	Vertex index;
 	Weight* adjacencyMatrix = new Weight[matrixTotalSize];
 
 	for (i = 0; i < matrixTotalSize; i++) {
@@ -196,9 +196,9 @@ AdjacencyMatrixGraph* GraphBuilder::buildAsAdjacencyMatrix(void) const {
 }
 
 AdjacencyListGraph* GraphBuilder::buildAsAdjacencyList(void) const {
-	size_t adjacencyListDimension = this->highestVertexIndex+1;
+	Vertex adjacencyListDimension = this->highestVertexIndex+1;
 	auto adjacencyList = new unordered_map<Vertex, Weight>[adjacencyListDimension];
-	Vertex i, j, aux;
+	Vertex i, j;
 
 	for (auto& it: this->adjacencyListMap) {
 		auto itVertexMap = it.second;
@@ -231,7 +231,7 @@ void GraphBuilder::output_to_file (ofstream &file_stream) const {
 void GraphBuilder::read_from_file(std::ifstream &file_stream) {
 	TimeUnit cycle, weight;
 	Vertex numberOfVertices, numberOfNeighbours, vertex, neighbour;
-	size_t lines = 1;
+	Vertex lines = 1;
 
 	file_stream >> cycle >> numberOfVertices;
 	lines++;
