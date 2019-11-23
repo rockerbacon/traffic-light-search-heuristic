@@ -1,6 +1,6 @@
 #include "heuristic/heuristic.h"
-#include "assertions/benchmark.h"
-#include "assertions/command_line_interface.h"
+#include <cpp-benchmark/benchmark.h>
+#include <cpp-command-line-interface/command_line_interface.h>
 #include <cstring>
 
 #define DEFAULT_NUMBER_OF_RUNS 100
@@ -12,13 +12,23 @@ using namespace traffic;
 using namespace benchmark;
 using namespace heuristic;
 
-int main (int argc, char** argv) {
+cli_main (
+		"Benchmark Local Search",
+		"unknown",
+		"Program for benchmarking local search heuristic",
+
+		cli::RequiredArgument<string> inputFilePath("input", "path to file containing the problem instance");
+		cli::OptionalArgument<unsigned> numberOfRuns(DEFAULT_NUMBER_OF_RUNS, "runs", "number of runs for the benchmark");
+		cli::OptionalArgument<unsigned> numberOfIterationsToStop(0, "iterations", "number of iterations to execute the search");
+		cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop(0, "iterationsWithoutImprovement", "number of iterations without improvement after which heuristic should stop");
+		cli::OptionalArgument<unsigned> minutesToStop(0, "minutes", "minutes after which local search should stop");
+
+		cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix", "use adjacency matrix instead of adjacency list");
+) {
 
 	GraphBuilder graphBuilder;
 	Graph *graph = nullptr;
 	Solution constructedSolution, searchedSolution;
-	size_t numberOfVertices, maxVertexDegree, minVertexDegree;
-	TimeUnit cycle;
 	StopFunction stopFunction;
 	double initialConstructionPenalty, localSearchPenalty, lowerBound;
 	double penaltyFactor, lowerBoundFactor;
@@ -26,23 +36,9 @@ int main (int argc, char** argv) {
 	chrono::high_resolution_clock::duration searchDuration;
 	ifstream fileInputStream;
 
-	/* CLI ARGUMENTS */
-	cli::RequiredArgument<string> inputFilePath("input", 'i');
-
-	cli::OptionalArgument<unsigned> numberOfRuns("runs", DEFAULT_NUMBER_OF_RUNS);
-
-	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
-	cli::FlagArgument useAdjacencyList("useAdjacencyList");
-
-	cli::OptionalArgument<unsigned> numberOfIterationsToStop("iterations", 0);
-	cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop("iterationsWithoutImprovement", 0);
-	cli::OptionalArgument<unsigned> secondsToStop("seconds", 0);
-	cli::OptionalArgument<unsigned> minutesToStop("minutes", 0);
-
-	cli::capture_all_arguments_from(argc, argv);
-
 	fileInputStream.open(*inputFilePath);
 	graphBuilder.read_from_file(fileInputStream);
+	fileInputStream.close();
 
 	if (*useAdjacencyMatrix) {
 		graph = graphBuilder.buildAsAdjacencyMatrix();
@@ -54,15 +50,11 @@ int main (int argc, char** argv) {
 		stopFunction = stop_function_factory::numberOfIterations(*numberOfIterationsToStop);
 	} else if (numberOfIterationsWithoutImprovementToStop.is_present()) {
 		stopFunction = stop_function_factory::numberOfIterationsWithoutImprovement(*numberOfIterationsWithoutImprovementToStop);
-	} else if (secondsToStop.is_present()) {
-		stopFunction = stop_function_factory::executionTime(chrono::seconds(*secondsToStop));
 	} else if (minutesToStop.is_present()) {
 		stopFunction = stop_function_factory::executionTime(chrono::minutes(*minutesToStop));
 	} else {
 		stopFunction = DEFAULT_STOP_FUNCTION;
 	}
-
-	/* CLI ARGUMENTS */
 
 	register_observer(new TerminalObserver());
 
@@ -93,4 +85,4 @@ int main (int argc, char** argv) {
 	delete_observers();
 
 	return 0;
-}
+} end_cli_main;
