@@ -39,7 +39,7 @@ begin_tests {
 	}
 
 	test_suite("when combining individuals") {
-		test_case("combining two equal solutions using breadth first search should not alter the solution") {
+		test_case("combining two equal solutions using breadth first search without mutation probability should not alter the solution") {
 			MockGraph graph;
 			Solution initialSolution(graph.getNumberOfVertices());
 
@@ -47,13 +47,32 @@ begin_tests {
 				initialSolution.setTiming(v, v*2);
 			}
 
-			auto combineByBfs = combination_method_factory::breadthFirstSearch();
+			auto combineByBfs = combination_method_factory::breadthFirstSearch(0.0);
 			auto combinedSolution = combineByBfs(graph, &initialSolution, &initialSolution);
 
 			assert(combinedSolution.getNumberOfVertices(), >, 0);
 			for (Vertex v = 0; v < combinedSolution.getNumberOfVertices(); v++) {
 				assert(combinedSolution.getTiming(v), ==, initialSolution.getTiming(v));
 			}
+		};
+
+		test_case("combining two equal solutions using breadth first search with 1.0 mutation probability should alter the solution") {
+			MockGraph graph;
+			Solution initialSolution(graph.getNumberOfVertices());
+
+			for (Vertex v = 0; v < initialSolution.getNumberOfVertices(); v++) {
+				initialSolution.setTiming(v, v*2);
+			}
+
+			auto combineByBfs = combination_method_factory::breadthFirstSearch(1.0);
+			auto combinedSolution = combineByBfs(graph, &initialSolution, &initialSolution);
+
+			bool foundDifferentTiming = false;
+			assert(combinedSolution.getNumberOfVertices(), >, 0);
+			for (Vertex v = 0; v < combinedSolution.getNumberOfVertices() && !foundDifferentTiming; v++) {
+				foundDifferentTiming = combinedSolution.getTiming(v) != initialSolution.getTiming(v);
+			}
+			assert(foundDifferentTiming, ==, true);
 		};
 
 		test_case("crossovering two equal solutions without mutation probability should not alter the solution") {
@@ -79,7 +98,7 @@ begin_tests {
 			MockGraph graph;
 			bool exception_raised = false;
 			try {
-				scatterSearch(graph, 3, 4, 1, stop_function_factory::numberOfIterations(1), combination_method_factory::breadthFirstSearch());
+				scatterSearch(graph, 3, 4, 1, stop_function_factory::numberOfIterations(1), combination_method_factory::breadthFirstSearch(0.2));
 			} catch(invalid_argument &e) {
 				exception_raised = true;
 			}
@@ -93,7 +112,7 @@ begin_tests {
 			size_t localSearchIterations = 10;
 
 			auto stopFunction = stop_function_factory::numberOfIterations(3);
-			auto combinationMethod = combination_method_factory::breadthFirstSearch();
+			auto combinationMethod = combination_method_factory::breadthFirstSearch(0.2);
 
 			auto searchedSolution = scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod);
 
@@ -116,7 +135,7 @@ begin_tests {
 			size_t localSearchIterations = 10;
 
 			auto stopFunction = stop_function_factory::numberOfIterations(3);
-			auto combinationMethod = combination_method_factory::breadthFirstSearch();
+			auto combinationMethod = combination_method_factory::breadthFirstSearch(0.2);
 
 			auto searchedSolution = scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod);
 
@@ -130,7 +149,7 @@ begin_tests {
 			size_t localSearchIterations = 10;
 
 			auto stopFunction = stop_function_factory::numberOfIterations(3);
-			auto combinationMethod = combination_method_factory::breadthFirstSearch();
+			auto combinationMethod = combination_method_factory::breadthFirstSearch(0.2);
 
 			auto searchedSolution = scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod);
 

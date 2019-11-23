@@ -161,11 +161,13 @@ StopFunction stop_function_factory::numberOfIterationsWithoutImprovement(unsigne
 	};
 }
 
-CombinationMethod combination_method_factory::breadthFirstSearch (void) {
-	return [](const Graph& graph, const Solution *s1, const Solution *s2) -> Solution {
+CombinationMethod combination_method_factory::breadthFirstSearch (double mutationProbability) {
+	return [mutationProbability](const Graph& graph, const Solution *s1, const Solution *s2) -> Solution {
 		random_device seeder;
 		mt19937 randomEngine(seeder());
 		uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
+		uniform_int_distribution<TimeUnit> timingPicker(0, graph.getCycle()-1);
+		uniform_real_distribution<decltype(mutationProbability)> mutationPicker(0.0, 1.0);
 		Vertex v = vertexPicker(randomEngine);
 		unsigned i = 0, middle;
 		size_t nVertices = graph.getNumberOfVertices();
@@ -202,6 +204,12 @@ CombinationMethod combination_method_factory::breadthFirstSearch (void) {
 			}
 
 			i++;
+		}
+
+		if (mutationPicker(randomEngine) <= mutationProbability) {
+			auto vertex = vertexPicker(randomEngine);
+			auto timing = timingPicker(randomEngine);
+			solution.setTiming(vertex, timing);
 		}
 
 		delete [] visited;

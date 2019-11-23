@@ -8,6 +8,8 @@
 #include <mutex>
 #include "../parallel/reusable_thread.h"
 
+#define ALWAYS_COMBINE
+
 using namespace traffic;
 using namespace std;
 using namespace heuristic;
@@ -15,6 +17,7 @@ using namespace ::parallel;
 
 namespace global {
 	thread_pile *threads;
+	thread_pile::slice_t *threads_depth1;
 }
 
 void recalculateDistances(
@@ -138,7 +141,7 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 
 		rightHalfFuture.wait();
 
-		auto availableThreads = global::threads->depth(1).slice(populationBegin, populationEnd);
+		auto availableThreads = global::threads_depth1->slice(populationBegin, populationEnd);
 		return combineAndDiversify(graph, leftHalf, rightHalf, elitePopulationSize, diversePopulationSize, availableThreads);
 	}
 }
@@ -179,9 +182,14 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	}
 
 	Metrics metrics;
+#ifndef ALWAYS_COMBINE
+	atomic<bool> combinationSignal;
+#endif
 
 	thread_pile threads(numberOfThreads, 2);
+	thread_pile::slice_t threads_depth1 = threads.depth(1);
 	global::threads = &threads;
+	global::threads_depth1 = &threads_depth1;
 	using_threads(*global::threads);
 
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
@@ -194,6 +202,10 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	Population<Individual*> arrangedPopulation(totalPopulation.size());
 
 	vector<ScatterSearchPopulation<Individual*>> population(numberOfThreads);
+#ifndef ALWAYS_COMBINE
+	vector<TimeUnit> minimumPenalty(numberOfThreads, numeric_limits<TimeUnit>::max());
+	vector<TimeUnit> minimumDistance(numberOfThreads, numeric_limits<TimeUnit>::max());
+#endif
 
 	const auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
 	const auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
@@ -237,17 +249,16 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	metrics.numberOfIterationsWithoutImprovement = 0;
 	while (stopFunction(metrics)) {
 
-		for (unsigned thread_i = 0; thread_i < numberOfThreads; thread_i++) {
+		for_each_thread {
 			arrangePopulation(subdividedTotalPopulation.elite, population[thread_i].elite, thread_i);
 			arrangePopulation(subdividedTotalPopulation.diverse, population[thread_i].diverse, thread_i);
 			arrangePopulation(subdividedTotalPopulation.candidate, population[thread_i].candidate, thread_i);
-		}
+		} end_for_each_thread;
 
 		for_each_thread {
 
 			random_device seeder;
 			mt19937 randomEngine(seeder());
-
 			Individual *individual1, *individual2;
 
 			shuffle(population[thread_i].reference.begin(), population[thread_i].reference.end(), randomEngine);
@@ -265,13 +276,38 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 			sort(population[thread_i].total.begin(), population[thread_i].total.end(), [](auto a, auto b) { return a->penalty < b->penalty; });
 
-			diversify(graph, population[thread_i]);
+		#ifndef ALWAYS_COMBINE
+			if(population[thread_i].elite[0]->penalty < minimumPenalty[thread_i]) {
+				combinationSignal.store(true);
+				minimumPenalty[thread_i] = population[thread_i].elite[0]->penalty;
+			}
+		#endif
 
-			if (thread_i == 0) {
+		#ifndef ALWAYS_COMBINE
+			auto iterationMinimumDistance =
+		#endif
+				diversify(graph, population[thread_i]);
+
+		#ifndef ALWAYS_COMBINE
+			if (iterationMinimumDistance < minimumDistance[thread_i]) {
+				combinationSignal.store(true);
+				minimumDistance[thread_i] = iterationMinimumDistance;
+			}
+		#endif
+
+			if	(
+				thread_i == 0
+			#ifndef ALWAYS_COMBINE
+			   	&& combinationSignal.load()
+			#endif
+				) {
 				auto nextPopulation = bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);
 				for (size_t i = 0; i < nextPopulation.size(); i++) {
 					subdividedTotalPopulation.total[i] = nextPopulation[i];
 				}
+			#ifndef ALWAYS_COMBINE
+				combinationSignal.store(false);
+			#endif
 			}
 
 		} end_for_each_thread;
