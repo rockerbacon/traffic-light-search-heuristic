@@ -17,9 +17,6 @@ Population<int> populationFixture() {
 
 begin_tests {
 
-	Population<int> *population;
-	int defaultValue = 3;
-
 	test_suite("when iterating through population") {
 		test_case("population should be correctly iterated with foreach") {
 			int defaultIndividual = 3;
