@@ -15,7 +15,7 @@ begin_tests {
 			MockGraph graph;
 			bool exception_raised = false;
 			try {
-				heuristic::parallel::scatterSearch(graph, 3, 4, 1, stop_function_factory::numberOfIterations(1), combination_method_factory::breadthFirstSearch(), NUMBER_OF_THREADS);
+				heuristic::parallel::scatterSearch(graph, 3, 4, 1, stop_function_factory::numberOfIterations(1), combination_method_factory::breadthFirstSearch(0.2), NUMBER_OF_THREADS);
 			} catch(invalid_argument &e) {
 				exception_raised = true;
 			}
@@ -27,9 +27,10 @@ begin_tests {
 			size_t elitePopulationSize = NUMBER_OF_THREADS;
 			size_t diversePopulationSize = NUMBER_OF_THREADS*3;
 			size_t localSearchIterations = 10;
+			double mutationProbability = 0.2;
 
 			auto stopFunction = stop_function_factory::numberOfIterations(3);
-			auto combinationMethod = combination_method_factory::breadthFirstSearch();
+			auto combinationMethod = combination_method_factory::breadthFirstSearch(mutationProbability);
 
 			auto searchedSolution = heuristic::parallel::scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod, NUMBER_OF_THREADS);
 
@@ -50,9 +51,10 @@ begin_tests {
 			size_t elitePopulationSize = NUMBER_OF_THREADS;
 			size_t diversePopulationSize = NUMBER_OF_THREADS*3;
 			size_t localSearchIterations = 10;
+			double mutationProbability = 0.2;
 
 			auto stopFunction = stop_function_factory::numberOfIterations(3);
-			auto combinationMethod = combination_method_factory::breadthFirstSearch();
+			auto combinationMethod = combination_method_factory::breadthFirstSearch(mutationProbability);
 
 			auto searchedSolution = heuristic::parallel::scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod, NUMBER_OF_THREADS);
 
@@ -64,9 +66,10 @@ begin_tests {
 			size_t elitePopulationSize = NUMBER_OF_THREADS;
 			size_t diversePopulationSize = NUMBER_OF_THREADS*3;
 			size_t localSearchIterations = 10;
+			double mutationProbability = 0.2;
 
 			auto stopFunction = stop_function_factory::numberOfIterations(3);
-			auto combinationMethod = combination_method_factory::breadthFirstSearch();
+			auto combinationMethod = combination_method_factory::breadthFirstSearch(mutationProbability);
 
 			auto searchedSolution = heuristic::parallel::scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod, NUMBER_OF_THREADS);
 

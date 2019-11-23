@@ -9,6 +9,7 @@
 #define DEFAULT_DIVERSE_POPULATION_SIZE 100
 #define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
 #define DEFAULT_NUMBER_OF_THREADS 1
+#define DEFAULT_MUTATION_PROBABILITY 0.1
 
 #define DONT_OUTPUT_TO_FILE ""
 
@@ -32,7 +33,8 @@ cli_main (
 	cli::OptionalArgument<unsigned> numberOfIterationsToStop(0, "iterations", "stop heuristic after specified number of iterations");
 	cli::OptionalArgument<unsigned> minutesToStop(0, "minutes", "stop heuristic after specified time has passed");
 
-	cli::OptionalArgument<double> crossoverMutationProbability(-1.0, "useCrossoverWithMutationProbability", "use crossover combination method with the specified mutation probability. A breadth first search combination is used by default");
+	cli::OptionalArgument<double> mutationProbability(DEFAULT_MUTATION_PROBABILITY, "mutationProbability", "mutation probability to use during combination");
+	cli::FlagArgument useCrossover("useCrossover", "use crossover as combination method. Default combination is a Breadth-First search combination");
 
 	cli::OptionalArgument<size_t> elitePopulationSize(DEFAULT_ELITE_POPULATION_SIZE, "elite", "specify size for the elite population");
 	cli::OptionalArgument<size_t> diversePopulationSize(DEFAULT_DIVERSE_POPULATION_SIZE, "diverse", "specify size for the diverse population");
@@ -69,10 +71,10 @@ cli_main (
 		stopFunction = DEFAULT_STOP_FUNCTION;
 	}
 
-	if (crossoverMutationProbability.is_present()) {
-		combinationMethod = combination_method_factory::crossover(*crossoverMutationProbability);
+	if (*useCrossover) {
+		combinationMethod = combination_method_factory::crossover(*mutationProbability);
 	} else {
-		combinationMethod = combination_method_factory::breadthFirstSearch();
+		combinationMethod = combination_method_factory::breadthFirstSearch(*mutationProbability);
 	}
 
 	register_observer(new TerminalObserver());

@@ -40,7 +40,7 @@ namespace heuristic {
 
 	namespace combination_method_factory{
 
-		CombinationMethod breadthFirstSearch(void);
+		CombinationMethod breadthFirstSearch(double mutationProbability);
 		CombinationMethod crossover(double mutationProbability);
 
 	}
