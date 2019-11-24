@@ -119,7 +119,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 			individual1 = population.reference[i*2];
 			individual2 = population.reference[i*2+1];
 
-			population.candidate[i]->solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
+			population.candidate[i]->solution = combinationMethod(graph, individual1->solution, individual2->solution);
 			population.candidate[i]->solution = localSearchHeuristic(graph, population.candidate[i]->solution, diverseLocalSearchStopFunction);
 			population.candidate[i]->penalty = graph.totalPenalty(population.candidate[i]->solution);
 		}

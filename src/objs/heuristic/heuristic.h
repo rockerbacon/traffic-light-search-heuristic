@@ -8,7 +8,7 @@
 
 namespace heuristic {
 	traffic::Solution constructRandomSolution (const traffic::Graph& graph);
-	traffic::Solution constructHeuristicSolution (const traffic::Graph& graph, unsigned char numberOfTuplesToTestPerIteration=3);
+	traffic::Solution constructHeuristicSolution (const traffic::Graph& graph, traffic::Vertex numberOfTuplesToTestPerIteration=3);
 
 	traffic::TimeUnit distance(const traffic::Graph& graph, const traffic::Solution& a, const traffic::Solution& b);
 
@@ -36,13 +36,11 @@ namespace heuristic {
 
 	};
 
-	typedef std::function<traffic::Solution(const traffic::Graph&, const traffic::Solution*, const traffic::Solution*c)> CombinationMethod;
+	typedef std::function<traffic::Solution(const traffic::Graph&, const traffic::Solution&, const traffic::Solution&)> CombinationMethod;
 
 	namespace combination_method_factory{
-
 		CombinationMethod breadthFirstSearch(double mutationProbability);
 		CombinationMethod crossover(double mutationProbability);
-
 	}
 
 	traffic::Solution localSearchHeuristic(const traffic::Graph& graph, const traffic::Solution& initialSolution, const std::function<bool(const Metrics&)>& stopCriteriaNotMet);

@@ -15,7 +15,7 @@ begin_tests {
 			auto searchedSolution = localSearchHeuristic(graph, initialSolution, stop_function_factory::numberOfIterations(25));
 			bool searched_solution_is_different = false;
 			for (Vertex v = 0; v < graph.getNumberOfVertices(); v++) {
-				if (searchedSolution.getTiming(v) != initialSolution.getTiming(v)) {
+				if (searchedSolution[v] != initialSolution[v]) {
 					searched_solution_is_different = true;
 				}
 			}
@@ -34,7 +34,7 @@ begin_tests {
 			auto initialSolution = Solution(graph.getNumberOfVertices());
 			auto searchedSolution = localSearchHeuristic(graph, initialSolution, stop_function_factory::numberOfIterations(25));
 			for (Vertex v = 0; v < graph.getNumberOfVertices(); v++) {
-				auto timing = searchedSolution.getTiming(v);
+				auto timing = searchedSolution[v];
 				assert(timing, >=, 0);
 				assert(timing, <, graph.getCycle());
 			}

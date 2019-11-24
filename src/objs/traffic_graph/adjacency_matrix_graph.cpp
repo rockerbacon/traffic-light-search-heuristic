@@ -3,7 +3,7 @@
 using namespace traffic;
 using namespace std;
 
-AdjacencyMatrixGraph::AdjacencyMatrixGraph (Weight *adjacencyMatrix, size_t numberOfVertices, TimeUnit cycle) : Graph(numberOfVertices, cycle) {
+AdjacencyMatrixGraph::AdjacencyMatrixGraph (Weight *adjacencyMatrix, Vertex numberOfVertices, TimeUnit cycle) : Graph(numberOfVertices, cycle) {
 	this->adjacencyMatrix = adjacencyMatrix;
 	this->matrixDimensionX2minus1 = numberOfVertices*2-1;
 }
@@ -16,7 +16,6 @@ AdjacencyMatrixGraph::~AdjacencyMatrixGraph (void) {
 }
 
 Weight AdjacencyMatrixGraph::weight (const Graph::Edge& edge) const {
-	Weight weight;
 	Vertex i, j, index;
 	if (edge.vertex1 > edge.vertex2) {
 		i = edge.vertex2;

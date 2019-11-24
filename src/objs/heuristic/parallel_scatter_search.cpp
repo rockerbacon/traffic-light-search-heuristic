@@ -268,7 +268,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 				individual1 = population[thread_i].reference[i*2];
 				individual2 = population[thread_i].reference[i*2+1];
 
-				population[thread_i].candidate[i]->solution = combinationMethod(graph, &individual1->solution, &individual2->solution);
+				population[thread_i].candidate[i]->solution = combinationMethod(graph, individual1->solution, individual2->solution);
 				population[thread_i].candidate[i]->solution = localSearchHeuristic(graph, population[thread_i].candidate[i]->solution, diverseLocalSearchStopFunction);
 				population[thread_i].candidate[i]->penalty = graph.totalPenalty(population[thread_i].candidate[i]->solution);
 

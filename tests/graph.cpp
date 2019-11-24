@@ -70,10 +70,10 @@ class MockGraph : public Graph {
 
 Solution solutionFixture() {
 	Solution solution(NUMBER_OF_VERTICES);
-	solution.setTiming(7, TIMING_7);
-	solution.setTiming(5, TIMING_5);
-	solution.setTiming(2, TIMING_2);
-	solution.setTiming(4, TIMING_4);
+	solution[7] = TIMING_7;
+	solution[5] = TIMING_5;
+	solution[2] = TIMING_2;
+	solution[4] = TIMING_4;
 	return solution;
 }
 

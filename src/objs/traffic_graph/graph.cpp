@@ -13,8 +13,8 @@ size_t Graph::getNumberOfVertices (void) const {
 }
 
 TimeUnit Graph::penalty (Vertex vertex1, Vertex vertex2, const Solution& solution, Weight edgeWeight) const {
-	TimeUnit timingVertex1 = solution.getTiming(vertex1);
-	TimeUnit timingVertex2 = solution.getTiming(vertex2);
+	TimeUnit timingVertex1 = solution[vertex1];
+	TimeUnit timingVertex2 = solution[vertex2];
 	Weight weight = (edgeWeight == -1) ? this->weight({vertex1, vertex2}) : edgeWeight;
 	TimeUnit cuv, penalty;
 
