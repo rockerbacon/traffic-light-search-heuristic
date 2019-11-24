@@ -16,7 +16,7 @@ Solution heuristic::constructRandomSolution (const Graph& graph) {
 	Solution solution(graph.getNumberOfVertices());
 
 	for (Vertex v = 0; v < graph.getNumberOfVertices(); v++) {
-		solution.setTiming(v, timingPicker(randomEngine));
+		solution[v] = timingPicker(randomEngine);
 	}
 
 	return solution;
@@ -64,8 +64,8 @@ Solution heuristic::constructHeuristicSolution (const Graph& graph, Vertex numbe
 			candidateTimingVertex1 = candidateTimings[i*2];
 			candidateTimingVertex2 = candidateTimings[i*2+1];
 
-			solution.setTiming(vertex1, candidateTimingVertex1);
-			solution.setTiming(vertex2, candidateTimingVertex2);
+			solution[vertex1] = candidateTimingVertex1;
+			solution[vertex2] = candidateTimingVertex2;
 
 			penalty = graph.vertexPenalty(vertex1, solution) + graph.vertexPenalty(vertex2, solution);
 			if (penalty < bestPenalty) {
@@ -75,8 +75,8 @@ Solution heuristic::constructHeuristicSolution (const Graph& graph, Vertex numbe
 			}
 		}
 
-		solution.setTiming(vertex1, bestVertex1Timing);
-		solution.setTiming(vertex2, bestVertex2Timing);
+		solution[vertex1] = bestVertex1Timing;
+		solution[vertex2] = bestVertex2Timing;
 
 	}
 
@@ -86,17 +86,14 @@ Solution heuristic::constructHeuristicSolution (const Graph& graph, Vertex numbe
 }
 
 TimeUnit heuristic::distance(const Graph& graph, const Solution& a, const Solution& b) {
-	TimeUnit totalDistance, clockwiseVertexDistance, counterClockwiseVertexDistance;
-	totalDistance = 0;
-	for (Vertex v = 0; v < graph.getNumberOfVertices(); v++) {
-		clockwiseVertexDistance = abs(a.getTiming(v) - b.getTiming(v));
-		counterClockwiseVertexDistance = graph.getCycle() - clockwiseVertexDistance;
-		if (clockwiseVertexDistance < counterClockwiseVertexDistance) {
-			totalDistance += clockwiseVertexDistance;
-		} else {
-			totalDistance += counterClockwiseVertexDistance;
-		}
+	auto cycle = graph.getCycle();
+	TimeUnit totalDistance = 0;
+	for (Vertex v = 0; v < a.size(); v++) {
+		auto clockwiseDistance = abs(a[v] - b[v]);
+		auto counterClockwiseDistance = cycle - clockwiseDistance;
+		totalDistance += min(clockwiseDistance, counterClockwiseDistance);
 	}
+
 	return totalDistance;
 }
 
@@ -126,16 +123,16 @@ Solution heuristic::localSearchHeuristic(const Graph& graph, const Solution& ini
 
 		vertex = vertexPicker(randomEngine);
 
-		currentTiming = solution.getTiming(vertex);
+		currentTiming = solution[vertex];
 		currentPenalty = graph.vertexPenalty(vertex, solution);
 		perturbationTiming = timingPicker(randomEngine);
-		solution.setTiming(vertex, perturbationTiming);
+		solution[vertex] = perturbationTiming;
 		perturbationPenalty = graph.vertexPenalty(vertex, solution);
 
 		if (perturbationPenalty < currentPenalty) {
 			iterationHadNoImprovement = false;
 		} else {
-			solution.setTiming(vertex, currentTiming);
+			solution[vertex] = currentTiming;
 		}
 
 		metrics.numberOfIterations++;
@@ -161,7 +158,7 @@ StopFunction stop_function_factory::numberOfIterationsWithoutImprovement(unsigne
 }
 
 CombinationMethod combination_method_factory::breadthFirstSearch (double mutationProbability) {
-	return [mutationProbability](const Graph& graph, const Solution *s1, const Solution *s2) -> Solution {
+	return [mutationProbability](const Graph& graph, const Solution &s1, const Solution &s2) -> Solution {
 		random_device seeder;
 		mt19937 randomEngine(seeder());
 		uniform_int_distribution<Vertex> vertexPicker(0, graph.getNumberOfVertices()-1);
@@ -195,11 +192,11 @@ CombinationMethod combination_method_factory::breadthFirstSearch (double mutatio
 
 			if(i < middle)
 			{
-				solution.setTiming(v, s1->getTiming(v));
+				solution[v] = s1[v];
 			}
 			else
 			{
-				solution.setTiming(v, s2->getTiming(v));
+				solution[v] = s2[v];
 			}
 
 			i++;
@@ -208,7 +205,7 @@ CombinationMethod combination_method_factory::breadthFirstSearch (double mutatio
 		if (mutationPicker(randomEngine) <= mutationProbability) {
 			auto vertex = vertexPicker(randomEngine);
 			auto timing = timingPicker(randomEngine);
-			solution.setTiming(vertex, timing);
+			solution[vertex] = timing;
 		}
 
 		delete [] visited;
@@ -217,7 +214,7 @@ CombinationMethod combination_method_factory::breadthFirstSearch (double mutatio
 }
 
 CombinationMethod combination_method_factory::crossover (double mutationProbability) {
-	return [=](const Graph& graph, const Solution *a, const Solution *b) -> Solution {
+	return [=](const Graph& graph, const Solution &a, const Solution &b) -> Solution {
 
 		Vertex nVertices = graph.getNumberOfVertices();
 		Vertex pRange = nVertices / 2;
@@ -235,11 +232,11 @@ CombinationMethod combination_method_factory::crossover (double mutationProbabil
 
 		for(Vertex v = 0; v < nVertices; v++)
 		{
-			solution.setTiming(v, v <= k ? a->getTiming(v) : b->getTiming(v));
+			solution[v] = v <= k ? a[v] : b[v];
 
 			if(mutPicker(randomEngine) <= mutationProbability)
 			{
-				solution.setTiming(v, timingPicker(randomEngine));
+				solution[v] = timingPicker(randomEngine);
 			}
 		}
 
@@ -322,7 +319,7 @@ Solution heuristic::geneticAlgorithm(const Graph& graph, size_t populationSize, 
 
 		for(size_t j = 0; j < replaceSize; j++)
 		{
-			aux = combinationMethod(graph, &parents[j].first, &parents[(j+1) % replaceSize].first);
+			aux = combinationMethod(graph, parents[j].first, parents[(j+1) % replaceSize].first);
 			population.push_back(make_pair(aux, graph.totalPenalty(aux)));
 		}
 

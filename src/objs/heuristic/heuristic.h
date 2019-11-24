@@ -36,13 +36,11 @@ namespace heuristic {
 
 	};
 
-	typedef std::function<traffic::Solution(const traffic::Graph&, const traffic::Solution*, const traffic::Solution*c)> CombinationMethod;
+	typedef std::function<traffic::Solution(const traffic::Graph&, const traffic::Solution&, const traffic::Solution&)> CombinationMethod;
 
 	namespace combination_method_factory{
-
 		CombinationMethod breadthFirstSearch(double mutationProbability);
 		CombinationMethod crossover(double mutationProbability);
-
 	}
 
 	traffic::Solution localSearchHeuristic(const traffic::Graph& graph, const traffic::Solution& initialSolution, const std::function<bool(const Metrics&)>& stopCriteriaNotMet);

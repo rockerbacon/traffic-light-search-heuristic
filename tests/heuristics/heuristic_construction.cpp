@@ -14,7 +14,7 @@ begin_tests {
 			auto solution = constructHeuristicSolution(graph);
 			bool has_non_zero_timing = false;
 			for (Vertex i = 0; i < graph.getNumberOfVertices() && !has_non_zero_timing; i++) {
-				if (solution.getTiming(i) != 0) {
+				if (solution[i] != 0) {
 					has_non_zero_timing = true;
 				}
 			}
@@ -25,7 +25,7 @@ begin_tests {
 			MockGraph graph;
 			auto solution = constructHeuristicSolution(graph);
 			for (Vertex i = 0; i < graph.getNumberOfVertices(); i++) {
-				auto timing = solution.getTiming(i);
+				auto timing = solution[i];
 				assert(timing >= 0 && timing < testCycle, ==, true);
 			}
 		};

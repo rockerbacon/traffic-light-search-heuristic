@@ -35,8 +35,8 @@ begin_tests {
 			auto searchedSolution = heuristic::parallel::scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod, NUMBER_OF_THREADS);
 
 			auto has_non_zero_timing = false;
-			for (Vertex v = 0; v < searchedSolution.getNumberOfVertices() && !has_non_zero_timing; v++) {
-				if (searchedSolution.getTiming(v) != 0) {
+			for (Vertex v = 0; v < searchedSolution.size() && !has_non_zero_timing; v++) {
+				if (searchedSolution[v] != 0) {
 					has_non_zero_timing = true;
 				}
 			}
@@ -73,8 +73,8 @@ begin_tests {
 
 			auto searchedSolution = heuristic::parallel::scatterSearch(graph, elitePopulationSize, diversePopulationSize, localSearchIterations, stopFunction, combinationMethod, NUMBER_OF_THREADS);
 
-			for (Vertex v = 0; v < searchedSolution.getNumberOfVertices(); v++) {
-				auto timing = searchedSolution.getTiming(v);
+			for (Vertex v = 0; v < searchedSolution.size(); v++) {
+				auto timing = searchedSolution[v];
 				assert(timing, >=, 0);
 				assert(timing, <, graph.getCycle());
 			}

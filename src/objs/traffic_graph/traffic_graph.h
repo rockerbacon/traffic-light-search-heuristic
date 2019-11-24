@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unordered_map>
-#include <iostream>
+#include <vector>
 
 namespace traffic {
 
@@ -9,29 +9,7 @@ namespace traffic {
 	typedef int TimeUnit;
 	typedef int Weight;
 
-	class Solution {
-		private:
-			TimeUnit* vertexTimings;
-			Vertex numberOfVertices;
-		public:
-			Solution (void);
-			Solution (const Solution& other);
-			Solution (Solution&& other);
-			explicit Solution (Vertex numberOfVertices);
-			~Solution (void);
-			void setTiming(Vertex vertex, TimeUnit timing);
-			TimeUnit getTiming(Vertex vertex) const;
-			Vertex getNumberOfVertices(void) const;
-
-			friend void swap (Solution& a, Solution& b) {
-				using std::swap;
-
-				swap(a.numberOfVertices, b.numberOfVertices);
-				swap(a.vertexTimings, b.vertexTimings);
-			}
-
-			Solution& operator= (Solution other);
-	};
+	typedef std::vector<TimeUnit> Solution;
 
 	class Graph {
 		private:
