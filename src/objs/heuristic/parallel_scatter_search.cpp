@@ -247,6 +247,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
+	metrics.penalty = numeric_limits<TimeUnit>::max();
 	while (stopFunction(metrics)) {
 
 		for_each_thread {
@@ -305,6 +306,8 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 				for (size_t i = 0; i < nextPopulation.size(); i++) {
 					subdividedTotalPopulation.total[i] = nextPopulation[i];
 				}
+
+				metrics.penalty = nextPopulation[0]->penalty;
 			#ifndef ALWAYS_COMBINE
 				combinationSignal.store(false);
 			#endif

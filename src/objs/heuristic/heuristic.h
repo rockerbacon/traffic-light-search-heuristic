@@ -13,6 +13,7 @@ namespace heuristic {
 	traffic::TimeUnit distance(const traffic::Graph& graph, const traffic::Solution& a, const traffic::Solution& b);
 
 	struct Metrics {
+		traffic::TimeUnit penalty;
 		unsigned numberOfIterations;
 		unsigned numberOfIterationsWithoutImprovement;
 		std::chrono::high_resolution_clock::time_point executionBegin;
@@ -24,6 +25,7 @@ namespace heuristic {
 
 		StopFunction numberOfIterations (unsigned numberOfIterationsToStop);
 		StopFunction numberOfIterationsWithoutImprovement (unsigned numberOfIterationsToStop);
+		StopFunction penalty(traffic::TimeUnit penalty);
 
 		template<typename Rep, typename Period=std::ratio<1>>
 		StopFunction executionTime(const std::chrono::duration<Rep, Period>& time) {

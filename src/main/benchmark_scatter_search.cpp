@@ -33,6 +33,7 @@ cli_main (
 	cli::OptionalArgument<unsigned> numberOfIterationsToStop(0, "iterations", "stop heuristic after specified number of iterations");
 	cli::OptionalArgument<unsigned> minutesToStop(0, "minutes", "minutes after which to stop the heuristic");
 	cli::OptionalArgument<unsigned> secondsToStop(0, "seconds", "seconds after which to stop the heuristic");
+	cli::OptionalArgument<TimeUnit> penaltyToStop(0, "penalty", "target penalty where heuristic should stop");
 
 	cli::OptionalArgument<double> mutationProbability(DEFAULT_MUTATION_PROBABILITY, "mutationProbability", "mutation probability to use during combination");
 	cli::FlagArgument useCrossover("useCrossover", "use crossover as combination method. Default combination is a Breadth-First search combination");
@@ -70,6 +71,8 @@ cli_main (
 		stopFunction = stop_function_factory::executionTime(chrono::minutes(*minutesToStop));
 	} else if (secondsToStop.is_present()) {
 		stopFunction = stop_function_factory::executionTime(chrono::seconds(*secondsToStop));
+	} else if (penaltyToStop.is_present()) {
+		stopFunction = stop_function_factory::penalty(*penaltyToStop);
 	} else {
 		stopFunction = DEFAULT_STOP_FUNCTION;
 	}
@@ -86,9 +89,24 @@ cli_main (
 	}
 
 	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
-	observe_variable("populational heuristics penalty", penalty, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE | observation_mode::MINIMUM_VALUE);
-	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE | observation_mode::MINIMUM_VALUE);
-	observe_variable("populational heuristic duration", duration, observation_mode::AVERAGE_VALUE | observation_mode::MAXIMUM_VALUE);
+	observe_variable("populational heuristics penalty", penalty,
+		  observation_mode::CURRENT_VALUE
+		| observation_mode::AVERAGE_VALUE
+		| observation_mode::MAXIMUM_VALUE
+		| observation_mode::MINIMUM_VALUE
+	);
+	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor,
+		  observation_mode::CURRENT_VALUE
+		| observation_mode::AVERAGE_VALUE
+		| observation_mode::MAXIMUM_VALUE
+		| observation_mode::MINIMUM_VALUE
+	);
+	observe_variable("populational heuristic duration", duration,
+		  observation_mode::CURRENT_VALUE
+		| observation_mode::AVERAGE_VALUE
+		| observation_mode::MINIMUM_VALUE
+		| observation_mode::MAXIMUM_VALUE
+	);
 
 	benchmark("scatter search heuristic", *numberOfRuns) {
 

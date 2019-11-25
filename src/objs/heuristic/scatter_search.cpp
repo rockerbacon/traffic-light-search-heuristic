@@ -111,6 +111,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 
 	metrics.numberOfIterations = 0;
 	metrics.numberOfIterationsWithoutImprovement = 0;
+	metrics.penalty = numeric_limits<TimeUnit>::max();
 	while (stopFunction(metrics)) {
 
 		shuffle(population.reference.begin(), population.reference.end(), randomEngine);
@@ -125,6 +126,8 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 		}
 
 		sort(population.total.begin(), population.total.end(), [](auto a, auto b) { return a->penalty < b->penalty; });
+
+		metrics.penalty = population.elite[0]->penalty;
 
 		diversify(graph, population);
 

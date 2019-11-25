@@ -145,6 +145,12 @@ Solution heuristic::localSearchHeuristic(const Graph& graph, const Solution& ini
 	return solution;
 }
 
+StopFunction stop_function_factory::penalty(TimeUnit penalty) {
+	return [=](const Metrics& metrics) {
+		return metrics.penalty > penalty;
+	};
+}
+
 StopFunction stop_function_factory::numberOfIterations(unsigned numberOfIterationsToStop) {
 	return [=](const Metrics& metrics) -> bool {
 		return metrics.numberOfIterations < numberOfIterationsToStop;
