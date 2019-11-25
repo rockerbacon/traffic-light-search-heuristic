@@ -7,9 +7,9 @@
 #define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(500)
 #define DEFAULT_ELITE_POPULATION_SIZE 10
 #define DEFAULT_DIVERSE_POPULATION_SIZE 100
-#define DEFAULT_LOCAL_SEARCH_ITERATIONS 50
+#define DEFAULT_LOCAL_SEARCH_ITERATIONS 2500
 #define DEFAULT_NUMBER_OF_THREADS 1
-#define DEFAULT_MUTATION_PROBABILITY 0.1
+#define DEFAULT_MUTATION_PROBABILITY 0.2
 
 #define DONT_OUTPUT_TO_FILE ""
 
@@ -31,7 +31,8 @@ cli_main (
 	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix", "if present will execute scatter search using an adjacency matrix instead of an adjacency list");
 
 	cli::OptionalArgument<unsigned> numberOfIterationsToStop(0, "iterations", "stop heuristic after specified number of iterations");
-	cli::OptionalArgument<unsigned> minutesToStop(0, "minutes", "stop heuristic after specified time has passed");
+	cli::OptionalArgument<unsigned> minutesToStop(0, "minutes", "minutes after which to stop the heuristic");
+	cli::OptionalArgument<unsigned> secondsToStop(0, "seconds", "seconds after which to stop the heuristic");
 
 	cli::OptionalArgument<double> mutationProbability(DEFAULT_MUTATION_PROBABILITY, "mutationProbability", "mutation probability to use during combination");
 	cli::FlagArgument useCrossover("useCrossover", "use crossover as combination method. Default combination is a Breadth-First search combination");
@@ -67,6 +68,8 @@ cli_main (
 		stopFunction = stop_function_factory::numberOfIterations(*numberOfIterationsToStop);
 	} else if (minutesToStop.is_present()) {
 		stopFunction = stop_function_factory::executionTime(chrono::minutes(*minutesToStop));
+	} else if (secondsToStop.is_present()) {
+		stopFunction = stop_function_factory::executionTime(chrono::seconds(*secondsToStop));
 	} else {
 		stopFunction = DEFAULT_STOP_FUNCTION;
 	}
