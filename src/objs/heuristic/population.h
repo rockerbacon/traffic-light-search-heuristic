@@ -23,10 +23,11 @@ namespace heuristic {
 	template<typename T>
 	class PopulationInterface {
 		public:
+			typedef typename std::vector<T>::iterator iterator;
 			virtual ~PopulationInterface(void) = default;
 
-			virtual typename std::vector<T>::iterator begin(void) = 0;
-			virtual typename std::vector<T>::iterator end(void) = 0;
+			virtual iterator begin(void) = 0;
+			virtual iterator end(void) = 0;
 			virtual size_t size(void) const = 0;
 
 			virtual T& operator[](size_t index) = 0;
