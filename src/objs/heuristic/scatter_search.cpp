@@ -77,7 +77,7 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 	size_t	referencePopulationSize = elitePopulationSize+diversePopulationSize,
 			totalPopulationSize = referencePopulationSize + referencePopulationSize/2;
 
-	Population<Individual> totalPopulation(totalPopulationSize, graph.getNumberOfVertices());
+	Population<Individual> totalPopulation(totalPopulationSize);
 
 	ScatterSearchPopulation<Individual> population = ScatterSearchPopulation<Individual>(totalPopulation, elitePopulationSize, diversePopulationSize);
 

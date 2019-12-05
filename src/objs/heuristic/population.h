@@ -11,10 +11,6 @@ namespace heuristic {
 		traffic::Solution solution;
 		traffic::TimeUnit penalty;
 		traffic::TimeUnit minimumDistance;
-
-		Individual(const traffic::Solution &solution, traffic::TimeUnit penalty, traffic::TimeUnit minimumDistance);
-		Individual(traffic::Vertex numberOfVertices);
-		bool operator<(const Individual &other) const;
 	};
 
 	template<typename T>
