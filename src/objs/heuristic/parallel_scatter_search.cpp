@@ -116,6 +116,7 @@ void exchangeDiscardedIndividuals (
 			if (population.diverse.end() - diversePopulationBegin > 1) {
 				recalculateDistances(graph, *diversePopulationBegin, diversePopulationBegin+1, population.diverse.end(), availableThreads);
 			}
+			diversePopulationBegin++;
 		}
 		//cerr << ("updated diverse from " + to_string(population_it - populations.begin())) << endl;
 	}
