@@ -87,7 +87,7 @@ void exchangeDiscardedIndividuals (
 
 		// exchange elite individuals
 		auto elitePopulationBegin = population.elite.begin();
-		auto bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
+		auto bestDiscardedIndividual = min_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
 		while ((*elitePopulationBegin)->penalty > (*bestDiscardedIndividual)->penalty && elitePopulationBegin < population.elite.end()) {
 			recalculateDistances(graph, *bestDiscardedIndividual, population.diverse.begin(), population.diverse.end(), availableThreads);
 			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
