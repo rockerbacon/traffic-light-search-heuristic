@@ -60,6 +60,9 @@ tuple<TimeUnit, Population<Individual*>> simulateExchange(
 bool lowestPenalty(Individual* a, Individual* b) {
 	return a->penalty < b->penalty;
 }
+bool greatestMinimumDistance(Individual* a, Individual* b) {
+	return a->minimumDistance > b->minimumDistance;
+}
 
 void exchangeDiscardedIndividuals (
 	const Graph &graph,
@@ -97,8 +100,6 @@ void exchangeDiscardedIndividuals (
 			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
 		}
 		//cerr << ("updated elite from " + to_string(population_it - populations.begin())) << endl;
-
-		const auto greatestMinimumDistance = [](Individual* a, Individual* b) { return a->minimumDistance > b->minimumDistance; };
 
 		// exchange diverse individuals
 		auto discardedPopulationEnd = discardedPopulation.end();
