@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <thread>
 #include <mutex>
+#include <sstream>
 #include "../parallel/reusable_thread.h"
 
 #include <iostream>
@@ -24,16 +25,16 @@ namespace global {
 
 void recalculateDistances(
 		const Graph &graph,
-		Individual* individual,
-		const vector<Individual*>::iterator &begin,
-		const vector<Individual*>::iterator &end,
+		const Individual& individual,
+		const vector<Individual>::iterator &begin,
+		const vector<Individual>::iterator &end,
 		thread_pile::slice_t &availableThreads
 ) {
 	using_threads(availableThreads);
 	parallel_for (begin, end) {
-		auto currentDistance = distance(graph, individual->solution, (*i)->solution);
-		if (currentDistance < (*i)->minimumDistance) {
-			(*i)->minimumDistance = currentDistance;
+		auto currentDistance = distance(graph, individual.solution, i->solution);
+		if (currentDistance < i->minimumDistance) {
+			i->minimumDistance = currentDistance;
 		}
 	} end_parallel_for;
 }
@@ -57,19 +58,19 @@ tuple<TimeUnit, Population<Individual*>> simulateExchange(
 }
 */
 
-bool lowestPenalty(Individual* a, Individual* b) {
-	return a->penalty < b->penalty;
+bool lowestPenalty(const Individual& a, const Individual& b) {
+	return a.penalty < b.penalty;
 }
-bool greatestMinimumDistance(Individual* a, Individual* b) {
-	return a->minimumDistance > b->minimumDistance;
+bool greatestMinimumDistance(const Individual& a, const Individual& b) {
+	return a.minimumDistance > b.minimumDistance;
 }
 
 void exchangeDiscardedIndividuals (
 	const Graph &graph,
-	vector<ScatterSearchPopulation<Individual*>> &populations,
+	vector<ScatterSearchPopulation<Individual>> &populations,
 	size_t populationOffsetBegin,
 	size_t populationOffsetEnd,
-	Population<Individual*> &discardedPopulation,
+	Population<Individual> &discardedPopulation,
 	thread_pile::slice_t &availableThreads
 ) {
 	//cerr << ("exchanging from " + to_string(populationOffsetBegin) + " to " + to_string(populationOffsetEnd)) << endl;
@@ -79,7 +80,7 @@ void exchangeDiscardedIndividuals (
 
 		using_threads(availableThreads);
 		parallel_for (discardedPopulation.begin(), discardedPopulation.end()) {
-			(*i)->minimumDistance = numeric_limits<TimeUnit>::max();
+			i->minimumDistance = numeric_limits<TimeUnit>::max();
 		} end_parallel_for;
 
 		for (auto& referenceIndividual : population.reference) {
@@ -91,9 +92,9 @@ void exchangeDiscardedIndividuals (
 		// exchange elite individuals
 		auto elitePopulationBegin = population.elite.begin();
 		auto bestDiscardedIndividual = min_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
-		while ((*elitePopulationBegin)->penalty > (*bestDiscardedIndividual)->penalty && elitePopulationBegin < population.elite.end()) {
-			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
-			swap(*elitePopulationBegin, *discardedPopulationBegin);
+		while (elitePopulationBegin->penalty > bestDiscardedIndividual->penalty && elitePopulationBegin < population.elite.end()) {
+			iter_swap(discardedPopulationBegin, bestDiscardedIndividual);
+			iter_swap(elitePopulationBegin, discardedPopulationBegin);
 			discardedPopulationBegin++;
 			recalculateDistances(graph, *elitePopulationBegin, population.diverse.begin(), population.diverse.end(), availableThreads);
 			recalculateDistances(graph, *elitePopulationBegin, discardedPopulationBegin, discardedPopulation.end(), availableThreads);
@@ -104,15 +105,17 @@ void exchangeDiscardedIndividuals (
 
 		// exchange diverse individuals
 		auto diversePopulationBegin = population.diverse.begin();
+		auto bestDiverseIndividual = max_element(diversePopulationBegin, population.diverse.end(), greatestMinimumDistance);
 		bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), greatestMinimumDistance);
 		while (
 			discardedPopulationBegin < discardedPopulation.end()
 		&&	diversePopulationBegin < population.diverse.end()
-		&&	(*diversePopulationBegin)->minimumDistance < (*discardedPopulationBegin)->minimumDistance
+		&&	bestDiverseIndividual->minimumDistance < bestDiscardedIndividual->minimumDistance
 		) {
-			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
-			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
-			swap(*diversePopulationBegin, *discardedPopulationBegin);
+			iter_swap(discardedPopulationBegin, bestDiscardedIndividual);
+			iter_swap(discardedPopulationBegin, bestDiscardedIndividual);
+			iter_swap(diversePopulationBegin, bestDiverseIndividual);
+			iter_swap(diversePopulationBegin, discardedPopulationBegin);
 			discardedPopulationBegin++;
 			if (population.diverse.end() - diversePopulationBegin > 1) {
 				recalculateDistances(graph, *diversePopulationBegin, diversePopulationBegin+1, population.diverse.end(), availableThreads);
@@ -120,20 +123,21 @@ void exchangeDiscardedIndividuals (
 			}
 			diversePopulationBegin++;
 			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), greatestMinimumDistance);
+			bestDiverseIndividual = max_element(diversePopulationBegin, population.diverse.end(), greatestMinimumDistance);
 		}
 		//cerr << ("updated diverse from " + to_string(population_it - populations.begin())) << endl;
 	}
 	//cerr << ("finished from " + to_string(populationOffsetBegin) + " to " + to_string(populationOffsetEnd)) << endl;
 }
 
-Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual*>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize) {
+Population<Individual> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize) {
 
 	if (populationEnd-populationBegin < 2) {
-		Population<Individual*> baseDiscardedPopulation(population[populationBegin].candidate.begin(), population[populationBegin].candidate.end());
+		Population<Individual> baseDiscardedPopulation(population[populationBegin].candidate.begin(), population[populationBegin].candidate.end());
 		return baseDiscardedPopulation;
 	} else {
 
-		Population<Individual*> leftDiscardedPopulation,
+		Population<Individual> leftDiscardedPopulation,
 		   						rightDiscardedPopulation;
 		auto rightPopulationBegin = (populationBegin+populationEnd)/2;
 		auto& neighborThread = (*global::threads)[rightPopulationBegin];
@@ -150,7 +154,7 @@ Population<Individual*> bottomUpTreeDiversify(const Graph &graph, vector<Scatter
 		exchangeDiscardedIndividuals(graph, population, populationBegin, rightPopulationBegin, rightDiscardedPopulation, availableThreads);
 		exchangeDiscardedIndividuals(graph, population, rightPopulationBegin, populationEnd, leftDiscardedPopulation, availableThreads);
 
-		Population<Individual*> totalDiscardedPopulation;
+		Population<Individual> totalDiscardedPopulation;
 		totalDiscardedPopulation.reserve(rightDiscardedPopulation.size()+leftDiscardedPopulation.size());
 		totalDiscardedPopulation.insert(totalDiscardedPopulation.end(), leftDiscardedPopulation.begin(), leftDiscardedPopulation.end());
 		totalDiscardedPopulation.insert(totalDiscardedPopulation.end(), rightDiscardedPopulation.begin(), rightDiscardedPopulation.end());
@@ -209,9 +213,8 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
 
 	Population<Individual> totalPopulation(scatterSearchPopulationSize(elitePopulationSize, diversePopulationSize), graph.getNumberOfVertices());
-	Population<Individual*> totalPopulationReferences(totalPopulation.size());
 
-	vector<ScatterSearchPopulation<Individual*>> population(numberOfThreads);
+	vector<ScatterSearchPopulation<Individual>> population(numberOfThreads);
 #ifdef DELAYED_COMBINATION
 	vector<TimeUnit> minimumPenalty(numberOfThreads, numeric_limits<TimeUnit>::max());
 	vector<TimeUnit> minimumDistance(numberOfThreads, numeric_limits<TimeUnit>::max());
@@ -220,7 +223,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 	const auto threadPopulationSize = totalPopulation.size()/numberOfThreads;
 	const auto threadElitePopulationSize = elitePopulationSize/numberOfThreads;
 	const auto threadDiversePopulationSize = diversePopulationSize/numberOfThreads;
-	const auto threadCandidatePopulationSize = (threadElitePopulationSize+threadDiversePopulationSize)/2;
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
@@ -230,27 +232,19 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 		auto elitePopulationEnd = threadElitePopulationSize*(thread_i+1);
 		auto diversePopulationBegin = elitePopulationSize + threadDiversePopulationSize*thread_i;
 		auto diversePopulationEnd = elitePopulationSize + threadDiversePopulationSize*(thread_i+1);
-		auto candidatePopulationBegin = elitePopulationSize+diversePopulationSize + threadCandidatePopulationSize*thread_i;
-		auto candidatePopulationEnd = elitePopulationSize+diversePopulationSize + threadCandidatePopulationSize*(thread_i+1);
 
-		auto threadPopulation = totalPopulationReferences.slice(threadPopulationSize*thread_i, threadPopulationSize*(thread_i+1));
-		population[thread_i] = ScatterSearchPopulation<Individual*>(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
+		auto threadPopulation = totalPopulation.slice(threadPopulationSize*thread_i, threadPopulationSize*(thread_i+1));
+		population[thread_i] = ScatterSearchPopulation<Individual>(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
 
 		for (decltype(elitePopulationBegin) i = elitePopulationBegin, j = 0; i < elitePopulationEnd; i++, j++) {
 			totalPopulation[i].solution = constructHeuristicSolution(graph);
 			totalPopulation[i].solution = localSearchHeuristic(graph, totalPopulation[i].solution, eliteLocalSearchStopFunction);
 			totalPopulation[i].penalty = graph.totalPenalty(totalPopulation[i].solution);
-			population[thread_i].elite[j] = &totalPopulation[i];
 		}
 
 		for (decltype(diversePopulationBegin) i = diversePopulationBegin, j = 0; i < diversePopulationEnd; i++, j++) {
 			totalPopulation[i].solution = constructHeuristicSolution(graph);
 			totalPopulation[i].penalty = graph.totalPenalty(totalPopulation[i].solution);
-			population[thread_i].diverse[j] = &totalPopulation[i];
-		}
-
-		for (decltype(candidatePopulationBegin) i = candidatePopulationBegin, j = 0; i < candidatePopulationEnd; i++, j++) {
-			population[thread_i].candidate[j] = &totalPopulation[i];
 		}
 
 	} end_for_each_thread;
@@ -264,22 +258,21 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 			random_device seeder;
 			mt19937 randomEngine(seeder());
-			Individual *individual1, *individual2;
 
 			shuffle(population[thread_i].reference.begin(), population[thread_i].reference.end(), randomEngine);
 
 			for (size_t i = 0; i < population[thread_i].candidate.size(); i++) {
 
-				individual1 = population[thread_i].reference[i*2];
-				individual2 = population[thread_i].reference[i*2+1];
+				auto& individual1 = population[thread_i].reference[i*2];
+				auto& individual2 = population[thread_i].reference[i*2+1];
 
-				population[thread_i].candidate[i]->solution = combinationMethod(graph, individual1->solution, individual2->solution);
-				population[thread_i].candidate[i]->solution = localSearchHeuristic(graph, population[thread_i].candidate[i]->solution, diverseLocalSearchStopFunction);
-				population[thread_i].candidate[i]->penalty = graph.totalPenalty(population[thread_i].candidate[i]->solution);
+				population[thread_i].candidate[i].solution = combinationMethod(graph, individual1.solution, individual2.solution);
+				population[thread_i].candidate[i].solution = localSearchHeuristic(graph, population[thread_i].candidate[i].solution, diverseLocalSearchStopFunction);
+				population[thread_i].candidate[i].penalty = graph.totalPenalty(population[thread_i].candidate[i].solution);
 
 			}
 
-			sort(population[thread_i].total.begin(), population[thread_i].total.end(), [](auto a, auto b) { return a->penalty < b->penalty; });
+			sort(population[thread_i].total.begin(), population[thread_i].total.end(), lowestPenalty);
 
 		#ifdef DELAYED_COMBINATION
 			if(population[thread_i].elite[0]->penalty < minimumPenalty[thread_i]) {

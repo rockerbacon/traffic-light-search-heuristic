@@ -7,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-TimeUnit heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individual*> &population) {
+TimeUnit heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Individual> &population) {
 	auto nextGenerationBegin = population.elite.begin();
 	auto nextGenerationEnd = population.elite.end();
 	auto battlingPopulationBegin = population.diverse.begin();
@@ -23,19 +23,19 @@ TimeUnit heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Indiv
 	greatestMinimumDistance = minusInfinity;
 	for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
 
-		(*it)->minimumDistance = infinity;
+		it->minimumDistance = infinity;
 		for (auto jt = nextGenerationBegin; jt < nextGenerationEnd; jt++) {
-			currentDistance = distance(graph, (*it)->solution, (*jt)->solution);
+			currentDistance = distance(graph, it->solution, jt->solution);
 			if (currentDistance < lowestDistance) {
 				lowestDistance = currentDistance;
 			}
-			if (currentDistance < (*it)->minimumDistance) {
-				(*it)->minimumDistance = currentDistance;
+			if (currentDistance < it->minimumDistance) {
+				it->minimumDistance = currentDistance;
 			}
 		}
 
-		if ((*it)->minimumDistance > greatestMinimumDistance) {
-			greatestMinimumDistance = (*it)->minimumDistance;
+		if (it->minimumDistance > greatestMinimumDistance) {
+			greatestMinimumDistance = it->minimumDistance;
 			chosenIndividual = it;
 		}
 	}
@@ -48,15 +48,15 @@ TimeUnit heuristic::diversify (const Graph &graph, ScatterSearchPopulation<Indiv
 
 		greatestMinimumDistance = minusInfinity;
 		for (auto it = battlingPopulationBegin; it != battlingPopulationEnd; it++) {
-			currentDistance = distance(graph, (*chosenIndividual)->solution, (*it)->solution);
+			currentDistance = distance(graph, chosenIndividual->solution, it->solution);
 			if (currentDistance < lowestDistance) {
 				lowestDistance = currentDistance;
 			}
-			if (currentDistance < (*it)->minimumDistance) {
-				(*it)->minimumDistance = currentDistance;
+			if (currentDistance < it->minimumDistance) {
+				it->minimumDistance = currentDistance;
 			}
-			if ((*it)->minimumDistance > greatestMinimumDistance) {
-				greatestMinimumDistance = (*it)->minimumDistance;
+			if (it->minimumDistance > greatestMinimumDistance) {
+				greatestMinimumDistance = it->minimumDistance;
 				nextChosenIndividual = it;
 			}
 		}
@@ -78,14 +78,8 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 			totalPopulationSize = referencePopulationSize + referencePopulationSize/2;
 
 	Population<Individual> totalPopulation(totalPopulationSize, graph.getNumberOfVertices());
-	Population<Individual*> totalPopulationReferences(totalPopulation.size());
-	for (size_t i = 0; i < totalPopulation.size(); i++) {
-		totalPopulationReferences[i] = &totalPopulation[i];
-	}
 
-	ScatterSearchPopulation<Individual*> population = ScatterSearchPopulation<Individual*>(totalPopulationReferences, elitePopulationSize, diversePopulationSize);
-
-	const Individual *individual1, *individual2;
+	ScatterSearchPopulation<Individual> population = ScatterSearchPopulation<Individual>(totalPopulation, elitePopulationSize, diversePopulationSize);
 
 	Metrics metrics;
 	random_device seeder;
@@ -101,12 +95,12 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 
 	for (auto i = population.elite.begin(); i < population.elite.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), eliteLocalSearchStopFunction);
-		**i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
+		*i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
 	}
 
 	for (auto i = population.diverse.begin(); i < population.diverse.end(); i++) {
 		Solution constructedSolution = localSearchHeuristic(graph, constructHeuristicSolution(graph), diverseLocalSearchStopFunction);
-		**i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
+		*i = {constructedSolution, graph.totalPenalty(constructedSolution), 0};
 	}
 
 	metrics.numberOfIterations = 0;
@@ -117,21 +111,21 @@ Solution heuristic::scatterSearch (const Graph &graph, size_t elitePopulationSiz
 		shuffle(population.reference.begin(), population.reference.end(), randomEngine);
 		for (size_t i = 0; i < population.candidate.size(); i++) {
 
-			individual1 = population.reference[i*2];
-			individual2 = population.reference[i*2+1];
+			auto& individual1 = population.reference[i*2];
+			auto& individual2 = population.reference[i*2+1];
 
-			population.candidate[i]->solution = combinationMethod(graph, individual1->solution, individual2->solution);
-			population.candidate[i]->solution = localSearchHeuristic(graph, population.candidate[i]->solution, diverseLocalSearchStopFunction);
-			population.candidate[i]->penalty = graph.totalPenalty(population.candidate[i]->solution);
+			population.candidate[i].solution = combinationMethod(graph, individual1.solution, individual2.solution);
+			population.candidate[i].solution = localSearchHeuristic(graph, population.candidate[i].solution, diverseLocalSearchStopFunction);
+			population.candidate[i].penalty = graph.totalPenalty(population.candidate[i].solution);
 		}
 
-		sort(population.total.begin(), population.total.end(), [](auto a, auto b) { return a->penalty < b->penalty; });
+		sort(population.total.begin(), population.total.end(), [](const auto& a, const auto& b) { return a.penalty < b.penalty; });
 
-		metrics.penalty = population.elite[0]->penalty;
+		metrics.penalty = population.elite[0].penalty;
 
 		diversify(graph, population);
 
 		metrics.numberOfIterations++;
 	}
-	return population.elite[0]->solution;
+	return population.elite[0].solution;
 }
