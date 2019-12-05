@@ -31,6 +31,7 @@ namespace heuristic {
 			virtual size_t size(void) const = 0;
 
 			virtual T& operator[](size_t index) = 0;
+			virtual const T& operator[](size_t index) const = 0;
 
 			virtual PopulationSlice<T> slice(size_t begin, size_t end) = 0;
 	};
@@ -62,6 +63,11 @@ namespace heuristic {
 				advance(iteratorToIndex, index);
 				return *iteratorToIndex;
 			}
+			const T& operator[](size_t index) const {
+				decltype(PopulationSlice::sliceBegin) iteratorToIndex = this->sliceBegin;
+				advance(iteratorToIndex, index);
+				return *iteratorToIndex;
+			}
 
 			PopulationSlice<T> slice (size_t begin, size_t end) {
 				return PopulationSlice(this->begin()+begin, this->begin()+end);
@@ -69,43 +75,33 @@ namespace heuristic {
 	};
 
 	template<typename T>
-	class Population : public PopulationInterface<T> {
-		private:
-			std::vector<T> individuals;
+	class Population : public PopulationInterface<T>, public std::vector<T> {
 		public:
-			Population (void) = default;
-
-			template<typename... Varargs>
-			Population (size_t numberOfIndividuals, Varargs... constructor_args) {
-				this->individuals.reserve(numberOfIndividuals);
-				for (size_t i = 0; i < numberOfIndividuals; i++) {
-					this->individuals.push_back(T(constructor_args...));
-				}
+			Population() = default;
+			Population(size_t size) :
+				std::vector<T>(size)
+			{}
+			Population(size_t size, const T& prototype) :
+				std::vector<T>(size, prototype)
+			{}
+			Population(const typename std::vector<T>::iterator& rangeBegin, const typename std::vector<T>::iterator& rangeEnd) :
+				std::vector<T>(rangeBegin, rangeEnd)
+			{}
+			typename PopulationInterface<T>::iterator begin() {
+				return std::vector<T>::begin();
 			}
-
-			typename decltype(individuals)::iterator begin (void) {
-				return this->individuals.begin();
+			typename PopulationInterface<T>::iterator end() {
+				return std::vector<T>::end();
 			}
-			typename decltype(individuals)::iterator end (void) {
-				return this->individuals.end();
-			}
-			typename decltype(individuals)::const_iterator cbegin (void) const {
-				return this->individuals.cbegin();
-			}
-			typename decltype(individuals)::const_iterator cend (void) const {
-				return this->individuals.cend();
-			}
-			size_t size (void) const {
-				return this->individuals.size();
-			}
-
-			const T& operator[](size_t index) const {
-				return this->individuals[index];
+			size_t size() const {
+				return std::vector<T>::size();
 			}
 			T& operator[](size_t index) {
-				return this->individuals[index];
+				return std::vector<T>::operator[](index);
 			}
-
+			const T& operator[](size_t index) const {
+				return std::vector<T>::operator[](index);
+			}
 			PopulationSlice<T> slice (size_t begin, size_t end) {
 				return PopulationSlice<T>(this->begin()+begin, this->begin()+end);
 			}

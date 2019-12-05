@@ -26,8 +26,9 @@ namespace parallel {
 \
 	decltype(parallel_number_of_threads) parallel_for_items_per_thread = (end-begin)/parallel_number_of_threads; \
 \
-	for (auto [thread, thread_i] = ::std::make_tuple(parallel_threads_begin, 0u); thread < parallel_threads_end; thread++, thread_i++) { \
+	for (auto [thread, thread_i_name] = ::std::make_tuple(parallel_threads_begin, 0u); thread < parallel_threads_end; thread++, thread_i_name++) { \
 \
+		auto thread_i = thread_i_name; \
 		auto thread_begin = begin + parallel_for_items_per_thread*thread_i; \
 		decltype(thread_begin) thread_end; \
 		if (thread_i == parallel_number_of_threads-1) { \
@@ -36,7 +37,8 @@ namespace parallel {
 			thread_end = thread_begin + parallel_for_items_per_thread; \
 		} \
 \
-		parallel_for_futures[thread_i] = thread->exec([&, thread_begin, thread_end](void) { \
+		parallel_for_futures[thread_i] = thread->exec([&, thread_begin, thread_end, thread_i_capture = thread_i](void) { \
+			[[maybe_unused]] auto thread_i = thread_i_capture; \
 			for (auto i = thread_begin; i < thread_end; i++) \
 
 #define end_parallel_for \
