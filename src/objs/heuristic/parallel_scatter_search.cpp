@@ -56,6 +56,11 @@ tuple<TimeUnit, Population<Individual*>> simulateExchange(
 	return make_tuple(minimumDistance, simulatedPopulation);
 }
 */
+
+bool lowestPenalty(Individual* a, Individual* b) {
+	return a->penalty < b->penalty;
+}
+
 void exchangeDiscardedIndividuals (
 	const Graph &graph,
 	vector<ScatterSearchPopulation<Individual*>> &populations,
@@ -64,8 +69,6 @@ void exchangeDiscardedIndividuals (
 	Population<Individual*> &discardedPopulation,
 	thread_pile::slice_t &availableThreads
 ) {
-	sort(discardedPopulation.begin(), discardedPopulation.end(), [](auto a, auto b){ return a->penalty < b->penalty; });
-
 	//cerr << ("exchanging from " + to_string(populationOffsetBegin) + " to " + to_string(populationOffsetEnd)) << endl;
 	auto populationEnd = populations.begin()+populationOffsetEnd;
 	for (auto population_it = populations.begin()+populationOffsetBegin; population_it < populationEnd; population_it++) {
@@ -84,11 +87,14 @@ void exchangeDiscardedIndividuals (
 
 		// exchange elite individuals
 		auto elitePopulationBegin = population.elite.begin();
-		while ((*elitePopulationBegin)->penalty > (*discardedPopulationBegin)->penalty && elitePopulationBegin < population.elite.end()) {
-			recalculateDistances(graph, *discardedPopulationBegin, population.diverse.begin(), population.diverse.end(), availableThreads);
+		auto bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
+		while ((*elitePopulationBegin)->penalty > (*bestDiscardedIndividual)->penalty && elitePopulationBegin < population.elite.end()) {
+			recalculateDistances(graph, *bestDiscardedIndividual, population.diverse.begin(), population.diverse.end(), availableThreads);
+			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
 			swap(*elitePopulationBegin, *discardedPopulationBegin);
 			discardedPopulationBegin++;
 			elitePopulationBegin++;
+			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
 		}
 		//cerr << ("updated elite from " + to_string(population_it - populations.begin())) << endl;
 
