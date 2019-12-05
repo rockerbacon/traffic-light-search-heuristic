@@ -92,32 +92,34 @@ void exchangeDiscardedIndividuals (
 		auto elitePopulationBegin = population.elite.begin();
 		auto bestDiscardedIndividual = min_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
 		while ((*elitePopulationBegin)->penalty > (*bestDiscardedIndividual)->penalty && elitePopulationBegin < population.elite.end()) {
-			recalculateDistances(graph, *bestDiscardedIndividual, population.diverse.begin(), population.diverse.end(), availableThreads);
 			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
 			swap(*elitePopulationBegin, *discardedPopulationBegin);
 			discardedPopulationBegin++;
+			recalculateDistances(graph, *elitePopulationBegin, population.diverse.begin(), population.diverse.end(), availableThreads);
+			recalculateDistances(graph, *elitePopulationBegin, discardedPopulationBegin, discardedPopulation.end(), availableThreads);
 			elitePopulationBegin++;
 			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
 		}
 		//cerr << ("updated elite from " + to_string(population_it - populations.begin())) << endl;
 
 		// exchange diverse individuals
-		auto discardedPopulationEnd = discardedPopulation.end();
-		make_heap(discardedPopulationBegin, discardedPopulationEnd, greatestMinimumDistance);
-		sort(population.diverse.begin(), population.diverse.end(), greatestMinimumDistance);
 		auto diversePopulationBegin = population.diverse.begin();
+		bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), greatestMinimumDistance);
 		while (
-			discardedPopulationBegin < discardedPopulationEnd
+			discardedPopulationBegin < discardedPopulation.end()
 		&&	diversePopulationBegin < population.diverse.end()
 		&&	(*diversePopulationBegin)->minimumDistance < (*discardedPopulationBegin)->minimumDistance
 		) {
-			pop_heap(discardedPopulationBegin, discardedPopulationEnd, greatestMinimumDistance);
-			discardedPopulationEnd--;
-			swap(*diversePopulationBegin, *discardedPopulationEnd);
+			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
+			swap(*discardedPopulationBegin, *bestDiscardedIndividual);
+			swap(*diversePopulationBegin, *discardedPopulationBegin);
+			discardedPopulationBegin++;
 			if (population.diverse.end() - diversePopulationBegin > 1) {
 				recalculateDistances(graph, *diversePopulationBegin, diversePopulationBegin+1, population.diverse.end(), availableThreads);
+				recalculateDistances(graph, *diversePopulationBegin, discardedPopulationBegin, discardedPopulation.end(), availableThreads);
 			}
 			diversePopulationBegin++;
+			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), greatestMinimumDistance);
 		}
 		//cerr << ("updated diverse from " + to_string(population_it - populations.begin())) << endl;
 	}
