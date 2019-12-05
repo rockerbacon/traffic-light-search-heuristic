@@ -64,6 +64,9 @@ bool lowestPenalty(const Individual& a, const Individual& b) {
 bool greatestMinimumDistance(const Individual& a, const Individual& b) {
 	return a.minimumDistance > b.minimumDistance;
 }
+bool lowestMinimumDistance(const Individual& a, const Individual& b) {
+	return a.minimumDistance < b.minimumDistance;
+}
 
 void exchangeDiscardedIndividuals (
 	const Graph &graph,
@@ -73,7 +76,6 @@ void exchangeDiscardedIndividuals (
 	Population<Individual> &discardedPopulation,
 	thread_pile::slice_t &availableThreads
 ) {
-	//cerr << ("exchanging from " + to_string(populationOffsetBegin) + " to " + to_string(populationOffsetEnd)) << endl;
 	auto populationEnd = populations.begin()+populationOffsetEnd;
 	for (auto population_it = populations.begin()+populationOffsetBegin; population_it < populationEnd; population_it++) {
 		auto& population = *population_it;
@@ -101,20 +103,18 @@ void exchangeDiscardedIndividuals (
 			elitePopulationBegin++;
 			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), lowestPenalty);
 		}
-		//cerr << ("updated elite from " + to_string(population_it - populations.begin())) << endl;
 
 		// exchange diverse individuals
 		auto diversePopulationBegin = population.diverse.begin();
-		auto bestDiverseIndividual = max_element(diversePopulationBegin, population.diverse.end(), greatestMinimumDistance);
+		auto worstDiverseIndividual = min_element(diversePopulationBegin, population.diverse.end(), lowestMinimumDistance);
 		bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), greatestMinimumDistance);
 		while (
 			discardedPopulationBegin < discardedPopulation.end()
 		&&	diversePopulationBegin < population.diverse.end()
-		&&	bestDiverseIndividual->minimumDistance < bestDiscardedIndividual->minimumDistance
+		&&	worstDiverseIndividual->minimumDistance < bestDiscardedIndividual->minimumDistance
 		) {
 			iter_swap(discardedPopulationBegin, bestDiscardedIndividual);
-			iter_swap(discardedPopulationBegin, bestDiscardedIndividual);
-			iter_swap(diversePopulationBegin, bestDiverseIndividual);
+			iter_swap(diversePopulationBegin, worstDiverseIndividual);
 			iter_swap(diversePopulationBegin, discardedPopulationBegin);
 			discardedPopulationBegin++;
 			if (population.diverse.end() - diversePopulationBegin > 1) {
@@ -123,11 +123,9 @@ void exchangeDiscardedIndividuals (
 			}
 			diversePopulationBegin++;
 			bestDiscardedIndividual = max_element(discardedPopulationBegin, discardedPopulation.end(), greatestMinimumDistance);
-			bestDiverseIndividual = max_element(diversePopulationBegin, population.diverse.end(), greatestMinimumDistance);
+			worstDiverseIndividual = min_element(diversePopulationBegin, population.diverse.end(), lowestMinimumDistance);
 		}
-		//cerr << ("updated diverse from " + to_string(population_it - populations.begin())) << endl;
 	}
-	//cerr << ("finished from " + to_string(populationOffsetBegin) + " to " + to_string(populationOffsetEnd)) << endl;
 }
 
 Population<Individual> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize) {
@@ -300,7 +298,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 			   	&& combinationSignal.load()
 			#endif
 				) {
-				//bottomUpTreeDiversify(graph, population, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);
+				bottomUpTreeDiversify(graph, populations, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);
 			#ifdef DELAYED_COMBINATION
 				combinationSignal.store(false);
 			#endif
