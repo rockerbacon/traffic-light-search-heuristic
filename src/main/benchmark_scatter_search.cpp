@@ -51,7 +51,6 @@ cli_main (
 	StopFunction stopFunction;
 	CombinationMethod combinationMethod;
 	double penalty, lowerBound;
-	double lowerBoundFactor;
 	chrono::high_resolution_clock::time_point begin;
 	chrono::high_resolution_clock::duration duration;
 	ifstream graphFile;
@@ -89,19 +88,13 @@ cli_main (
 	}
 
 	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
-	observe_variable("populational heuristics penalty", penalty,
+	observe_variable("penalty", penalty,
 		  observation_mode::CURRENT_VALUE
 		| observation_mode::AVERAGE_VALUE
 		| observation_mode::MAXIMUM_VALUE
 		| observation_mode::MINIMUM_VALUE
 	);
-	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor,
-		  observation_mode::CURRENT_VALUE
-		| observation_mode::AVERAGE_VALUE
-		| observation_mode::MAXIMUM_VALUE
-		| observation_mode::MINIMUM_VALUE
-	);
-	observe_variable("populational heuristic duration", duration,
+	observe_variable("execution time", duration,
 		  observation_mode::CURRENT_VALUE
 		| observation_mode::AVERAGE_VALUE
 		| observation_mode::MINIMUM_VALUE
@@ -121,8 +114,6 @@ cli_main (
 		duration = chrono::high_resolution_clock::now() - begin;
 		penalty = graph->totalPenalty(solution);
 		lowerBound = graph->lowerBound();
-
-		lowerBoundFactor = penalty/lowerBound;
 
 	} end_benchmark;
 
