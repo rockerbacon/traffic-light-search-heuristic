@@ -18,11 +18,6 @@ using namespace std;
 using namespace heuristic;
 using namespace ::parallel;
 
-namespace global {
-	thread_pile *threads;
-	thread_pile::slice_t *threads_depth1;
-}
-
 void recalculateDistances(
 		const Graph &graph,
 		const Individual& individual,
@@ -95,7 +90,7 @@ void exchangeDiscardedIndividuals (
 	}
 }
 
-Population<Individual> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize) {
+Population<Individual> bottomUpTreeDiversify(const Graph &graph, vector<ScatterSearchPopulation<Individual>> &population, size_t populationBegin, size_t populationEnd, size_t elitePopulationSize, size_t diversePopulationSize, thread_pile& allThreads) {
 
 	if (populationEnd - populationBegin < 2) {
 		Population<Individual> baseDiscartion;
@@ -108,17 +103,17 @@ Population<Individual> bottomUpTreeDiversify(const Graph &graph, vector<ScatterS
 		Population<Individual>	leftDiscardedPopulation,
 		   						rightDiscardedPopulation;
 		auto rightPopulationBegin = (populationBegin+populationEnd)/2;
-		auto& neighborThread = (*global::threads)[rightPopulationBegin];
+		auto& neighborThread = allThreads[rightPopulationBegin];
 
 		auto rightHalfFuture = neighborThread.exec([&]() {
-			rightDiscardedPopulation = bottomUpTreeDiversify(graph, population, rightPopulationBegin, populationEnd, elitePopulationSize/2, diversePopulationSize/2);
+			rightDiscardedPopulation = bottomUpTreeDiversify(graph, population, rightPopulationBegin, populationEnd, elitePopulationSize/2, diversePopulationSize/2, allThreads);
 		});
 
-		leftDiscardedPopulation = bottomUpTreeDiversify(graph, population, populationBegin, rightPopulationBegin, elitePopulationSize/2, diversePopulationSize/2);
+		leftDiscardedPopulation = bottomUpTreeDiversify(graph, population, populationBegin, rightPopulationBegin, elitePopulationSize/2, diversePopulationSize/2, allThreads);
 
 		rightHalfFuture.wait();
 
-		auto availableThreads = global::threads_depth1->slice(populationBegin, populationEnd);
+		auto availableThreads = allThreads.depth(1).slice(populationBegin, populationEnd);
 		exchangeDiscardedIndividuals(graph, population, populationBegin, rightPopulationBegin, rightDiscardedPopulation, availableThreads);
 		exchangeDiscardedIndividuals(graph, population, rightPopulationBegin, populationEnd, leftDiscardedPopulation, availableThreads);
 
@@ -178,9 +173,6 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 #endif
 
 	thread_pile threads(numberOfThreads, 2);
-	thread_pile::slice_t threads_depth1 = threads.depth(1);
-	global::threads = &threads;
-	global::threads_depth1 = &threads_depth1;
 
 	StopFunction diverseLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations);
 	StopFunction eliteLocalSearchStopFunction = stop_function_factory::numberOfIterations(localSearchIterations*10);
@@ -199,7 +191,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	metrics.executionBegin = chrono::high_resolution_clock::now();
 
-	using_threads(*global::threads);
+	using_threads(threads);
 	for_each_thread {
 		auto threadPopulation = totalPopulation.slice(threadPopulationSize*thread_i, threadPopulationSize*(thread_i+1));
 		populations[thread_i] = ScatterSearchPopulation<Individual>(threadPopulation, threadElitePopulationSize, threadDiversePopulationSize);
@@ -274,7 +266,7 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 			   	&& combinationSignal.load()
 			#endif
 				) {
-				bottomUpTreeDiversify(graph, populations, 0, numberOfThreads, elitePopulationSize, diversePopulationSize);
+				bottomUpTreeDiversify(graph, populations, 0, numberOfThreads, elitePopulationSize, diversePopulationSize, threads);
 			#ifdef DELAYED_COMBINATION
 				combinationSignal.store(false);
 			#endif
@@ -288,12 +280,9 @@ Solution heuristic::parallel::scatterSearch (const Graph &graph, size_t elitePop
 
 	auto bestIndividual = populations[0].elite.begin();
 	for (auto& population : populations) {
-		for (auto eliteIndividual = population.elite.begin(); eliteIndividual < population.elite.end(); eliteIndividual++) {
-			if (eliteIndividual->penalty < bestIndividual->penalty) {
-				bestIndividual = eliteIndividual;
-			}
+		if (population.elite[0].penalty < bestIndividual->penalty) {
+			bestIndividual = population.elite.begin();
 		}
 	}
 	return bestIndividual->solution;
-
 }
