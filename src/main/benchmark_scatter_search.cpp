@@ -2,14 +2,15 @@
 #include <cpp-benchmark/benchmark.h>
 #include <cpp-command-line-interface/command_line_interface.h>
 #include <fstream>
+#include <thread>
 
 #define DEFAULT_NUMBER_OF_RUNS 10
-#define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(500)
-#define DEFAULT_ELITE_POPULATION_SIZE 10
-#define DEFAULT_DIVERSE_POPULATION_SIZE 100
-#define DEFAULT_LOCAL_SEARCH_ITERATIONS 2500
-#define DEFAULT_NUMBER_OF_THREADS 1
-#define DEFAULT_MUTATION_PROBABILITY 0.2
+#define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(80)
+#define DEFAULT_ELITE_POPULATION_SIZE 64
+#define DEFAULT_DIVERSE_POPULATION_SIZE 1280
+#define DEFAULT_LOCAL_SEARCH_ITERATIONS 20000
+#define DEFAULT_NUMBER_OF_THREADS std::thread::hardware_concurrency()
+#define DEFAULT_MUTATION_PROBABILITY 0.595
 
 #define DONT_OUTPUT_TO_FILE ""
 
@@ -51,7 +52,6 @@ cli_main (
 	StopFunction stopFunction;
 	CombinationMethod combinationMethod;
 	double penalty, lowerBound;
-	double lowerBoundFactor;
 	chrono::high_resolution_clock::time_point begin;
 	chrono::high_resolution_clock::duration duration;
 	ifstream graphFile;
@@ -89,19 +89,13 @@ cli_main (
 	}
 
 	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
-	observe_variable("populational heuristics penalty", penalty,
+	observe_variable("penalty", penalty,
 		  observation_mode::CURRENT_VALUE
 		| observation_mode::AVERAGE_VALUE
 		| observation_mode::MAXIMUM_VALUE
 		| observation_mode::MINIMUM_VALUE
 	);
-	observe_variable("populational heuristic/lower bound factor", lowerBoundFactor,
-		  observation_mode::CURRENT_VALUE
-		| observation_mode::AVERAGE_VALUE
-		| observation_mode::MAXIMUM_VALUE
-		| observation_mode::MINIMUM_VALUE
-	);
-	observe_variable("populational heuristic duration", duration,
+	observe_variable("execution time", duration,
 		  observation_mode::CURRENT_VALUE
 		| observation_mode::AVERAGE_VALUE
 		| observation_mode::MINIMUM_VALUE
@@ -121,8 +115,6 @@ cli_main (
 		duration = chrono::high_resolution_clock::now() - begin;
 		penalty = graph->totalPenalty(solution);
 		lowerBound = graph->lowerBound();
-
-		lowerBoundFactor = penalty/lowerBound;
 
 	} end_benchmark;
 
