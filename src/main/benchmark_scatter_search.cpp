@@ -2,14 +2,15 @@
 #include <cpp-benchmark/benchmark.h>
 #include <cpp-command-line-interface/command_line_interface.h>
 #include <fstream>
+#include <thread>
 
 #define DEFAULT_NUMBER_OF_RUNS 10
-#define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(500)
-#define DEFAULT_ELITE_POPULATION_SIZE 10
-#define DEFAULT_DIVERSE_POPULATION_SIZE 100
-#define DEFAULT_LOCAL_SEARCH_ITERATIONS 2500
-#define DEFAULT_NUMBER_OF_THREADS 1
-#define DEFAULT_MUTATION_PROBABILITY 0.2
+#define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(80)
+#define DEFAULT_ELITE_POPULATION_SIZE 64
+#define DEFAULT_DIVERSE_POPULATION_SIZE 1280
+#define DEFAULT_LOCAL_SEARCH_ITERATIONS 20000
+#define DEFAULT_NUMBER_OF_THREADS std::thread::hardware_concurrency()
+#define DEFAULT_MUTATION_PROBABILITY 0.595
 
 #define DONT_OUTPUT_TO_FILE ""
 
