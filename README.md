@@ -1,7 +1,7 @@
 # Search Heuristic for the Simplified Traffic Light Problem
 
-Parallel implementation of the scatter search metaheuristic for the NP-Hard Traffic Light Problem as described in [this publication](https://www.researchgate.net/publication/244404904_The_Model_and_Properties_of_the_Traffic_Light_Problem).
+Parallel implementation of the scatter search metaheuristic for the NP-Hard Traffic Light Problem.
 
 In this repository you'll find parallel and sequential versions of the Scatter Search metaheuristic as well as a sequential implementation of a Genetic Algorithm for comparison purposes only.
 
-An article describing the development proccess and results is still a work-in-progress.
+The paper detaling the work and the results is available in this repository [in portuguese](https://github.com/rockerbacon/traffic-light-search-heuristic/blob/master/paper_pt_br.pdf). An english translation is currently a work in progress.
