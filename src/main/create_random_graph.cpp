@@ -20,7 +20,7 @@ cli_main (
 	cli::create_alias("output", 'o');
 
 	cli::RequiredArgument<Vertex> number_of_vertices("vertices");
-	cli::create_alias("vertices", 'v');
+	cli::create_alias("vertices", 'V');
 
 	cli::RequiredArgument<TimeUnit> cycle("cycle");
 	cli::create_alias("cycle", 'c');
