@@ -15,8 +15,7 @@ Population<int> populationFixture() {
 	return population;
 }
 
-begin_tests {
-
+tests {
 	test_suite("when iterating through population") {
 		test_case("population should be correctly iterated with foreach") {
 			int defaultIndividual = 3;
@@ -130,26 +129,26 @@ begin_tests {
 		test_case("reference population should be the combination of elite and diverse populations") {
 			auto population = populationFixture();
 			ScatterSearchPopulation<int> scatterSearchPopulation(population, 1, 3);
-			assert(scatterSearchPopulation.elite.begin(), ==, scatterSearchPopulation.reference.begin());
-			assert(scatterSearchPopulation.diverse.end(), ==, scatterSearchPopulation.reference.end());
+			assert((scatterSearchPopulation.elite.begin() == scatterSearchPopulation.reference.begin()), ==, true);
+			assert((scatterSearchPopulation.diverse.end() == scatterSearchPopulation.reference.end()), ==, true);
 		};
 
 		test_case("elite population should begin at beginning of total population") {
 			auto population = populationFixture();
 			ScatterSearchPopulation<int> scatterSearchPopulation(population, 1, 3);
-			assert(scatterSearchPopulation.elite.begin(), ==, population.begin());
+			assert((scatterSearchPopulation.elite.begin() == population.begin()), ==, true);
 		};
 
 		test_case("diverse population should begin where elite popultion ends") {
 			auto population = populationFixture();
 			ScatterSearchPopulation<int> scatterSearchPopulation(population, 1, 3);
-			assert(scatterSearchPopulation.diverse.begin(), ==, scatterSearchPopulation.elite.end());
+			assert((scatterSearchPopulation.diverse.begin() == scatterSearchPopulation.elite.end()), ==, true);
 		};
 
 		test_case("candidate population should begin where diverse population ends") {
 			auto population = populationFixture();
 			ScatterSearchPopulation<int> scatterSearchPopulation(population, 1, 3);
-			assert(scatterSearchPopulation.candidate.begin(), ==, scatterSearchPopulation.diverse.end());
+			assert((scatterSearchPopulation.candidate.begin() == scatterSearchPopulation.diverse.end()), ==, true);
 		};
 	}
-} end_tests;
+};

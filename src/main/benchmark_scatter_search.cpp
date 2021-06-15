@@ -1,4 +1,5 @@
 #include "heuristic/heuristic.h"
+#include <stopwatch/stopwatch.h>
 #include <cpp-benchmark/benchmark.h>
 #include <cpp-command-line-interface/command_line_interface.h>
 #include <fstream>
@@ -83,24 +84,23 @@ cli_main (
 		combinationMethod = combination_method_factory::breadthFirstSearch(*mutationProbability);
 	}
 
-	register_observer(new TerminalObserver());
-	if (*outputPath != DONT_OUTPUT_TO_FILE) {
-		register_observer(new TsvFileObserver(*outputPath));
-	}
+	TerminalObserver terminalObserver;
 
-	observe_variable("graph lower bound", lowerBound, observation_mode::CURRENT_VALUE);
-	observe_variable("penalty", penalty,
-		  observation_mode::CURRENT_VALUE
-		| observation_mode::AVERAGE_VALUE
-		| observation_mode::MAXIMUM_VALUE
-		| observation_mode::MINIMUM_VALUE
-	);
-	observe_variable("execution time", duration,
-		  observation_mode::CURRENT_VALUE
-		| observation_mode::AVERAGE_VALUE
-		| observation_mode::MINIMUM_VALUE
-		| observation_mode::MAXIMUM_VALUE
-	);
+	register_observers(terminalObserver);
+	// if (*outputPath != DONT_OUTPUT_TO_FILE) {
+	//   register_observer(new TsvFileObserver(*outputPath));
+	// }
+
+	observe(lowerBound, lower_bound);
+	observe(penalty, current_penalty);
+	observe_average(penalty, avg_penalty);
+	observe_minimum(penalty, min_penalty);
+	observe_maximum(penalty, max_penalty);
+
+	observe(duration, current_duration);
+	observe_average(duration, avg_duration);
+	observe_minimum(duration, min_duration);
+	observe_maximum(duration, max_duration);
 
 	benchmark("scatter search heuristic", *numberOfRuns) {
 
@@ -115,11 +115,9 @@ cli_main (
 		duration = chrono::high_resolution_clock::now() - begin;
 		penalty = graph->totalPenalty(solution);
 		lowerBound = graph->lowerBound();
-
-	} end_benchmark;
+	};
 
 	delete graph;
-	delete_observers();
 
 	return 0;
 } end_cli_main;

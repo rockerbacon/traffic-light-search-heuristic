@@ -1,6 +1,7 @@
 #include "heuristic/heuristic.h"
-#include "assertions/benchmark.h"
-#include "assertions/command_line_interface.h"
+#include <stopwatch/stopwatch.h>
+#include <cpp-benchmark/benchmark.h>
+#include <cpp-command-line-interface/command_line_interface.h>
 
 #define DEFAULT_NUMBER_OF_RUNS 100
 
@@ -10,7 +11,7 @@ using namespace benchmark;
 using namespace heuristic;
 
 double iterativeVariety (const Graph &graph, const list<Solution>& previousSolutions, const Solution &newSolution) {
-	double variety;	
+	double variety;
 	int j;
 	list<Solution>::const_iterator it;
 
@@ -22,7 +23,19 @@ double iterativeVariety (const Graph &graph, const list<Solution>& previousSolut
 	return variety;
 }
 
-int main (int argc, char** argv) {
+cli_main (
+	"Benchmark Traffic Light Heuristic",
+	"v0.1",
+	"Benchmarks scatter search heuristic against purely random solution",
+
+	cli::RequiredArgument<string> inputFilePath("input", "input file");
+	cli::create_alias("input", 'i');
+
+	cli::OptionalArgument<unsigned> numberOfRuns(DEFAULT_NUMBER_OF_RUNS, "runs", "number of runs");
+
+	cli::FlagArgument useAdjacencyList("useAdjacencyList");
+	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
+) {
 
 	GraphBuilder graphBuilder;
 	Graph *graph;
@@ -37,18 +50,9 @@ int main (int argc, char** argv) {
 	Solution solution;
 	ifstream fileInputStream;
 
-	/* CLI ARGUMENTS */
-	cli::RequiredArgument<string> inputFilePath("input", 'i');
-
-	cli::OptionalArgument<unsigned> numberOfRuns("runs", DEFAULT_NUMBER_OF_RUNS);
-
-	cli::FlagArgument useAdjacencyList("useAdjacencyList");
-	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
-
-	cli::capture_all_arguments_from(argc, argv);
-
 	fileInputStream.open(*inputFilePath);
 	graphBuilder.read_from_file(fileInputStream);
+	fileInputStream.close();
 
 	if (*useAdjacencyMatrix) {
 		graph = graphBuilder.buildAsAdjacencyMatrix();
@@ -57,20 +61,24 @@ int main (int argc, char** argv) {
 	}
 	/* CLI ARGUMENTS */
 
-	register_observer(new TerminalObserver());
+	TerminalObserver terminalObserver;
+	register_observers(terminalObserver);
 
-	observe_variable("Lower bound", lowerBound, observation_mode::CURRENT_VALUE);
-	observe_variable("Random construction variety", randomVariety, observation_mode::AVERAGE_VALUE);
-	observe_variable("Random construction penalty", randomPenalty, observation_mode::AVERAGE_VALUE);
-	observe_variable("Random construction time", randomTime, observation_mode::AVERAGE_VALUE);
-	observe_variable("Random/Lower bound factor", lowerBoundRandomFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("Heuristic construction variety", heuristicVariety, observation_mode::AVERAGE_VALUE);
-	observe_variable("Heuristic construction penalty", heuristicPenalty, observation_mode::AVERAGE_VALUE);
-	observe_variable("Heuristic construction time", heuristicTime, observation_mode::AVERAGE_VALUE);
-	observe_variable("Heuristic/Lower bound factor", lowerBoundHeuristicFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("Heuristic/Random variety factor", varietyFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("Heuristic/Random penaltyFactor", penaltyFactor, observation_mode::AVERAGE_VALUE);
+	observe(lowerBound, lower_bound);
+	observe_average(randomVariety, random_construction_variety);
+	observe_average(randomPenalty, random_construction_penalty);
+	observe_average(randomTime, random_construction_time);
+	observe_average(lowerBoundRandomFactor, random_construction_lowerbound_factor);
 
+	observe_average(heuristicVariety, heuristic_variety);
+	observe_average(heuristicPenalty, heuristic_penalty);
+	observe_average(heuristicTime, heuristic_time);
+	observe_average(lowerBoundHeuristicFactor, heuristic_lowerbound_factor);
+
+	observe_average(varietyFactor, heuristic_random_variety_factor);
+	observe_average(penaltyFactor, heuristic_random_penalty_factor);
+
+	auto run = 0;
 	lowerBound = graph->lowerBound();
 	benchmark("initial solution construction", *numberOfRuns) {
 
@@ -94,17 +102,17 @@ int main (int argc, char** argv) {
 
 		heuristicSolutions.push_back(solution);
 
-		if (benchmark::current_run > 1) {
+		if (run > 1) {
 			varietyFactor = heuristicVariety/randomVariety;
 		} else {
 			varietyFactor = 1;
 		}
 		penaltyFactor = heuristicPenalty/randomPenalty;
 
-	} end_benchmark;
+		run++;
+	}
 
-	delete_observers();
 	delete graph;
 
 	return 0;
-}
+} end_cli_main;

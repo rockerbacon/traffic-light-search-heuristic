@@ -1,6 +1,7 @@
 #include "heuristic/heuristic.h"
-#include "assertions/benchmark.h"
-#include "assertions/command_line_interface.h"
+#include <stopwatch/stopwatch.h>
+#include <cpp-benchmark/benchmark.h>
+#include <cpp-command-line-interface/command_line_interface.h>
 
 #define DEFAULT_NUMBER_OF_RUNS 10
 #define DEFAULT_STOP_FUNCTION stop_function_factory::numberOfIterations(330)
@@ -12,7 +13,28 @@ using namespace traffic;
 using namespace benchmark;
 using namespace heuristic;
 
-int main (int argc, char** argv) {
+cli_main(
+	"Benchmark Genetic Algorithm",
+	"v0.1",
+	"Benchmarks a genetic algorithm against a randomly generated solution",
+
+	cli::RequiredArgument<string> inputFilePath("input", "input file");
+	cli::create_alias("input", 'i');
+
+	cli::OptionalArgument<unsigned> numberOfRuns(DEFAULT_NUMBER_OF_RUNS, "runs");
+
+	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
+
+	cli::OptionalArgument<size_t> populationSize(DEFAULT_POPULATION_SIZE, "populationSize");
+	cli::OptionalArgument<double> mutationProbability(DEFAULT_MUTATION_PROBABILITY, "mutationProbability");
+	cli::FlagArgument useCrossover("useCrossover");
+	cli::FlagArgument useBreadthFirstSearch("useBfs");
+
+	cli::OptionalArgument<unsigned> numberOfIterationsToStop(0, "iterations");
+	cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop(0, "numberOfIterationsWithoutImprovement");
+	cli::OptionalArgument<unsigned> secondsToStop(0, "seconds");
+	cli::OptionalArgument<unsigned> minutesToStop(0, "minutes");
+) {
 
 	GraphBuilder graphBuilder;
 	Graph *graph = nullptr;
@@ -21,28 +43,12 @@ int main (int argc, char** argv) {
 	StopFunction stopFunction;
 
 	double penalty, lowerBound;
-	double penaltyFactor, lowerBoundFactor;
+	double lowerBoundFactor;
 	chrono::high_resolution_clock::time_point begin;
 	chrono::high_resolution_clock::duration duration;
 	ifstream fileInputStream;
 
 	/* CLI ARGUMENTS */
-	cli::RequiredArgument<string> inputFilePath("input", 'i');
-
-	cli::OptionalArgument<unsigned> numberOfRuns("runs", DEFAULT_NUMBER_OF_RUNS);
-
-	cli::FlagArgument useAdjacencyMatrix("useAdjacencyMatrix");
-
-	cli::OptionalArgument<size_t> populationSize("populationSize", DEFAULT_POPULATION_SIZE);
-	cli::OptionalArgument<double> mutationProbability("mutationProbability", DEFAULT_MUTATION_PROBABILITY);
-	cli::FlagArgument useCrossover("useCrossover");
-	cli::FlagArgument useBreadthFirstSearch("useBfs");
-
-	cli::OptionalArgument<unsigned> numberOfIterationsToStop("iterations", 0);
-	cli::OptionalArgument<unsigned> numberOfIterationsWithoutImprovementToStop("numberOfIterationsWithoutImprovement", 0);
-	cli::OptionalArgument<unsigned> secondsToStop("seconds", 0);
-	cli::OptionalArgument<unsigned> minutesToStop("minutes", 0);
-
 	cli::capture_all_arguments_from(argc, argv);
 
 	fileInputStream.open(*inputFilePath);
@@ -55,7 +61,7 @@ int main (int argc, char** argv) {
 	}
 
 	if (*useBreadthFirstSearch) {
-		combinationMethod = combination_method_factory::breadthFirstSearch();
+		combinationMethod = combination_method_factory::breadthFirstSearch(*mutationProbability);
 	} else {
 		combinationMethod = combination_method_factory::crossover(*mutationProbability);
 	}
@@ -73,12 +79,13 @@ int main (int argc, char** argv) {
 	}
 	/* CLI ARGUMENTS */
 
-	register_observer(new TerminalObserver());
+	TerminalObserver terminalObserver;
+	register_observers(terminalObserver);
 
-	observe_variable("graph lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
-	observe_variable("genetic algorithm penalty", penalty, observation_mode::AVERAGE_VALUE);
-	observe_variable("genetic algorithm/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("genetic algorithm duration", duration, observation_mode::AVERAGE_VALUE);
+	observe_average(lowerBound, graph_lower_bound);
+	observe_average(penalty, avg_penalty);
+	observe_average(lowerBoundFactor, lower_bound_factor);
+	observe_average(duration, avg_duration);
 
 	lowerBound = graph->lowerBound();
 	benchmark("genetic algorithm", *numberOfRuns) {
@@ -92,10 +99,9 @@ int main (int argc, char** argv) {
 
 		lowerBoundFactor = penalty/lowerBound;
 
-	} end_benchmark;
+	};
 
-	delete_observers();
 	delete graph;
 
 	return 0;
-}
+} end_cli_main;

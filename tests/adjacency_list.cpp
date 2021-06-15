@@ -35,7 +35,7 @@ AdjacencyListGraph* graphFixture(void) {
 	return graphBuilder.buildAsAdjacencyList();
 }
 
-begin_tests {
+tests {
 
 	test_suite("instantiation and destruction") {
 		test_case("graph can be correctly built from a graph builder and then destroyed") {
@@ -139,11 +139,11 @@ begin_tests {
 			auto neighbors_of_v = graph->neighborsOf(v);
 			auto neighbors_of_u = graph->neighborsOf(u);
 
-			assert(neighbors_of_v.find(u), !=, neighbors_of_v.end());
-			assert(neighbors_of_u.find(v), !=, neighbors_of_u.end());
+			assert((neighbors_of_v.find(u) != neighbors_of_v.end()), ==, true);
+			assert((neighbors_of_u.find(v) != neighbors_of_u.end()), ==, true);
 
 			delete graph;
 		};
 
 	}
-} end_tests;
+};

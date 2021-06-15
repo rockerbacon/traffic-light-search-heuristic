@@ -7,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-begin_tests {
+tests {
 	test_suite("when constructing heuristic initial solution") {
 		test_case("solution should have at least one timing that's not 0") {
 			MockGraph graph;
@@ -26,8 +26,8 @@ begin_tests {
 			auto solution = constructHeuristicSolution(graph);
 			for (Vertex i = 0; i < graph.getNumberOfVertices(); i++) {
 				auto timing = solution[i];
-				assert(timing >= 0 && timing < testCycle, ==, true);
+				assert((timing >= 0 && timing < testCycle), ==, true);
 			}
 		};
 	}
-} end_tests;
+};

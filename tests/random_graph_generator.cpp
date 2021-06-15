@@ -19,7 +19,7 @@ Graph* randomGraphFixture() {
 	return graphBuilder.buildAsAdjacencyList();
 }
 
-begin_tests {
+tests {
 	test_suite("when building random graph") {
 		test_case("graph should have correct number of vertices") {
 			auto graph = randomGraphFixture();
@@ -83,4 +83,4 @@ begin_tests {
 			assert(connectedVertices, ==, NUMBER_OF_VERTICES);
 		};
 	}
-} end_tests;
+};

@@ -1,4 +1,4 @@
-#include "assertions/command_line_interface.h"
+#include <cpp-command-line-interface/command_line_interface.h>
 #include "traffic_graph/traffic_graph.h"
 
 #include <fstream>
@@ -11,20 +11,35 @@
 using namespace traffic;
 using namespace std;
 
-int main (int argc, char **argv) {
+cli_main (
+	"Random Graph Generator",
+	"v0.1",
+	"Program for creating random graphs",
+
+	cli::RequiredArgument<string> output_file_path("output");
+	cli::create_alias("output", 'o');
+
+	cli::RequiredArgument<Vertex> number_of_vertices("vertices");
+	cli::create_alias("vertices", 'v');
+
+	cli::RequiredArgument<TimeUnit> cycle("cycle");
+	cli::create_alias("cycle", 'c');
+
+	cli::OptionalArgument<Vertex> min_vertex_degree(DEFAULT_MIN_VERTEX_DEGREE, "min-vertex-degree");
+	cli::create_alias("min-vertex-degree", 'm');
+
+	cli::OptionalArgument<Vertex> max_vertex_degree(DEFAULT_MAX_VERTEX_DEGREE, "max-vertex-degree");
+	cli::create_alias("max-vertex-degree", 'M');
+
+	cli::OptionalArgument<TimeUnit> min_edge_weight(DEFAULT_MIN_EDGE_WEIGHT, "min-edge-weight");
+	cli::create_alias("min-edge-weight", 'w');
+
+	cli::OptionalArgument<TimeUnit> max_edge_weight(UNSPECIFIED_WEIGHT, "max-edge-weight");
+	cli::create_alias("max-edge-weight", 'W');
+) {
 
 	GraphBuilder *builder;
 	ofstream file_stream;
-
-	cli::RequiredArgument<string> output_file_path("output", 'o');
-	cli::RequiredArgument<Vertex> number_of_vertices("vertices", 'v');
-	cli::RequiredArgument<TimeUnit> cycle("cycle", 'c');
-	cli::OptionalArgument<Vertex> min_vertex_degree("min-vertex-degree", DEFAULT_MIN_VERTEX_DEGREE, 'm');
-	cli::OptionalArgument<Vertex> max_vertex_degree("max-vertex-degree", DEFAULT_MAX_VERTEX_DEGREE, 'M');
-	cli::OptionalArgument<TimeUnit> min_edge_weight("min-edge-weight", DEFAULT_MIN_EDGE_WEIGHT, 'w');
-   	cli::OptionalArgument<TimeUnit> max_edge_weight("max-edge-weight", UNSPECIFIED_WEIGHT, 'W');	
-
-	cli::capture_all_arguments_from(argc, argv);
 
 	if (*max_edge_weight == UNSPECIFIED_WEIGHT) {
 		*max_edge_weight = *cycle-1;
@@ -58,4 +73,4 @@ int main (int argc, char **argv) {
 #endif
 
 
-}
+} end_cli_main;

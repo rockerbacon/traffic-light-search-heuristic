@@ -1,4 +1,5 @@
 #include "heuristic/heuristic.h"
+#include <stopwatch/stopwatch.h>
 #include <cpp-benchmark/benchmark.h>
 #include <cpp-command-line-interface/command_line_interface.h>
 #include <cstring>
@@ -56,14 +57,15 @@ cli_main (
 		stopFunction = DEFAULT_STOP_FUNCTION;
 	}
 
-	register_observer(new TerminalObserver());
+	TerminalObserver terminalObserver;
+	register_observers(terminalObserver);
 
-	observe_variable("graph lower bound", lowerBound, observation_mode::AVERAGE_VALUE);
-	observe_variable("initial solution penalty", initialConstructionPenalty, observation_mode::AVERAGE_VALUE);
-	observe_variable("local search penalty", localSearchPenalty, observation_mode::AVERAGE_VALUE);
-	observe_variable("search/initial penalty factor", penaltyFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("search/lower bound factor", lowerBoundFactor, observation_mode::AVERAGE_VALUE);
-	observe_variable("search duration", searchDuration, observation_mode::AVERAGE_VALUE);
+	observe_average(lowerBound, lower_bound);
+	observe_average(initialConstructionPenalty, initial_construction_penalty);
+	observe_average(localSearchPenalty, local_search_penalty);
+	observe_average(penaltyFactor, penalty_factor);
+	observe_average(lowerBoundFactor, lower_bound_factor);
+	observe_average(searchDuration, search_duration);
 
 	benchmark("local search heuristic", *numberOfRuns) {
 
@@ -79,10 +81,9 @@ cli_main (
 		penaltyFactor = localSearchPenalty/initialConstructionPenalty;
 		lowerBoundFactor = localSearchPenalty/lowerBound;
 
-	} end_benchmark;
+	};
 
 	delete graph;
-	delete_observers();
 
 	return 0;
 } end_cli_main;

@@ -1,96 +1,196 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(dirname $0)
-PROJECT_ROOT=$(realpath "$SCRIPT_DIR/../../../..")
-MODULE_ROOT=$(realpath "$SCRIPT_DIR")
-DEPENDENCIES_DIR="$PROJECT_ROOT/external_dependencies"
-DEPENDENCIES_LIB_DIR="$DEPENDENCIES_DIR/lib"
-DEPENDENCIES_INCLUDE_DIR="$DEPENDENCIES_DIR/include"
 REPOSITORIES_DIR="$DEPENDENCIES_DIR/git"
 
-mkdir -p "$REPOSITORIES_DIR"
-
-##################### Command Line Interface ##########################
-GIT_URL="$1"
-if [ "$GIT_URL" == "" ]; then
-	echo "Error: unspecified git URL"
-	exit 1
-fi
-GIT_COMMIT="$2"
-##################### Command Line Interface ##########################
-
-GIT_URL_IS_HTTP=$(echo "$GIT_URL" | grep -oe "^http")
-if [ "$GIT_URL_IS_HTTP" == "" ]; then
-	echo "Error: not an HTTP git URL"
-	exit 1
-fi
-
-RELATIVE_DEPENDENCY_REPOSITORY_DIR=$(echo "$GIT_URL" | sed "s/^.*\///; s/\.git$//")
-DEPENDENCY_REPOSITORY_DIR="$REPOSITORIES_DIR/$RELATIVE_DEPENDENCY_REPOSITORY_DIR"
+INITIAL_WORKDIR=$PWD
+FROZEN_ARGS=""
+GIT_COMMIT=""
+LOCAL_ONLY=""
+GIT_OBJS_DIR=""
+GIT_INCLUDE_DIR=""
+BEFORE_LINKING_SCRIPT=""
+DEPENDENCY_NAME=""
+GIT_SERVER_DOMAIN=""
+DOWNLOAD_PROTOCOL=""
 
 rollback_installation () {
 	if [ -d "$DEPENDENCY_REPOSITORY_DIR/.git" ]; then
 		echo "Rolling back: deleting '$DEPENDENCY_REPOSITORY_DIR'"
 		rm -rf "$DEPENDENCY_REPOSITORY_DIR"
+		cd "$INITIAL_WORKDIR"
 	fi
 }
 
+mkdir -p "$REPOSITORIES_DIR"
+
+##################### Command Line Interface ##########################
+GIT_PATH="$1"
+shift
+if [ "$GIT_PATH" == "" ]; then
+	log_error "unspecified git path"
+	return 1
+fi
+FROZEN_ARGS="$GIT_PATH"
+
+until [ -z "$1" ]; do
+
+	case "$1" in
+
+	--version)
+		GIT_COMMIT="$2"
+		shift
+	;;
+
+	--local-only)
+		LOCAL_ONLY=true
+		FROZEN_ARGS="$FROZEN_ARGS --local-only"
+	;;
+
+	--objs-dir)
+		GIT_OBJS_DIR="$2"
+		FROZEN_ARGS="$FROZEN_ARGS --objs-dir '$GIT_OBJS_DIR'"
+		shift
+	;;
+
+	--include-dir)
+		GIT_INCLUDE_DIR="$2"
+		FROZEN_ARGS="$FROZEN_ARGS --include-dir '$GIT_INCLUDE_DIR'"
+		shift
+	;;
+
+	--before-linking)
+		BEFORE_LINKING_SCRIPT="$2"
+		FROZEN_ARGS="$FROZEN_ARGS --before-linking '$BEFORE_LINKING_SCRIPT'"
+		shift
+	;;
+
+	--alias)
+		DEPENDENCY_NAME="$2"
+		FROZEN_ARGS="$FROZEN_ARGS --alias '$DEPENDENCY_NAME'"
+		shift
+	;;
+
+	--domain)
+		GIT_SERVER_DOMAIN="$2"
+		FROZEN_ARGS="$FROZEN_ARGS --domain '$GIT_SERVER_DOMAIN'"
+		shift
+	;;
+
+	--use-http)
+		DOWNLOAD_PROTOCOL="http"
+		FROZEN_ARGS="$FROZEN_ARGS --use-http"
+	;;
+
+	esac
+
+	shift
+done
+##################### Command Line Interface ##########################
+
+if [ "$IGNORE_LOCAL_DEPENDENCIES" == "true" ] && [ "$LOCAL_ONLY" == "true" ]; then
+	log_info "skipping local dependency 'git ${GIT_PATH}'"
+	return 0
+else
+	log_info "installing dependency 'git ${GIT_PATH}'"
+fi
+
+if [ "$DEPENDENCY_NAME" == "" ]; then
+	DEPENDENCY_NAME=$(echo "$GIT_PATH" | sed "s/^.*\///")
+fi
+
+DEPENDENCY_REPOSITORY_DIR="$REPOSITORIES_DIR/$DEPENDENCY_NAME"
+
+if [ "$DOWNLOAD_PROTOCOL" == "" ]; then
+	DOWNLOAD_PROTOCOL="https"
+fi
+
+if [ "$GIT_SERVER_DOMAIN" == "" ]; then
+	GIT_SERVER_DOMAIN="github.com"
+fi
+
+REPOSITORY_URL="$DOWNLOAD_PROTOCOL://$GIT_SERVER_DOMAIN/$GIT_PATH.git"
+
 if [ -d "$DEPENDENCY_REPOSITORY_DIR" ]; then
-	echo "Info: Dependency '$DEPENDENCY_REPOSITORY_DIR' already cloned" 1>&2
+	log_info "dependency '$DEPENDENCY_REPOSITORY_DIR' already cloned"
 else
-	cd "$REPOSITORIES_DIR"
-	git clone "$GIT_URL"
-	GIT_EXECUTION_STATUS=$?
-	if [ "$GIT_EXECUTION_STATUS" != "0" ]; then
-		exit 1
+	git clone "$REPOSITORY_URL" "$DEPENDENCY_REPOSITORY_DIR"; CLONE_STATUS=$?
+	if [ $CLONE_STATUS -ne 0 ]; then
+		return 1
 	fi
 fi
 
+log_info "changing directory to '$DEPENDENCY_REPOSITORY_DIR'"
 cd "$DEPENDENCY_REPOSITORY_DIR"
-if [ "$GIT_COMMIT" != "" ]; then
-	git checkout $GIT_COMMIT
-	CHECKOUT_STATUS=$?
-	if [ "$CHECKOUT_STATUS" != "0" ]; then
-		echo "Error: not a valid commit: '$GIT_COMMIT'"
-		rollback_installation
-		exit 1
-	fi
-else
-	LASTEST_COMMIT=$(git log | grep -m 1 "^commit" | sed "s/commit //")
-	echo "Info: commit not specified, using latest ($LASTEST_COMMIT)" 1>&2
-	GIT_COMMIT=$LASTEST_COMMIT
+
+if [ "$GIT_COMMIT" == "" ]; then
+	GIT_COMMIT=$(git tag --sort refname | tail -n 1)
+	log_info "commit not specified, using latest tagged commit ($GIT_COMMIT)"
+fi
+FROZEN_ARGS="$FROZEN_ARGS --version $GIT_COMMIT"
+
+log_info "checking out $GIT_COMMIT"
+git checkout -q $GIT_COMMIT; CHECKOUT_STATUS=$?
+if [ $CHECKOUT_STATUS -ne 0 ]; then
+	log_error "not a valid commit: '$GIT_COMMIT'"
+	rollback_installation
+	return 1
 fi
 
-if [ -f "$DEPENDENCY_REPOSITORY_DIR/.assertions/language" ]; then
-	DEPENDENCY_LANGUAGE=$(cat "$DEPENDENCY_REPOSITORY_DIR/.assertions/language")
-	if [ "$DEPENDENCY_LANGUAGE" == "cpp" ]; then
-		if [ -d "$DEPENDENCY_REPOSITORY_DIR/build" ]; then
-			echo "Info: dependency '$GIT_URL' already built" 1>&2
-		else
-			echo "Info: building dependency '$GIT_URL'..." 1>&2
-			DEPENDENCY_BUILD_OUTPUT=$("$DEPENDENCY_REPOSITORY_DIR/build.sh" 2>&1)
-			if [ "$?" != "0" ]; then
-				echo "Error: failed to build dependency '$GIT_URL':"
-				echo $DEPENDENCY_BUILD_OUTPUT
-				rollback_installation
-				exit 1
-			elif [ ! -d "$DEPENDENCY_REPOSITORY_DIR/build/release/lib" ]; then
-				echo "Error: dependency is not a lib"
-				rollback_installation
-				exit 1
-			fi
-			ln -s "$DEPENDENCY_REPOSITORY_DIR/build/release/lib" "$DEPENDENCIES_LIB_DIR/$RELATIVE_DEPENDENCY_REPOSITORY_DIR"
-			ln -s "$DEPENDENCY_REPOSITORY_DIR/build/release/include" "$DEPENDENCIES_INCLUDE_DIR/$RELATIVE_DEPENDENCY_REPOSITORY_DIR"
-		fi
-	else
-		echo "Error: project uses Assertions, but it's not meant for this languague. Expected language: 'cpp', language reported by dependency: '${DEPENDENCY_LANGUAGE}'"
-		rollback_installation
-		exit 1
-	fi
-	echo "Info: dependency configured: $GIT_URL $GIT_COMMIT"
-else
-	echo "Error: dependencies can only be from projects using the Assertions C++ Framework"
-	rollback_installation
-	exit 1
+if [ "$BEFORE_LINKING_SCRIPT" != "" ]; then
+	log_info "executing script '$BEFORE_LINKING_SCRIPT'"
+	$BEFORE_LINKING_SCRIPT
 fi
+
+if [ "$GIT_OBJS_DIR" == "" ]; then
+	GIT_OBJS_DIR="src/objs"
+	log_info "--objs-dir not specified, using '$GIT_OBJS_DIR'"
+fi
+
+if [ "$GIT_INCLUDE_DIR" == "" ]; then
+	GIT_INCLUDE_DIR="src/objs"
+	log_info "--include-dir not specified, using '$GIT_INCLUDE_DIR'"
+fi
+
+if [ ! -d "$DEPENDENCY_REPOSITORY_DIR/$GIT_OBJS_DIR" ]; then
+		log_error "no directory '$GIT_OBJS_DIR' in project's root"
+		rollback_installation
+		return 1
+fi
+
+if [ ! -d "$DEPENDENCY_REPOSITORY_DIR/$GIT_INCLUDE_DIR" ]; then
+		log_error "no directory '$GIT_INCLUDE_DIR' in project's root"
+		rollback_installation
+		return 1
+fi
+
+if [ "$LOCAL_ONLY" == "" ]; then
+	LOCAL_ONLY="false"
+fi
+
+if [ "$LOCAL_ONLY" == "false" ]; then
+	DEPENDENCY_INSTALL_DIR="$DEPENDENCIES_OBJS_DIR/$DEPENDENCY_NAME"
+else
+	DEPENDENCY_INSTALL_DIR="$DEPENDENCIES_LOCAL_OBJS_DIR/$DEPENDENCY_NAME"
+fi
+mkdir -p "$DEPENDENCY_INSTALL_DIR"
+
+log_info "linking '$DEPENDENCY_REPOSITORY_DIR/$GIT_OBJS_DIR/*' in '$DEPENDENCY_INSTALL_DIR/'"
+ln -s "$DEPENDENCY_REPOSITORY_DIR/$GIT_OBJS_DIR/"* "$DEPENDENCY_INSTALL_DIR/"
+if [ "$GIT_OBJS_DIR" != "$GIT_INCLUDE_DIR" ]; then
+	log_info "linking '$DEPENDENCY_REPOSITORY_DIR/$GIT_INCLUDE_DIR/*' in '$DEPENDENCY_INSTALL_DIR/'"
+	ln -s "$DEPENDENCY_REPOSITORY_DIR/$GIT_INCLUDE_DIR/"* "$DEPENDENCY_INSTALL_DIR/"
+fi
+
+if [ -f "$DEPENDENCY_REPOSITORY_DIR/dependencies.sh" ]; then
+	log_info "recursively installing dependencies"
+	"$DEPENDENCY_REPOSITORY_DIR/dependencies.sh" install --ignore-local-dependencies
+	HAS_RECURSIVE_DEPENDENCIES=$(ls -A "$DEPENDENCY_REPOSITORY_DIR/external_dependencies/objs")
+	if [ "$HAS_RECURSIVE_DEPENDENCIES" != "" ]; then
+		log_info "linking '$DEPENDENCY_REPOSITORY_DIR/external_dependencies/objs/*' in '$DEPENDENCIES_OBJS_DIR/'"
+		ln -s "$DEPENDENCY_REPOSITORY_DIR/external_dependencies/objs/"* "$DEPENDENCIES_OBJS_DIR/"
+	fi
+fi
+
+freeze_args "$FROZEN_ARGS"
+cd "$INITIAL_WORKDIR"
 

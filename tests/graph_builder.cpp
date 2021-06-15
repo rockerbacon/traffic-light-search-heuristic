@@ -3,7 +3,7 @@
 
 using namespace traffic;
 
-begin_tests {
+tests {
 	test_suite("when building graph") {
 		test_case("should return true when adding new edge") {
 			GraphBuilder builder;
@@ -22,5 +22,5 @@ begin_tests {
 			assert(builder.addEdge({1, 1}, 3), ==, false);
 		};
 	}
-} end_tests;
+};
 

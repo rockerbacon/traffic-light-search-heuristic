@@ -9,7 +9,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-begin_tests {
+tests {
 	test_suite("when performing parallel scatter search") {
 		test_case("should throw error when total size of the population is not even") {
 			MockGraph graph;
@@ -80,4 +80,4 @@ begin_tests {
 			}
 		};
 	}
-} end_tests;
+};

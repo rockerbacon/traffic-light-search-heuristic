@@ -77,7 +77,7 @@ Solution solutionFixture() {
 	return solution;
 }
 
-begin_tests {
+tests {
 	test_suite("after instantiating object of class deriving from Graph") {
 		test_case("graph should report the correct number of vertices") {
 			MockGraph graph;
@@ -153,4 +153,4 @@ begin_tests {
 		assert_true(a == b);
 	} end_test_case;
 	*/
-} end_tests;
+};

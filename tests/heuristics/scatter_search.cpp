@@ -7,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-begin_tests {
+tests {
 	test_suite("when diversifying populations") {
 		test_case("distance between two equal solutions is 0") {
 			MockGraph graph;
@@ -161,4 +161,4 @@ begin_tests {
 			}
 		};
 	}
-} end_tests;
+};

@@ -61,6 +61,7 @@ determine_successful_tests_this_run () {
 
 exec 3>&1 # save stdout address
 
+TESTS_SRC_DIR_PREFIX_LENGTH=$(expr length $TESTS_SRC_DIR + 1)
 TOTAL_FAILED_TESTS=0
 TOTAL_SUCCESSFUL_TESTS=0
 until [ "${TESTS[0]}" == "" ]
@@ -70,13 +71,13 @@ do
 	if [ -d "$CURRENT_TEST" ]; then
 		add_tests_from_directory
 	else
-		echo "Info: initializing tests from '$CURRENT_TEST'..."
-		BUILD_OUTPUT=$(./build.sh target "$CURRENT_TEST" 2>&1)
+		CURRENT_TEST_WITHOUT_PREFIX=${CURRENT_TEST:$TESTS_SRC_DIR_PREFIX_LENGTH}
+		echo "Info: initializing tests from '$CURRENT_TEST_WITHOUT_PREFIX'..."
+		./build.sh target "$CURRENT_TEST"
 		BUILD_STATUS="$?"
 		if [ ! "$BUILD_STATUS" -eq 0 ]; then
 			echo "${red_color}Build failed:${reset_color}"
-			echo "$BUILD_OUTPUT"
-			TOTAL_FAILED_TESTS_THIS_RUN=$(grep -oe 'test_case( )*\(' "$TEST_SOURCE_PATH" | wc -l)
+			TOTAL_FAILED_TESTS_THIS_RUN=$(grep -oE 'test_case\s*\(' "$CURRENT_TEST" | wc -l)
 			TOTAL_FAILED_TESTS=`expr $TOTAL_FAILED_TESTS_THIS_RUN + $TOTAL_FAILED_TESTS`
 		else
 			TEST_STDERR_OUTPUT=$(./run.sh --full-output "$CURRENT_TEST" 2>&1 1>&3)

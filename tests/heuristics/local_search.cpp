@@ -7,7 +7,7 @@ using namespace traffic;
 using namespace std;
 using namespace heuristic;
 
-begin_tests {
+tests {
 	test_suite("when performing a local search") {
 		test_case("searched solution should be different from initial solution") {
 			MockGraph graph;
@@ -40,4 +40,4 @@ begin_tests {
 			}
 		};
 	}
-} end_tests;
+};
